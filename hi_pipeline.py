@@ -245,6 +245,7 @@ def select_refant(config,config_raw,config_file):
     calib = config['calibration']
     tb.open(msfile+'/ANTENNA')
     ant_names = tb.getcol('NAME')
+    tb.close()
     if calib['refant'] not in ant_names:
         logger.info('No valid reference antenna set. Requesting user input.')
         first = 0
@@ -266,6 +267,7 @@ def set_fields(config,config_raw,config_file):
     calib = config['calibration']
     tb.open(msfile+'/FIELD')
     field_names = tb.getcol('NAME')
+    tb.close()
     change_made = False
     if calib['fluxcal'] not in field_names:
         logger.info('No valid flux calibrator set. Requesting user input.')
@@ -460,12 +462,11 @@ def calibration(config):
 
 def split_fields(config):
     calib = config['calibration']
-    field_names = []
     for field in calib['targets']:
         logger.info('Splitting {0} into separate file: {1}.'.format(field, field+'.split'))
         split(vis=msfile, outputvis=field+'.split', field=field)
         
-def contsub(config):
+def contsub(config,config_raw,config_file):
     contsub = config['continuum_subtraction']
     calib = config['calibration']
     logger.info('Checking for line free channel ranges in parameters.')
@@ -493,7 +494,7 @@ def contsub(config):
         for i in range(len(calib['targets'])):
             contsub['linefree_ch'][i] = uinput('Line free channels for {}: '.format(calib['targets'][i]), contsub['linefree_ch'][i])
             logger.info('Setting line free channels for {0} as: {1}.'.format(calib['targets'][i], contsub['linefree_ch'][i]))
-        logger.info('Updating config file.')
+        logger.info('Updating config file to set line free channels.')
         config_raw.set('continuum_subtraction','linefree_ch',contsub['linefree_ch'])
         configfile = open(config_file,'w')
         config_raw.write(configfile)
@@ -506,6 +507,138 @@ def contsub(config):
         uvcontsub(vis=target+'.split', field=target, fitspw=chans,
                   excludechans=False,combine='',solint='int', fitorder=contsub['fitorder'], want_cont=contsub['save_cont'])
 
+def plot_spec(config):
+    plots_obs_dir = './plots/'
+    makedir(plots_obs_dir)
+    calib = config['calibration']
+    targets = calib['targets']
+    for target in targets:
+        tb.open('{}.split/SPECTRAL_WINDOW'.format(target))
+        nspw = len(tb.getcol('NAME'))
+        tb.close()
+        for i in range(nspw):
+            plot_file = plots_obs_dir+'{0}_amp_chn_spw{1}.png'.format(target,i)
+            logger.info('Plotting amplitude vs channel to {}'.format(plot_file))
+            plotms(vis=target+'.split.contsub', xaxis='chan', yaxis='amp',
+                   ydatacolumn='corrected', spw=str(i), plotfile=plot_file,
+                   expformat='png', overwrite=True, showgui=False)
+            plot_file = plots_obs_dir+'{0}_amp_vel_spw{1}.png'.format(target,i)
+            logger.info('Plotting amplitude vs velocity to {}'.format(plot_file))
+            plotms(vis=target+'.split.contsub', xaxis='velocity', yaxis='amp',
+                   ydatacolumn='corrected', spw=str(i), plotfile=plot_file,
+                   expformat='png', overwrite=True, showgui=False,
+                   freqframe='BARY', restfreq='1420.405751MHz', veldef='OPTICAL')
+            
+def dirty_image(config,config_raw,config_file):
+    calib = config['calibration']
+    contsub = config['continuum_subtraction']
+    targets = calib['targets']
+    cln_param = config['clean']
+    logger.info('Checking clean parameters for dirty image.')
+    reset_cln = False
+    if len(cln_param['line_ch']) == 0 or len(cln_param['line_ch']) != len(targets):
+        reset_cln = True
+        if len(cln_param['line_ch']) < len(targets):
+            logger.info('There are more target fields than channel ranges. Appending blank ranges.')
+            while len(cln_param['line_ch']) < len(targets):
+                cln_param['line_ch'].append('')
+        elif len(cln_param['line_ch']) > len(targets):
+            logger.info('There are more channel ranges than target fields.')
+            logger.info('Current channel ranges: {}'.format(cln_param['line_ch']))
+            logger.info('The channel range list will now be truncated to match the number of targets.')
+            cln_param['line_ch'] = cln_param['line_ch'][:len(targets)]
+    else:
+        print('Current image channels set as:')
+        for i in range(len(cln_param['line_ch'])):
+            print('{0}: {1}'.format(targets[i],cln_param['line_ch'][i]))
+        resp = str(raw_input('Do you want revise the channels that will be imaged (y/n): '))
+        if resp.lower() in ['yes','ye','y']:
+            reset_cln = True
+    if reset_cln:
+        print('For each target enter the channels you want to image in the following format:\nspwID:min_ch~max_ch')
+        for i in range(len(targets)):
+            print('Note: The continuum channels for this target were set to: {}'.format(contsub['linefree_ch'][i]))
+            cln_param['line_ch'][i] = uinput('Channels to image for {}: '.format(targets[i]), cln_param['line_ch'][i])
+            logger.info('Setting image channels for {0} as: {1}.'.format(targets[i], cln_param['line_ch'][i]))
+        logger.info('Updating config file to set channels to be imaged.')
+        config_raw.set('clean','line_ch',cln_param['line_ch'])
+        configfile = open(config_file,'w')
+        config_raw.write(configfile)
+    logger.info('Line free channels set as: {}.'.format(cln_param['line_ch']))
+    logger.info('For the targets: {}.'.format(targets))
+    reset_cln = False
+    if len(cln_param['pix_size']) == 0 or len(cln_param['pix_size']) != len(targets):
+        reset_cln = True
+        if len(cln_param['pix_size']) < len(targets):
+            logger.info('There are more target fields than pixel sizes. Appending blanks.')
+            while len(cln_param['pix_size']) < len(targets):
+                cln_param['pix_size'].append('')
+        elif len(cln_param['pix_size']) > len(targets):
+            logger.info('There are more pixel sizes than target fields.')
+            logger.info('Current pixel sizes: {}'.format(cln_param['pix_size']))
+            logger.info('The pixel size list will now be truncated to match the number of targets.')
+            cln_param['pix_size'] = cln_param['pix_size'][:len(targets)]
+    else:
+        print('Current pixel sizes set as:')
+        for i in range(len(cln_param['pix_size'])):
+            print('{0}: {1}'.format(targets[i],cln_param['pix_size'][i]))
+        resp = str(raw_input('Do you want revise the pixel sizes (y/n): '))
+        if resp.lower() in ['yes','ye','y']:
+            reset_cln = True
+    if reset_cln:
+        print('For each target enter the desired pixel size:')
+        for i in range(len(targets)):
+            cln_param['pix_size'][i] = uinput('Pixel size for {}: '.format(targets[i]), cln_param['pix_size'][i])
+            logger.info('Setting pixel size for {0} as: {1}.'.format(targets[i], cln_param['pix_size'][i]))
+        logger.info('Updating config file to set pixel sizes.')
+        config_raw.set('clean','pix_size',cln_param['pix_size'])
+        configfile = open(config_file,'w')
+        config_raw.write(configfile)
+    logger.info('Pixel sizes set as: {}.'.format(cln_param['pix_size']))
+    logger.info('For the targets: {}.'.format(targets))
+    reset_cln = False
+    if len(cln_param['im_size']) == 0 or len(cln_param['im_size']) != len(targets):
+        reset_cln = True
+        if len(cln_param['im_size']) < len(targets):
+            logger.info('There are more target fields than image sizes. Appending blanks.')
+            while len(cln_param['im_size']) < len(targets):
+                cln_param['im_size'].append('')
+        elif len(cln_param['im_size']) > len(targets):
+            logger.info('There are more image sizes than target fields.')
+            logger.info('Current image sizes: {} pixels.'.format(cln_param['im_size']))
+            logger.info('The image size list will now be truncated to match the number of targets.')
+            cln_param['im_size'] = cln_param['im_size'][:len(targets)]
+    else:
+        print('Current images sizes set as:')
+        for i in range(len(cln_param['im_size'])):
+            print('{0}: {1}'.format(targets[i],cln_param['im_size'][i]))
+        resp = str(raw_input('Do you want revise the image sizes (y/n): '))
+        if resp.lower() in ['yes','ye','y']:
+            reset_cln = True
+    if reset_cln:
+        print('For each target enter the desired image size:')
+        for i in range(len(targets)):
+            print('Note: The pixel size for this target was set to: {}'.format(cln_param['pix_size'][i]))
+            cln_param['im_size'][i] = uinput('Image size for {}: '.format(targets[i]), cln_param['im_size'][i])
+            logger.info('Setting image size for {0} as: {1} x {2}.'.format(targets[i], cln_param['im_size'][i],cln_param['pix_size'][i]))
+        logger.info('Updating config file to set image sizes.')
+        config_raw.set('clean','im_size',cln_param['im_size'])
+        configfile = open(config_file,'w')
+        config_raw.write(configfile)
+    logger.info('Image sizes set as: {} pixels.'.format(cln_param['im_size']))
+    logger.info('For the targets: {}.'.format(targets))
+    for i in range(len(targets)):
+        target = targets[i]
+        tclean(vis=target+'.split.contsub', field=target, 
+               spw=cln_param['line_ch'][i], imagename=target+'.dirty',
+               cell=cln_param['pix_size'][i], 
+               imsize=[cln_param['im_size'][i],cln_param['im_size'][i]],
+               specmode='cube', outframe='bary', veltype='radio',
+               restfreq='1420405751.786Hz', gridder='wproject', 
+               wprojplanes=128, pblimit=0.1, normtype='flatnoise',
+               deconvolver='hogbom', restoringbeam='common',
+               robust=cln_param['robust'], niter=0,
+               interactive=False)
 
 ######################   Processing   ####################
 # Read configuration file with parameters
@@ -545,4 +678,6 @@ calibration(config)
 
 #5. Split, continuum subtract and make dirty image
 split_fields(config)
-contsub(config)
+contsub(config,config_raw,config_file)
+plot_spec(config)
+dirty_image(config,config_raw,config_file)
