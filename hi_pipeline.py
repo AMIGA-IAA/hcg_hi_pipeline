@@ -1,4 +1,5 @@
 import time
+import numpy
 import shutil
 import readline
 import logging
@@ -230,6 +231,7 @@ def flag_sum(name):
     flag_info = flagdata(vis=msfile, mode='summary')
     out_file = open(out_file, 'w')
     out_file.write('Total flagged data: {:.2%}\n\n'.format(flag_info['flagged']/flag_info['total']))
+    logger.info('Total flagged data: {:.2%}'.format(flag_info['flagged']/flag_info['total']))
     out_file.write('Flagging per spectral window\n')
     for spw in flag_info['spw'].keys():
         out_file.write('SPW {0}: {1:.2%}\n'.format(spw,flag_info['spw'][spw]['flagged']/flag_info['spw'][spw]['total']))
@@ -247,7 +249,7 @@ def select_refant(config,config_raw,config_file):
     ant_names = tb.getcol('NAME')
     tb.close()
     if calib['refant'] not in ant_names:
-        logger.info('No valid reference antenna set. Requesting user input.')
+        logger.warning('No valid reference antenna set. Requesting user input.')
         first = 0
         print('\n\n\n')
         while calib['refant'] not in ant_names:
@@ -260,6 +262,7 @@ def select_refant(config,config_raw,config_file):
         config_raw.set('calibration','refant',calib['refant'])
         configfile = open(config_file,'w')
         config_raw.write(configfile)
+        configfile.close()
     else:
         logger.info('Reference antenna already set as: {}.'.format(calib['refant']))
 
@@ -270,7 +273,7 @@ def set_fields(config,config_raw,config_file):
     tb.close()
     change_made = False
     if calib['fluxcal'] not in field_names:
-        logger.info('No valid flux calibrator set. Requesting user input.')
+        logger.warning('No valid flux calibrator set. Requesting user input.')
         first = 0
         print('\n\n\n')
         while calib['fluxcal'] not in field_names:
@@ -284,7 +287,7 @@ def set_fields(config,config_raw,config_file):
     else:
         logger.info('Flux calibrator already set as: {}.'.format(calib['fluxcal']))
     if calib['fluxmod'] == '':
-        logger.info('No valid flux calibrator model set. Requesting user input.')
+        logger.warning('No valid flux calibrator model set. Requesting user input.')
         print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, or 3C286_L.im.\n')
         resp = ''
         while True:
@@ -302,7 +305,7 @@ def set_fields(config,config_raw,config_file):
     else:
         logger.info('Flux calibrator model already set as: {}.'.format(calib['fluxmod']))
     if calib['bandcal'] not in field_names:
-        logger.info('No valid bandpass calibrator set. Requesting user input.')
+        logger.warning('No valid bandpass calibrator set. Requesting user input.')
         first = 0
         print('\n\n\n')
         while calib['bandcal'] not in field_names:
@@ -316,7 +319,7 @@ def set_fields(config,config_raw,config_file):
     else:
         logger.info('Bandpass calibrator already set as: {}.'.format(calib['bandcal']))
     if calib['phasecal'] not in field_names:
-        logger.info('No valid phase calibrator set. Requesting user input.')
+        logger.warning('No valid phase calibrator set. Requesting user input.')
         first = 0
         print('\n\n\n')
         while calib['phasecal'] not in field_names:
@@ -330,7 +333,7 @@ def set_fields(config,config_raw,config_file):
     else:
         logger.info('Phase calibrator already set as: {}.'.format(calib['phasecal']))
     if len(calib['targets']) == 0:
-        logger.info('No taregt field(s) set. Requesting user input.')
+        logger.warning('No taregt field(s) set. Requesting user input.')
         print('\n\n\n')
         while True:
             target = ''
@@ -360,6 +363,7 @@ def set_fields(config,config_raw,config_file):
         config_raw.set('calibration','targets',calib['targets'])
         configfile = open(config_file,'w')
         config_raw.write(configfile)
+        configfile.close()
     else:
         logger.info('No changes made to preset target and calibrator fields.')
 
@@ -474,13 +478,13 @@ def contsub(config,config_raw,config_file):
     if len(contsub['linefree_ch']) == 0 or len(contsub['linefree_ch']) != len(calib['targets']):
         reset_ch = True
         if len(contsub['linefree_ch']) < len(calib['targets']):
-            logger.info('There are more target fields than channel ranges. Appending blank ranges.')
+            logger.warning('There are more target fields than channel ranges. Appending blank ranges.')
             while len(contsub['linefree_ch']) < len(calib['targets']):
                 contsub['linefree_ch'].append('')
         elif len(contsub['linefree_ch']) > len(calib['targets']):
-            logger.info('There are more channel ranges than target fields.')
+            logger.warning('There are more channel ranges than target fields.')
             logger.info('Current channel ranges: {}'.format(contsub['linefree_ch']))
-            logger.info('The channel range list will now be truncated to match the number of targets.')
+            logger.warning('The channel range list will now be truncated to match the number of targets.')
             contsub['linefree_ch'] = contsub['linefree_ch'][:len(calib['targets'])]
     else:
         print('Current line free channels set as:')
@@ -498,6 +502,7 @@ def contsub(config,config_raw,config_file):
         config_raw.set('continuum_subtraction','linefree_ch',contsub['linefree_ch'])
         configfile = open(config_file,'w')
         config_raw.write(configfile)
+        configfile.close()
     logger.info('Line free channels set as: {}.'.format(contsub['linefree_ch']))
     logger.info('For the targets: {}.'.format(calib['targets']))
     for i in range(len(calib['targets'])):
@@ -532,6 +537,7 @@ def plot_spec(config):
 def dirty_image(config,config_raw,config_file):
     calib = config['calibration']
     contsub = config['continuum_subtraction']
+    rest_freq = config['global']['rest_freq']
     targets = calib['targets']
     cln_param = config['clean']
     logger.info('Checking clean parameters for dirty image.')
@@ -539,13 +545,13 @@ def dirty_image(config,config_raw,config_file):
     if len(cln_param['line_ch']) == 0 or len(cln_param['line_ch']) != len(targets):
         reset_cln = True
         if len(cln_param['line_ch']) < len(targets):
-            logger.info('There are more target fields than channel ranges. Appending blank ranges.')
+            logger.warning('There are more target fields than channel ranges. Appending blank ranges.')
             while len(cln_param['line_ch']) < len(targets):
                 cln_param['line_ch'].append('')
         elif len(cln_param['line_ch']) > len(targets):
-            logger.info('There are more channel ranges than target fields.')
+            logger.warning('There are more channel ranges than target fields.')
             logger.info('Current channel ranges: {}'.format(cln_param['line_ch']))
-            logger.info('The channel range list will now be truncated to match the number of targets.')
+            logger.warning('The channel range list will now be truncated to match the number of targets.')
             cln_param['line_ch'] = cln_param['line_ch'][:len(targets)]
     else:
         print('Current image channels set as:')
@@ -564,19 +570,20 @@ def dirty_image(config,config_raw,config_file):
         config_raw.set('clean','line_ch',cln_param['line_ch'])
         configfile = open(config_file,'w')
         config_raw.write(configfile)
+        configfile.close()
     logger.info('Line free channels set as: {}.'.format(cln_param['line_ch']))
     logger.info('For the targets: {}.'.format(targets))
     reset_cln = False
     if len(cln_param['pix_size']) == 0 or len(cln_param['pix_size']) != len(targets):
         reset_cln = True
         if len(cln_param['pix_size']) < len(targets):
-            logger.info('There are more target fields than pixel sizes. Appending blanks.')
+            logger.warning('There are more target fields than pixel sizes. Appending blanks.')
             while len(cln_param['pix_size']) < len(targets):
                 cln_param['pix_size'].append('')
         elif len(cln_param['pix_size']) > len(targets):
-            logger.info('There are more pixel sizes than target fields.')
+            logger.warning('There are more pixel sizes than target fields.')
             logger.info('Current pixel sizes: {}'.format(cln_param['pix_size']))
-            logger.info('The pixel size list will now be truncated to match the number of targets.')
+            logger.warning('The pixel size list will now be truncated to match the number of targets.')
             cln_param['pix_size'] = cln_param['pix_size'][:len(targets)]
     else:
         print('Current pixel sizes set as:')
@@ -594,19 +601,20 @@ def dirty_image(config,config_raw,config_file):
         config_raw.set('clean','pix_size',cln_param['pix_size'])
         configfile = open(config_file,'w')
         config_raw.write(configfile)
+        configfile.close()
     logger.info('Pixel sizes set as: {}.'.format(cln_param['pix_size']))
     logger.info('For the targets: {}.'.format(targets))
     reset_cln = False
     if len(cln_param['im_size']) == 0 or len(cln_param['im_size']) != len(targets):
         reset_cln = True
         if len(cln_param['im_size']) < len(targets):
-            logger.info('There are more target fields than image sizes. Appending blanks.')
+            logger.warning('There are more target fields than image sizes. Appending blanks.')
             while len(cln_param['im_size']) < len(targets):
                 cln_param['im_size'].append('')
         elif len(cln_param['im_size']) > len(targets):
-            logger.info('There are more image sizes than target fields.')
+            logger.warning('There are more image sizes than target fields.')
             logger.info('Current image sizes: {} pixels.'.format(cln_param['im_size']))
-            logger.info('The image size list will now be truncated to match the number of targets.')
+            logger.warning('The image size list will now be truncated to match the number of targets.')
             cln_param['im_size'] = cln_param['im_size'][:len(targets)]
     else:
         print('Current images sizes set as:')
@@ -625,6 +633,7 @@ def dirty_image(config,config_raw,config_file):
         config_raw.set('clean','im_size',cln_param['im_size'])
         configfile = open(config_file,'w')
         config_raw.write(configfile)
+        configfile.close()
     logger.info('Image sizes set as: {} pixels.'.format(cln_param['im_size']))
     logger.info('For the targets: {}.'.format(targets))
     for i in range(len(targets)):
@@ -634,11 +643,144 @@ def dirty_image(config,config_raw,config_file):
                cell=cln_param['pix_size'][i], 
                imsize=[cln_param['im_size'][i],cln_param['im_size'][i]],
                specmode='cube', outframe='bary', veltype='radio',
-               restfreq='1420405751.786Hz', gridder='wproject', 
-               wprojplanes=128, pblimit=0.1, normtype='flatnoise',
-               deconvolver='hogbom', restoringbeam='common',
+               restfreq=rest_freq, gridder='wproject', wprojplanes=128,
+               pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', restoringbeam='common', weighting='briggs',
                robust=cln_param['robust'], niter=0,
                interactive=False)
+        
+def noise_est(config):
+    targets = config['calibration']['targets']
+    cln_param = config['clean']
+    noise = []
+    for target in targets:
+        msmd.open(target+'.split.contsub')
+        N = msmd.nantennas()
+        t_int = msmd.effexposuretime()['value']
+        ch_wid = numpy.mean(msmd.chanwidths(0))
+        #Note: The above line may cause issues if different spectral windows
+        #have very difference frequency resolutions
+        msmd.close()
+        corr_eff = cln_param['corr_eff']
+        SEFD = cln_param['sefd']
+        N_pol = 2.
+        noise.append(SEFD/(corr_eff*numpy.sqrt(N_pol*N*(N-1)*t_int*ch_wid)))
+    return noise
+
+def image(config,config_raw,config_file):
+    noises = noise_est(config)
+    calib = config['calibration']
+    contsub = config['continuum_subtraction']
+    rest_freq = config['global']['rest_freq']
+    targets = calib['targets']
+    cln_param = config['clean']
+    logger.info('Beginning generation of clean image(s).')
+    if cln_param['multiscale']:
+        algorithm = 'multiscale'
+        logger.info('Setting CLEAN algorithm to MS-CLEAN.')
+        reset_cln = False
+        if cln_param['scales'] == []:
+            reset_cln = True
+            logger.info('MS-CLEAN scales not set. Requesting user input.')
+        elif 0 not in cln_param['scales']:
+            logger.warning('MS-CLEAN scales do not include point sources. This is highly recommended.')
+            resp = str(raw_input('Do you want revise MS-CLEAN scales (y/n): '))
+            if resp.lower() in ['yes','ye','y']:
+                reset_cln = True
+        if reset_cln:
+            print('Current scales set to: {} beam diameters.'.format(cln_param['scales']))
+            cln_param['scales'] = uinput('Enter new scales: ', cln_param['scales'])
+            logger.info('Setting MS-CLEAN scales as {} beams.'.format(cln_param['scales']))
+            logger.info('Updating config file to set MS-CLEAN scales.')
+            config_raw.set('clean','scales',cln_param['scales'])
+            configfile = open(config_file,'w')
+            config_raw.write(configfile)
+            configfile.close()
+            reset_cln = False
+        scales = cln_param['scales']
+    else:
+        algorithm = 'hogbom'
+        logger.info('Setting CLEAN algorithm to Hogbom.')
+        scales = None
+    for i in range(len(targets)):
+        target = targets[i]
+        logger.info('Starting {} image.'.format(target))
+        ia.open(target+'.dirty.image')
+        rest_beam = ia.restoringbeam()
+        ia.close()
+        reset_cln = False
+        if rest_beam['minor']['unit'] not in cln_param['pix_size'][i]:
+            logger.error('The pixel size and beam size have diffent units.')
+            if cln_param['multiscale']:
+                logger.error('MS-CLEAN scales will likely be incorrect.')
+            logger.info('Pixel size: {}'.format(cln_param['pix_size'][i]))
+            logger.info('Beam size units: {}'.format(rest_beam['minor']['unit']))
+        pix_size = cln_param['pix_size'][i]
+        pix_size = float(pix_size[:pix_size.find(rest_beam['minor']['unit'])])
+        if pix_size > 0.2*rest_beam['minor']['value']:
+            logger.warning('There are fewer than 5 pixels across the beam minor axis. Consider decreasing the pixel size.')
+            print('Beam dimensions:')
+            print('Major: {0:.2f} {1}'.format(rest_beam['major']['value'],rest_beam['major']['unit']))
+            print('Minor: {0:.2f} {1}'.format(rest_beam['minor']['value'],rest_beam['minor']['unit']))
+            print('Pixel size: {}'.format(cln_param['pix_size']))
+            resp = str(raw_input('Do you want revise the pixel size (y/n): '))
+            if resp.lower() in ['yes','ye','y']:
+                reset_cln = True
+        if reset_cln:
+            print('Enter the desired pixel size:')
+            cln_param['pix_size'][i] = uinput('Pixel size for {}: '.format(target), cln_param['pix_size'][i])
+            logger.info('Setting pixel size for {0} as: {1}.'.format(target, cln_param['pix_size'][i]))
+            logger.info('Updating config file to set pixel size.')
+            config_raw.set('clean','pix_size',cln_param['pix_size'])
+            configfile = open(config_file,'w')
+            config_raw.write(configfile)
+            configfile.close()
+            reset_cln = False
+        if cln_param['multiscale']:
+            pix_size = cln_param['pix_size'][i]
+            pix_size = float(pix_size[:pix_size.find(rest_beam['minor']['unit'])])
+            pix_per_beam = rest_beam['major']['value']/pix_size
+            scales = list(numpy.array(numpy.array(scales)*pix_per_beam,dtype='int'))
+            max_scales = [36., 120., 970., 970.] #arcsec 
+            #For VLA A, B, C, and D array respectively
+            #science.nrao.edu/facilities/vla/docs/manuals/oss/performance/resolution
+            if 'arcsec' not in cln_param['pix_size'][i]:
+                logger.warning('Pixel size not in arcsec. Maximum scale not checked.')
+            else:
+                pix_size = cln_param['pix_size'][i]
+                pix_size = float(pix_size[:pix_size.find('arcsec')])
+                if max(scales)*pix_size > max_scales[3]:
+                    #THE ABOVE LINE MUST BE CHANGED
+                    #THERE NEEDS TO BE AN AUTOMATIC ASSIGNMENT OF ARRAY
+                    logger.warning('Some MS-CLEAN scale(s) is (are) larger than largest recoverable angular scales.')
+                    logger.info('Removing offending scales.')
+                    inx = numpy.where(numpy.array(scales)*pix_size <= max_scales[3])[0]
+                    scales = scales[inx]
+            logger.info('CLEANing with scales of {} pixels.'.format(scales))
+        logger.info('CLEANing {0} to a threshold of {1} Jy.'.format(target,noises[i]*cln_param['thresh']))
+        tclean(vis=target+'.split.contsub', field=target, 
+               spw=cln_param['line_ch'][i], imagename=target,
+               cell=cln_param['pix_size'][i], 
+               imsize=[cln_param['im_size'][i],cln_param['im_size'][i]],
+               specmode='cube', outframe='bary', veltype='radio',
+               restfreq=rest_freq, gridder='wproject', wprojplanes=128,
+               pblimit=0.1, normtype='flatnoise', deconvolver=algorithm,
+               scales=scales,
+               restoringbeam='common', pbcor=True, weighting='briggs',
+               robust=cln_param['robust'], niter=100000, gain=0.1,
+               threshold='{}Jy'.format(noises[i]*cln_param['thresh']),
+               cyclefactor=5.0,interactive=False)
+        logger.info('CLEANing finished. Image cube saved as {}.'.format(target+'.image'))
+        ia.open(target+'.dirty.image')
+        coords = ia.coordsys()
+        if 'J2000' not in coords.referencecode()[0]:
+            logger.info('Coordinate system not J2000. Image will be regridded.')
+            imregrid(imagename=target+'.image', template='J2000', 
+                     output=target+'.image.J2000', asvelocity=True,
+                     interpolation='linear', decimate=10,
+                     overwrite=True)
+            logger.info('{} regridded in J2000 coordinates.'.format(target+'.image.J2000'))
+        coords.done()
+        ia.close()
 
 ######################   Processing   ####################
 # Read configuration file with parameters
@@ -653,7 +795,7 @@ logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['proje
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 # 1. Import data and write listobs to file
-data_path = config['importdata']['data_path']
+'''data_path = config['importdata']['data_path']
 data_files = glob.glob(os.path.join(data_path, '*'))
 import_data(data_files, msfile)
 msinfo = get_msinfo(msfile)
@@ -672,7 +814,9 @@ select_refant(config,config_raw,config_file)
 set_fields(config,config_raw,config_file)
 calibration(config)
 rflag(config)
+flag_sum('rflag')
 extend_flags()
+flag_sum('extended')
 flag_sum('final')
 calibration(config)
 
@@ -680,4 +824,7 @@ calibration(config)
 split_fields(config)
 contsub(config,config_raw,config_file)
 plot_spec(config)
-dirty_image(config,config_raw,config_file)
+dirty_image(config,config_raw,config_file)'''
+
+#6. Clean and regrid (if necessary) image
+image(config,config_raw,config_file)
