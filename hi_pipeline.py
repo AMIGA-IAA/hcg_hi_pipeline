@@ -489,7 +489,7 @@ def calibration(config):
     #         gaintable=[gctab, dltab, bptab, iptab, amtab, fxtab], 
     #         gainfield=['', calib['bandcal'], calib['bandcal'], calib['bandcal'], calib['bandcal'], calib['bandcal']], 
     #         calwt=False)
-    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{1}', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'],gctab, dltab, bptab, iptab, amtab)
+    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{1}', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'],gctab, dltab, bptab, iptab, amtab, fxtab)
     command = ""
     logger.info('Executing command: '+command)
     exec(command)
