@@ -371,63 +371,97 @@ def calibration(config):
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
     calib = config['calibration']
+    
     gctab = 'gaincurve.cal'
     logger.info('Calibrating gain vs elevation({}).'.format(gctab))
-    gencal(vis=msfile, caltable=gctab, caltype='gceff')
+    #gencal(vis=msfile, caltable=gctab, caltype='gceff')
+    command = "gencal(vis='{0}', caltable='{1}', caltype='gceff')".format(msfile,gctab)
+    logger.info('Executing command: '+command)
+    exec(command)
+    
     logger.info('Load model for flux calibrator ({}).'.format(calib['fluxmod']))
-    setjy(vis=msfile, field=calib['fluxcal'], spw='', scalebychan=True, model=calib['fluxmod'])
+    #setjy(vis=msfile, field=calib['fluxcal'], spw='', scalebychan=True, model=calib['fluxmod'])
+    command = "setjy(vis='{0}', field='{1}', spw='', scalebychan=True, model='{2}')".format(msfile,calib['fluxcal'],calib['fluxmod'])
+    logger.info('Executing command: '+command)
+    exec(command)
+    
     dltab = 'delays.cal'
     logger.info('Calibrating delays for bandpass calibrator ({}).'.format(dltab))
-    gaincal(vis=msfile, field=calib['bandcal'], caltable=dltab, refant=calib['refant'], 
-            gaintype='K', gaintable=[gctab])
+    #gaincal(vis=msfile, field=calib['bandcal'], caltable=dltab, refant=calib['refant'], gaintype='K', gaintable=[gctab])
+    command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', gaintype='K', gaintable=['{4}'])".format(msfile,calib['bandcal'],dltab,calib['refant'],gctab)
+    logger.info('Executing command: '+command)
+    exec(command)
+    
     bptab = 'bpphase.gcal'
     logger.info('Make bandpass calibrator phase solutions ({}).'.format(bptab))
-    gaincal(vis=msfile, field=calib['bandcal'],  caltable=bptab, refant=calib['refant'],
-            calmode='p', solint='int', minsnr=2.0, gaintable=[gctab, dltab])
+    #gaincal(vis=msfile, field=calib['bandcal'],  caltable=bptab, refant=calib['refant'], calmode='p', solint='int', minsnr=2.0, gaintable=[gctab, dltab])
+    command = "gaincal(vis='{0}', field='{1}',  caltable='{2}', refant='{3}', calmode='p', solint='int', minsnr=2.0, gaintable=['{4}','{5}'])".format(msfile,calib['bandcal'],bptab,calib['refant'],gctab,dltab)
+    logger.info('Executing command: '+command)
+    exec(command)
+    
     plot_file = plots_obs_dir+'{0}_bpphasesol.png'.format(msfile)
     logger.info('Plotting bandpass phase solutions to: {}'.format(plot_file))
     plotms(vis=bptab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='phase',
            expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
            iteraxis='antenna')
+    
     bstab = 'bandpass.bcal'
     logger.info('Determining bandpass solution ({}).'.format(bstab))
-    bandpass(vis=msfile, caltable=bstab, field=calib['bandcal'], refant=calib['refant'],
-             solint='inf', solnorm=True, gaintable=[gctab, dltab, bptab])
+    #bandpass(vis=msfile, caltable=bstab, field=calib['bandcal'], refant=calib['refant'], solint='inf', solnorm=True, gaintable=[gctab, dltab, bptab])
+    command = "bandpass(vis='{0}', caltable='{1}', field='{2}', refant='{3}', solint='inf', solnorm=True, gaintable=['{4}', '{5}', '{6}'])".format(msfile,bstab,calib['bandcal'],calib['refant'],gctab, dltab, bptab)
+    logger.info('Executing command: '+command)
+    exec(command)
+    
     plot_file = plots_obs_dir+'{0}_bandpasssol.png'.format(msfile)
     logger.info('Plotting bandpass amplitude solutions to: {}'.format(plot_file))
     plotms(vis=bstab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='chan', yaxis='amp',
            expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
            iteraxis='antenna', coloraxis='corr')
+    
     iptab = 'intphase.gcal'
     logger.info('Determining integration phase solutions ({}).'.format(iptab))
     if calib['fluxcal'] == calib['bandcal']:
         calfields = '{0},{1}'.format(calib['bandcal'],calib['phasecal'])
     else:
         calfields = '{0},{1},{2}'.format(calib['bandcal'],calib['fluxcal'],calib['phasecal'])
-    gaincal(vis=msfile, field=calfields, caltable=iptab, refant=calib['refant'],
-            calmode='p', solint='int', minsnr=2.0, gaintable=[gctab, dltab, bstab])
+    #gaincal(vis=msfile, field=calfields, caltable=iptab, refant=calib['refant'], calmode='p', solint='int', minsnr=2.0, gaintable=[gctab, dltab, bstab])
+    command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='p', solint='int', minsnr=2.0, gaintable=['{4}', '{5}', '{6}'])".format(msfile,calfields,iptab,calib['refant'],gctab, dltab, bstab)
+    logger.info('Executing command: '+command)
+    exec(command)
+    
     sptab = 'scanphase.gcal'
     logger.info('Determining scan phase solutions ({}).'.format(sptab))
-    gaincal(vis=msfile, field=calfields, caltable=sptab, refant=calib['refant'],
-            calmode='p', solint='inf', minsnr=2.0, gaintable=[gctab, dltab, bstab])
+    #gaincal(vis=msfile, field=calfields, caltable=sptab, refant=calib['refant'], calmode='p', solint='inf', minsnr=2.0, gaintable=[gctab, dltab, bstab])
+    command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='p', solint='inf', minsnr=2.0, gaintable=['{4}', '{5}', '{6}'])".format(msfile,calfields,sptab,calib['refant'],gctab, dltab, bstab)
+    logger.info('Executing command: '+command)
+    exec(command)
+    
     amtab = 'amp.gcal'
     logger.info('Determining amplitude solutions ({}).'.format(amtab))
-    gaincal(vis=msfile, field=calfields, caltable=amtab, refant=calib['refant'],
-            calmode='ap', solint='inf', minsnr=2.0, gaintable=[gctab, dltab, bstab, iptab])
+    #gaincal(vis=msfile, field=calfields, caltable=amtab, refant=calib['refant'], calmode='ap', solint='inf', minsnr=2.0, gaintable=[gctab, dltab, bstab, iptab])
+    command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='ap', solint='inf', minsnr=2.0, gaintable=['{4}', '{5}', '{6}', '{7}'])".format(msfile,calfields,amtab,calib['refant'],gctab, dltab, bstab, iptab)
+    logger.info('Executing command: '+command)
+    exec(command)
+    
     plot_file = plots_obs_dir+'{0}_phasesol.png'.format(msfile)
     logger.info('Plotting phase solutions to: {}'.format(plot_file))
     plotms(vis=amtab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='phase',
            expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
            iteraxis='antenna', coloraxis='corr', plotrange=[-1,-1,-20,20])
+    
     plot_file = plots_obs_dir+'{0}_ampsol.png'.format(msfile)
     logger.info('Plotting amplitude solutions to: {}'.format(plot_file))
     plotms(vis=amtab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='amp',
            expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
            iteraxis='antenna', coloraxis='corr', plotrange=[-1,-1,0,1])
+    
     fxtab = 'flux.cal'
     logger.info('Applying flux scale to all calibrators ({}).'.format(fxtab))
-    flux_info = fluxscale(vis=msfile, caltable=amtab, fluxtable=fxtab, reference=calib['fluxcal'],
-                          incremental=True)
+    #flux_info = fluxscale(vis=msfile, caltable=amtab, fluxtable=fxtab, reference=calib['fluxcal'], incremental=True)
+    command = "fluxscale(vis='{0}', caltable='{1}', fluxtable='{2}', reference='{3}', incremental=True)".format(msfile,amtab,fxtab,calib['fluxcal'])
+    logger.info('Executing command: '+command)
+    exec('flux_info = '+command)
+    
     out_file = plots_obs_dir+'{0}_flux.summary'.format(msfile)
     logger.info('Writing calibrator fluxes summary to: {}.'.format(out_file))
     out_file = open(out_file, 'w')
@@ -440,29 +474,43 @@ def calibration(config):
             out_file.write('Flux density for {0}: {1} +/- {2} Jy\n'.format(flux_info[fieldID]['fieldName'], flux_info[fieldID][spwID]['fluxd'][0], flux_info[fieldID][spwID]['fluxdErr'][0]))
         out_file.write('\n')
     out_file.close()
+    
     logger.info('Apply all calibrations to all calibrators and targets.')
     logger.info('Apply applying clibration to: {}'.format(calib['phasecal']))
-    applycal(vis=msfile, field=calib['phasecal'], 
-             gaintable=[gctab, dltab, bptab, iptab, amtab, fxtab], 
-             gainfield=['', calib['bandcal'], calib['bandcal'], calib['phasecal'], calib['phasecal'], calib['phasecal']], 
-             calwt=False)
+    #applycal(vis=msfile, field=calib['phasecal'], 
+    #         gaintable=[gctab, dltab, bptab, iptab, amtab, fxtab], 
+    #         gainfield=['', calib['bandcal'], calib['bandcal'], calib['phasecal'], calib['phasecal'], calib['phasecal']], 
+    #         calwt=False)
+    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'],gctab, dltab, bptab, iptab, amtab, fxtab,calib['bandcal'])
+    logger.info('Executing command: '+command)
+    exec(command)
     logger.info('Apply applying clibration to: {}'.format(calib['bandcal']))
-    applycal(vis=msfile, field=calib['bandcal'], 
-             gaintable=[gctab, dltab, bptab, iptab, amtab, fxtab], 
-             gainfield=['', calib['bandcal'], calib['bandcal'], calib['bandcal'], calib['bandcal'], calib['bandcal']], 
-             calwt=False)
+    #applycal(vis=msfile, field=calib['bandcal'], 
+    #         gaintable=[gctab, dltab, bptab, iptab, amtab, fxtab], 
+    #         gainfield=['', calib['bandcal'], calib['bandcal'], calib['bandcal'], calib['bandcal'], calib['bandcal']], 
+    #         calwt=False)
+    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{1}', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'],gctab, dltab, bptab, iptab, amtab)
+    command = ""
+    logger.info('Executing command: '+command)
+    exec(command)
     if calib['fluxcal'] != calib['bandcal']:
         logger.info('Applying clibration to: {}'.format(calib['fluxcal']))
-        applycal(vis=msfile, field=calib['fluxcal'], 
-                 gaintable=[gctab, dltab, bptab, iptab, amtab, fxtab], 
-                 gainfield=['', calib['bandcal'], calib['bandcal'], calib['fluxcal'], calib['fluxcal'], calib['fluxcal']], 
-                 calwt=False)
+        #applycal(vis=msfile, field=calib['fluxcal'], 
+        #         gaintable=[gctab, dltab, bptab, iptab, amtab, fxtab], 
+        #         gainfield=['', calib['bandcal'], calib['bandcal'], calib['fluxcal'], calib['fluxcal'], calib['fluxcal']], 
+        #         calwt=False)
+        command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['fluxcal'],gctab, dltab, bptab, iptab, amtab, fxtab,calib['bandcal'])
+        logger.info('Executing command: '+command)
+        exec(command)
     for field in calib['targets']:
         logger.info('Applying clibration to: {}'.format(field))
-        applycal(vis=msfile, field=field, 
-                 gaintable=[gctab, dltab, bptab, iptab, amtab, fxtab], 
-                 gainfield=['', calib['bandcal'], calib['bandcal'], calib['phasecal'], calib['phasecal'], calib['phasecal']], 
-                 calwt=False)
+        #applycal(vis=msfile, field=field, 
+        #         gaintable=[gctab, dltab, bptab, iptab, amtab, fxtab], 
+        #         gainfield=['', calib['bandcal'], calib['bandcal'], calib['phasecal'], calib['phasecal'], calib['phasecal']], 
+        #         calwt=False)
+        command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], calwt=False)".format(msfile,field,gctab, dltab, bptab, iptab, amtab, fxtab,calib['bandcal'],calib['phasecal'])
+        logger.info('Executing command: '+command)
+        exec(command)
 
 def split_fields(config):
     calib = config['calibration']
@@ -795,7 +843,7 @@ logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['proje
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 # 1. Import data and write listobs to file
-'''data_path = config['importdata']['data_path']
+data_path = config['importdata']['data_path']
 data_files = glob.glob(os.path.join(data_path, '*'))
 import_data(data_files, msfile)
 msinfo = get_msinfo(msfile)
@@ -820,11 +868,11 @@ flag_sum('extended')
 flag_sum('final')
 calibration(config)
 
-#5. Split, continuum subtract and make dirty image
+'''#5. Split, continuum subtract and make dirty image
 split_fields(config)
 contsub(config,config_raw,config_file)
 plot_spec(config)
-dirty_image(config,config_raw,config_file)'''
+dirty_image(config,config_raw,config_file)
 
 #6. Clean and regrid (if necessary) image
-image(config,config_raw,config_file)
+image(config,config_raw,config_file)'''
