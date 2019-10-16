@@ -135,6 +135,7 @@ def get_project(msfile):
     return project[0]
 
 def get_msinfo(msfile):
+    """ Extracts and prints basic information from the measurement set"""
     logger.info('Reading ms file information for MS: {0}'.format(msfile))
     msinfo = collections.OrderedDict()
     msinfo['msfile'] = msfile
@@ -157,11 +158,11 @@ def get_msinfo(msfile):
 
 # Plotting
 def plot_elevation(config):
+    """ Plots the elevation of the target fields as a function of time"""
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
     plot_file = plots_obs_dir+'{0}_elevation.png'.format(msfile)
-    logger.info('Plotting elevation to:')
-    logger.info('{}'.format(plot_file))
+    logger.info('Plotting elevation to: {}'.format(plot_file))
     elev = config['plot_elevation']
     avgtime = elev['avgtime']
     correlation = elev['correlation']
@@ -177,14 +178,15 @@ def plot_elevation(config):
             overwrite=True, showlegend=False, showgui=showgui)
 
 def plot_ants():
+    """ Plots the layout of the antennae during the observations"""
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
     plot_file = plots_obs_dir+'{0}_antpos.png'.format(msfile)
-    logger.info('Plotting antenna positions to:')
-    logger.info('{}'.format(plot_file))
+    logger.info('Plotting antenna positions to: {}'.format(plot_file))
     plotants(vis=msfile,figfile=plot_file)
 
 def base_flags(config):
+    """ Sets basic initial data flags"""
     flag = config['flagging']
     tol = flag['shadow_tol'] 
     quack_int = flag['quack_int']
@@ -199,6 +201,7 @@ def base_flags(config):
     flagmanager(vis=msfile, mode='save', versionname=flag_version)
 
 def tfcrop():
+    """ Runs CASA's TFcrop flagging algorithm"""
     flag_version = 'tfcrop'
     logger.info('Running TFCrop.')
     flagdata(vis=msfile, mode='tfcrop', action='apply', display='', flagbackup=False)
@@ -206,6 +209,7 @@ def tfcrop():
     flagmanager(vis=msfile, mode='save', versionname=flag_version)
 
 def rflag(config):
+    """ Runs CASA's rflag flagging algorithm"""
     flag = config['flagging']
     flag_version = 'rflag'
     thresh = flag['rthresh']
@@ -216,6 +220,7 @@ def rflag(config):
     flagmanager(vis=msfile, mode='save', versionname=flag_version)
 
 def extend_flags():
+    """ Extends existing flags"""
     flag_version = 'extended'
     logger.info('Extending existing flags.')
     flagdata(vis=msfile, mode='extend', spw='', extendpols=True, action='apply', display='',
@@ -224,6 +229,7 @@ def extend_flags():
              display='', flagbackup=False)
 
 def flag_sum(name):
+    """ Writes a summary of the current flags to file"""
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
     out_file = plots_obs_dir+'{0}_{1}_flags.summary'.format(msfile,name)
@@ -244,6 +250,7 @@ def flag_sum(name):
     out_file.close()
 
 def select_refant(config,config_raw,config_file):
+    """ Checks if a reference antenna to be set, if it has not been the the user is queried"""
     calib = config['calibration']
     tb.open(msfile+'/ANTENNA')
     ant_names = tb.getcol('NAME')
@@ -267,6 +274,7 @@ def select_refant(config,config_raw,config_file):
         logger.info('Reference antenna already set as: {}.'.format(calib['refant']))
 
 def set_fields(config,config_raw,config_file):
+    """ Checks if the field intentions have already been set, if not then the user is queried"""
     calib = config['calibration']
     tb.open(msfile+'/FIELD')
     field_names = tb.getcol('NAME')
@@ -368,6 +376,7 @@ def set_fields(config,config_raw,config_file):
         logger.info('No changes made to preset target and calibrator fields.')
 
 def calibration(config):
+    """ Runs the basic calibration steps"""
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
     calib = config['calibration']
@@ -385,6 +394,10 @@ def calibration(config):
     logger.info('Executing command: '+command)
     exec(command)
     
+    plot_file = plots_obs_dir+'{0}_bpphaseint.png'.format(msfile)
+    logger.info('Plotting bandpass phase vs. time for reference antenna to: {}'.format(plot_file))
+    plotms(vis=msfile, plotfile=plot_file, xaxis='channel', yaxis='phase', field=calib['bandcal'], correlation='RR', avgtime='1E10', antenna=calib['refant'], coloraxis='antenna', expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all', iteraxis='spw')
+    
     dltab = 'delays.cal'
     logger.info('Calibrating delays for bandpass calibrator ({}).'.format(dltab))
     #gaincal(vis=msfile, field=calib['bandcal'], caltable=dltab, refant=calib['refant'], gaintype='K', gaintable=[gctab])
@@ -395,14 +408,14 @@ def calibration(config):
     bptab = 'bpphase.gcal'
     logger.info('Make bandpass calibrator phase solutions ({}).'.format(bptab))
     #gaincal(vis=msfile, field=calib['bandcal'],  caltable=bptab, refant=calib['refant'], calmode='p', solint='int', minsnr=2.0, gaintable=[gctab, dltab])
-    command = "gaincal(vis='{0}', field='{1}',  caltable='{2}', refant='{3}', calmode='p', solint='int', minsnr=2.0, gaintable=['{4}','{5}'])".format(msfile,calib['bandcal'],bptab,calib['refant'],gctab,dltab)
+    command = "gaincal(vis='{0}', field='{1}',  caltable='{2}', refant='{3}', calmode='p', solint='int', combine='', minsnr=2.0, gaintable=['{4}','{5}'])".format(msfile,calib['bandcal'],bptab,calib['refant'],gctab,dltab)
     logger.info('Executing command: '+command)
     exec(command)
     
     plot_file = plots_obs_dir+'{0}_bpphasesol.png'.format(msfile)
     logger.info('Plotting bandpass phase solutions to: {}'.format(plot_file))
     plotms(vis=bptab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='phase',
-           expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
+           plotrange=[0,0,-180,180], expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
            iteraxis='antenna')
     
     bstab = 'bandpass.bcal'
@@ -481,7 +494,7 @@ def calibration(config):
     #         gaintable=[gctab, dltab, bptab, iptab, amtab, fxtab], 
     #         gainfield=['', calib['bandcal'], calib['bandcal'], calib['phasecal'], calib['phasecal'], calib['phasecal']], 
     #         calwt=False)
-    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'],gctab, dltab, bptab, iptab, amtab, fxtab,calib['bandcal'])
+    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'],gctab, dltab, bstab, iptab, amtab, fxtab,calib['bandcal'])
     logger.info('Executing command: '+command)
     exec(command)
     logger.info('Apply applying clibration to: {}'.format(calib['bandcal']))
@@ -489,8 +502,7 @@ def calibration(config):
     #         gaintable=[gctab, dltab, bptab, iptab, amtab, fxtab], 
     #         gainfield=['', calib['bandcal'], calib['bandcal'], calib['bandcal'], calib['bandcal'], calib['bandcal']], 
     #         calwt=False)
-    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{1}', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'],gctab, dltab, bptab, iptab, amtab, fxtab)
-    command = ""
+    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{1}', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'],gctab, dltab, bstab, iptab, amtab, fxtab)
     logger.info('Executing command: '+command)
     exec(command)
     if calib['fluxcal'] != calib['bandcal']:
@@ -499,7 +511,7 @@ def calibration(config):
         #         gaintable=[gctab, dltab, bptab, iptab, amtab, fxtab], 
         #         gainfield=['', calib['bandcal'], calib['bandcal'], calib['fluxcal'], calib['fluxcal'], calib['fluxcal']], 
         #         calwt=False)
-        command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['fluxcal'],gctab, dltab, bptab, iptab, amtab, fxtab,calib['bandcal'])
+        command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['fluxcal'],gctab, dltab, bstab, iptab, amtab, fxtab,calib['bandcal'])
         logger.info('Executing command: '+command)
         exec(command)
     for field in calib['targets']:
@@ -508,9 +520,18 @@ def calibration(config):
         #         gaintable=[gctab, dltab, bptab, iptab, amtab, fxtab], 
         #         gainfield=['', calib['bandcal'], calib['bandcal'], calib['phasecal'], calib['phasecal'], calib['phasecal']], 
         #         calwt=False)
-        command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], calwt=False)".format(msfile,field,gctab, dltab, bptab, iptab, amtab, fxtab,calib['bandcal'],calib['phasecal'])
+        command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], calwt=False)".format(msfile,field,gctab, dltab, bstab, iptab, amtab, fxtab,calib['bandcal'],calib['phasecal'])
         logger.info('Executing command: '+command)
         exec(command)
+        
+    plot_file = plots_obs_dir+'{0}_corr_phase.png'.format(msfile)
+    logger.info('Plotting corrected phases for {0} to: {1}'.format(calib['bandcal'],plot_file))
+    plotms(vis=msfile, plotfile=plot_file, field=calib['bandcal'], xaxis='channel', yaxis='phase', ydatacolumn='corrected', correlation='RR', avgtime='1E10', antenna=calib['refant'], coloraxis='antenna2', expformat='png', overwrite=True, showlegend=False, showgui=False)
+    
+    plot_file = plots_obs_dir+'{0}_corr_amp.png'.format(msfile)
+    logger.info('Plotting corrected amplitudes for {0} to: {1}'.format(calib['bandcal'],plot_file))
+    plotms(vis=msfile, plotfile=plot_file, field=calib['bandcal'], xaxis='channel', yaxis='amp', ydatacolumn='corrected', correlation='RR', avgtime='1E10', antenna=calib['refant'], coloraxis='antenna2', expformat='png', overwrite=True, showlegend=False, showgui=False)
+
 
 def split_fields(config):
     calib = config['calibration']
@@ -783,6 +804,27 @@ def image(config,config_raw,config_file):
             config_raw.write(configfile)
             configfile.close()
             reset_cln = False
+        if cln_param['automask_sl'] == '':
+            cln_param['automask_sl'] == 2.0
+            logger.warning('Automasking sidelobe threshold not set. Using default value: {}'.format(cln_param['automask_sl']))
+        if cln_param['automask_ns'] == '':
+            cln_param['automask_ns'] == 4.25
+            logger.warning('Automasking noise threshold not set. Using default value: {}'.format(cln_param['automask_ns']))
+        if cln_param['automask_lns'] == '':
+            cln_param['automask_lns'] == 1.5
+            logger.warning('Automasking low noise threshold not set. Using default value: {}'.format(cln_param['automask_lns']))
+        if cln_param['automask_mbf'] == '':
+            cln_param['automask_mbf'] == 0.3
+            logger.warning('Automasking minimum beam fraction not set. Using default value: {}'.format(cln_param['automask_mbf']))
+        if cln_param['automask_neg'] == '':
+            cln_param['automask_neg'] == 15.0
+            logger.warning('Automasking negative threshold not set. Using default value: {}'.format(cln_param['automask_neg']))
+        logger.info('Automasking parameters set as:')
+        logger.info('sidelobethreshold = {}'.format(cln_param['automask_sl']))
+        logger.info('noisethreshold = {}'.format(cln_param['automask_ns']))
+        logger.info('lownoisethreshold = {}'.format(cln_param['automask_lns']))
+        logger.info('minbeamfraction = {}'.format(cln_param['automask_mbf']))
+        logger.info('negativethreshold = {}'.format(cln_param['automask_neg']))
         if cln_param['multiscale']:
             pix_size = cln_param['pix_size'][i]
             pix_size = float(pix_size[:pix_size.find(rest_beam['minor']['unit'])])
@@ -816,6 +858,9 @@ def image(config,config_raw,config_file):
                restoringbeam='common', pbcor=True, weighting='briggs',
                robust=cln_param['robust'], niter=100000, gain=0.1,
                threshold='{}Jy'.format(noises[i]*cln_param['thresh']),
+               usemask='auto-multithresh', sidelobethreshold=cln_param['automask_sl'],
+               noisethreshold=cln_param['automask_ns'], lownoisethreshold=cln_param['automask_lns'],
+               minbeamfrac=cln_param['automask_mbf'], negativethreshold=cln_param['automask_neg'],
                cyclefactor=5.0,interactive=False)
         logger.info('CLEANing finished. Image cube saved as {}.'.format(target+'.image'))
         ia.open(target+'.dirty.image')
@@ -827,6 +872,11 @@ def image(config,config_raw,config_file):
                      interpolation='linear', decimate=10,
                      overwrite=True)
             logger.info('{} regridded in J2000 coordinates.'.format(target+'.image.J2000'))
+            imregrid(imagename=target+'.image.pbcor', template='J2000', 
+                     output=target+'.image.pbcor.J2000', asvelocity=True,
+                     interpolation='linear', decimate=10,
+                     overwrite=True)
+            logger.info('{} regridded in J2000 coordinates.'.format(target+'.image.pbcor.J2000'))
         coords.done()
         ia.close()
 
@@ -843,7 +893,7 @@ logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['proje
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 # 1. Import data and write listobs to file
-data_path = config['importdata']['data_path']
+'''data_path = config['importdata']['data_path']
 data_files = glob.glob(os.path.join(data_path, '*'))
 import_data(data_files, msfile)
 msinfo = get_msinfo(msfile)
@@ -866,13 +916,13 @@ flag_sum('rflag')
 extend_flags()
 flag_sum('extended')
 flag_sum('final')
-calibration(config)
+calibration(config)'''
 
-'''#5. Split, continuum subtract and make dirty image
+#5. Split, continuum subtract and make dirty image
 split_fields(config)
 contsub(config,config_raw,config_file)
 plot_spec(config)
 dirty_image(config,config_raw,config_file)
 
 #6. Clean and regrid (if necessary) image
-image(config,config_raw,config_file)'''
+image(config,config_raw,config_file)
