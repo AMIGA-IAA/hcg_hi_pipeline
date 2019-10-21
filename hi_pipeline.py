@@ -101,7 +101,10 @@ def import_data(data_files, msfile):
     rmfile(listobs_file)
     logger.info('Input files: {}'.format(data_files))
     logger.info('Output msfile: {}'.format(msfile))
-    importvla(archivefiles = data_files, vis = msfile)
+    command = "importvla(archivefiles = {0}, vis = '{1}')".format(data_files, msfile)
+    #importvla(archivefiles = data_files, vis = msfile)
+    logger.info('Executing command: '+command)
+    exec(command)
     listobs(vis=msfile, listfile=listobs_file)
     logger.info('Finished import vla data')
 
@@ -192,21 +195,38 @@ def base_flags(config):
     quack_int = flag['quack_int']
     flag_version = 'base_flags'
     logger.info('Flagging antennae with more than {} m of shadowing.'.format(tol))
-    flagdata(vis=msfile, mode='shadow', tolerance=tol, flagbackup=False)
+    command = "flagdata(vis='{0}', mode='shadow', tolerance={1}, flagbackup=False)".format(msfile,tol)
+    logger.info('Executing command: '+command)
+    exec(command)
     logger.info('Flagging zero amplitude data.')
-    flagdata(vis=msfile, mode='clip', clipzeros=True, flagbackup=False)
+    command = "flagdata(vis='{}', mode='clip', clipzeros=True, flagbackup=False)".format(msfile)
+    #flagdata(vis=msfile, mode='clip', clipzeros=True, flagbackup=False)
+    logger.info('Executing command: '+command)
+    exec(command)
     logger.info('Flagging first {} s of every scan.'.format(quack_int))
-    flagdata(vis=msfile, mode='quack', quackinterval=quack_int, quackmode='beg', flagbackup=False)
+    command = "flagdata(vis='{0}', mode='quack', quackinterval={1}, quackmode='beg', flagbackup=False)".format(msfile,quack_int)
+    #flagdata(vis=msfile, mode='quack', quackinterval=quack_int, quackmode='beg', flagbackup=False)
+    logger.info('Executing command: '+command)
+    exec(command)
     logger.info('Saving flag version as: {}.'.format(flag_version))
-    flagmanager(vis=msfile, mode='save', versionname=flag_version)
+    command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
+    #flagmanager(vis=msfile, mode='save', versionname=flag_version)
+    logger.info('Executing command: '+command)
+    exec(command)
 
 def tfcrop():
     """ Runs CASA's TFcrop flagging algorithm"""
     flag_version = 'tfcrop'
     logger.info('Running TFCrop.')
-    flagdata(vis=msfile, mode='tfcrop', action='apply', display='', flagbackup=False)
+    command = "flagdata(vis='{}', mode='tfcrop', action='apply', display='', flagbackup=False)".format(msfile)
+    #flagdata(vis=msfile, mode='tfcrop', action='apply', display='', flagbackup=False)
+    logger.info('Executing command: '+command)
+    exec(command)
     logger.info('Saving flag version as: {}.'.format(flag_version))
-    flagmanager(vis=msfile, mode='save', versionname=flag_version)
+    command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
+    #flagmanager(vis=msfile, mode='save', versionname=flag_version)
+    logger.info('Executing command: '+command)
+    exec(command)
 
 def rflag(config):
     """ Runs CASA's rflag flagging algorithm"""
@@ -214,19 +234,31 @@ def rflag(config):
     flag_version = 'rflag'
     thresh = flag['rthresh']
     logger.info('Running rflag with a threshold of {}.'.format(thresh))
-    flagdata(vis=msfile, mode='rflag', action='apply', datacolumn='corrected', 
-             freqdevscale=thresh, timedevscale=thresh, display='', flagbackup=False)
+    command = "flagdata(vis='{0}', mode='rflag', action='apply', datacolumn='corrected', freqdevscale={1}, timedevscale={1}, display='', flagbackup=False)".format(msfile,thresh)
+    #flagdata(vis=msfile, mode='rflag', action='apply', datacolumn='corrected', 
+    #         freqdevscale=thresh, timedevscale=thresh, display='', flagbackup=False)
+    logger.info('Executing command: '+command)
+    exec(command)
     logger.info('Saving flag version as: {}.'.format(flag_version))
-    flagmanager(vis=msfile, mode='save', versionname=flag_version)
+    command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
+    #flagmanager(vis=msfile, mode='save', versionname=flag_version)
+    logger.info('Executing command: '+command)
+    exec(command)
 
 def extend_flags():
     """ Extends existing flags"""
     flag_version = 'extended'
     logger.info('Extending existing flags.')
-    flagdata(vis=msfile, mode='extend', spw='', extendpols=True, action='apply', display='',
-             flagbackup=False)
-    flagdata(vis=msfile, mode='extend', spw='', growtime=75.0, growfreq=90.0, action='apply',
-             display='', flagbackup=False)
+    command = "flagdata(vis='{}', mode='extend', spw='', extendpols=True, action='apply', display='', flagbackup=False)".format(msfile)
+    #flagdata(vis=msfile, mode='extend', spw='', extendpols=True, action='apply', display='',
+    #         flagbackup=False)
+    logger.info('Executing command: '+command)
+    exec(command)
+    command = "flagdata(vis='{}', mode='extend', spw='', growtime=75.0, growfreq=90.0, action='apply', display='', flagbackup=False)".format(msfile)
+    #flagdata(vis=msfile, mode='extend', spw='', growtime=75.0, growfreq=90.0, action='apply',
+    #         display='', flagbackup=False)
+    logger.info('Executing command: '+command)
+    exec(command)
 
 def flag_sum(name):
     """ Writes a summary of the current flags to file"""
@@ -537,7 +569,10 @@ def split_fields(config):
     calib = config['calibration']
     for field in calib['targets']:
         logger.info('Splitting {0} into separate file: {1}.'.format(field, field+'.split'))
-        split(vis=msfile, outputvis=field+'.split', field=field)
+        command = "split(vis='{0}', outputvis='{1}'+'.split', field='{1}')".format(msfile,field)
+        #split(vis=msfile, outputvis=field+'.split', field=field)
+        logger.info('Executing command: '+command)
+        exec(command)
         
 def contsub(config,config_raw,config_file):
     contsub = config['continuum_subtraction']
@@ -578,8 +613,11 @@ def contsub(config,config_raw,config_file):
         target = calib['targets'][i]
         chans = contsub['linefree_ch'][i]
         logger.info('Subtracting the continuum from field: {}'.format(target))
-        uvcontsub(vis=target+'.split', field=target, fitspw=chans,
-                  excludechans=False,combine='',solint='int', fitorder=contsub['fitorder'], want_cont=contsub['save_cont'])
+        command = "uvcontsub(vis='{0}'+'.split', field='{0}', fitspw='{1}', excludechans=False,combine='',solint='int', fitorder={2}, want_cont={3})".format(target,chans,contsub['fitorder'],contsub['save_cont'])
+        #uvcontsub(vis=target+'.split', field=target, fitspw=chans,
+        #          excludechans=False,combine='',solint='int', fitorder=contsub['fitorder'], want_cont=contsub['save_cont'])
+        logger.info('Executing command: '+command)
+        exec(command)
 
 def plot_spec(config):
     plots_obs_dir = './plots/'
@@ -707,15 +745,18 @@ def dirty_image(config,config_raw,config_file):
     logger.info('For the targets: {}.'.format(targets))
     for i in range(len(targets)):
         target = targets[i]
-        tclean(vis=target+'.split.contsub', field=target, 
-               spw=cln_param['line_ch'][i], imagename=target+'.dirty',
-               cell=cln_param['pix_size'][i], 
-               imsize=[cln_param['im_size'][i],cln_param['im_size'][i]],
-               specmode='cube', outframe='bary', veltype='radio',
-               restfreq=rest_freq, gridder='wproject', wprojplanes=128,
-               pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', restoringbeam='common', weighting='briggs',
-               robust=cln_param['robust'], niter=0,
-               interactive=False)
+        command = "tclean(vis='{0}'+'.split.contsub', field='{0}', spw='{1}', imagename='{0}'+'.dirty', cell='{2}', imsize=[{3},{3}], specmode='cube', outframe='bary', veltype='radio', restfreq='{4}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', restoringbeam='common', weighting='briggs', robust={5}, niter=0, interactive=False)".format(target,cln_param['line_ch'][i],cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+        #tclean(vis=target+'.split.contsub', field=target, 
+        #       spw=cln_param['line_ch'][i], imagename=target+'.dirty',
+        #       cell=cln_param['pix_size'][i], 
+        #       imsize=[cln_param['im_size'][i],cln_param['im_size'][i]],
+        #       specmode='cube', outframe='bary', veltype='radio',
+        #       restfreq=rest_freq, gridder='wproject', wprojplanes=128,
+        #       pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', restoringbeam='common', weighting='briggs',
+        #       robust=cln_param['robust'], niter=0,
+        #       interactive=False)
+        logger.info('Executing command: '+command)
+        exec(command)
         
 def noise_est(config):
     targets = config['calibration']['targets']
@@ -847,38 +888,67 @@ def image(config,config_raw,config_file):
                     scales = scales[inx]
             logger.info('CLEANing with scales of {} pixels.'.format(scales))
         logger.info('CLEANing {0} to a threshold of {1} Jy.'.format(target,noises[i]*cln_param['thresh']))
-        tclean(vis=target+'.split.contsub', field=target, 
-               spw=cln_param['line_ch'][i], imagename=target,
-               cell=cln_param['pix_size'][i], 
-               imsize=[cln_param['im_size'][i],cln_param['im_size'][i]],
-               specmode='cube', outframe='bary', veltype='radio',
-               restfreq=rest_freq, gridder='wproject', wprojplanes=128,
-               pblimit=0.1, normtype='flatnoise', deconvolver=algorithm,
-               scales=scales,
-               restoringbeam='common', pbcor=True, weighting='briggs',
-               robust=cln_param['robust'], niter=100000, gain=0.1,
-               threshold='{}Jy'.format(noises[i]*cln_param['thresh']),
-               usemask='auto-multithresh', sidelobethreshold=cln_param['automask_sl'],
-               noisethreshold=cln_param['automask_ns'], lownoisethreshold=cln_param['automask_lns'],
-               minbeamfrac=cln_param['automask_mbf'], negativethreshold=cln_param['automask_neg'],
-               cyclefactor=5.0,interactive=False)
+        command = "tclean(vis='{0}'+'.split.contsub', field='{0}', spw='{1}', imagename='{0}', cell='{2}', imsize=[{3},{3}], specmode='cube', outframe='bary', veltype='radio', restfreq='{4}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='{5}', scales={6}, restoringbeam='common', pbcor=True, weighting='briggs', robust={7}, niter=100000, gain=0.1, threshold='{8}Jy', usemask='auto-multithresh', sidelobethreshold={9}, noisethreshold={10}, lownoisethreshold={11}, minbeamfrac={12}, negativethreshold={13}, cyclefactor=2.0,interactive=False)".format(target,cln_param['line_ch'][i],cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
+        #tclean(vis=target+'.split.contsub', field=target, 
+        #       spw=cln_param['line_ch'][i], imagename=target,
+        #       cell=cln_param['pix_size'][i], 
+        #       imsize=[cln_param['im_size'][i],cln_param['im_size'][i]],
+        #       specmode='cube', outframe='bary', veltype='radio',
+        #       restfreq=rest_freq, gridder='wproject', wprojplanes=128,
+        #       pblimit=0.1, normtype='flatnoise', deconvolver=algorithm,
+        #       scales=scales,
+        #       restoringbeam='common', pbcor=True, weighting='briggs',
+        #       robust=cln_param['robust'], niter=100000, gain=0.1,
+        #       threshold='{}Jy'.format(noises[i]*cln_param['thresh']),
+        #       usemask='auto-multithresh', sidelobethreshold=cln_param['automask_sl'],
+        #       noisethreshold=cln_param['automask_ns'], lownoisethreshold=cln_param['automask_lns'],
+        #       minbeamfrac=cln_param['automask_mbf'], negativethreshold=cln_param['automask_neg'],
+        #       cyclefactor=5.0,interactive=False)
+        logger.info('Executing command: '+command)
+        exec(command)
         logger.info('CLEANing finished. Image cube saved as {}.'.format(target+'.image'))
         ia.open(target+'.dirty.image')
         coords = ia.coordsys()
         if 'J2000' not in coords.referencecode()[0]:
+            coord_chn = True
             logger.info('Coordinate system not J2000. Image will be regridded.')
-            imregrid(imagename=target+'.image', template='J2000', 
-                     output=target+'.image.J2000', asvelocity=True,
-                     interpolation='linear', decimate=10,
-                     overwrite=True)
+            command = "imregrid(imagename='{0}'+'.image', template='J2000', output='{0}'+'.image.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(target)
+            #imregrid(imagename=target+'.image', template='J2000', 
+            #         output=target+'.image.J2000', asvelocity=True,
+            #         interpolation='linear', decimate=10,
+            #         overwrite=True)
+            logger.info('Executing command: '+command)
+            exec(command)
             logger.info('{} regridded in J2000 coordinates.'.format(target+'.image.J2000'))
-            imregrid(imagename=target+'.image.pbcor', template='J2000', 
-                     output=target+'.image.pbcor.J2000', asvelocity=True,
-                     interpolation='linear', decimate=10,
-                     overwrite=True)
+            command = "imregrid(imagename='{0}'+'.image.pbcor', template='J2000', output='{0}'+'.image.pbcor.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(target)
+            #imregrid(imagename=target+'.image.pbcor', template='J2000', 
+            #         output=target+'.image.pbcor.J2000', asvelocity=True,
+            #         interpolation='linear', decimate=10,
+            #         overwrite=True)
+            logger.info('Executing command: '+command)
+            exec(command)
             logger.info('{} regridded in J2000 coordinates.'.format(target+'.image.pbcor.J2000'))
         coords.done()
         ia.close()
+        fitsname = target+'_HI.fits'
+        logger.info('Saving image cube as {}'.format(fitsname))
+        if coord_chn:
+            imagename = target+'.image.J2000'
+        else:
+            imagename = target+'.image'
+        command = "exportfits(imagename='{0}', fitsimage='{1}', velocity=True,optical=False,overwrite=True,dropstokes=True,stokeslast=True,history=True,dropdeg=True)".format(imagename,fitsname)
+        logger.info('Executing command: '+command)
+        exec(command)
+        fitsname = target+'_HI.pbcor.fits'
+        logger.info('Saving primary beam corrected image cube as {}'.format(fitsname))
+        if coord_chn:
+            imagename = target+'.image.pbcor.J2000'
+        else:
+            imagename = target+'.image.pbcor'
+        command = "exportfits(imagename='{0}', fitsimage='{1}', velocity=True,optical=False,overwrite=True,dropstokes=True,stokeslast=True,history=True,dropdeg=True)".format(imagename,fitsname)
+        logger.info('Executing command: '+command)
+        exec(command)
+        coord_chn = False
 
 ######################   Processing   ####################
 # Read configuration file with parameters
@@ -916,13 +986,13 @@ flag_sum('rflag')
 extend_flags()
 flag_sum('extended')
 flag_sum('final')
-calibration(config)'''
+calibration(config)
 
 #5. Split, continuum subtract and make dirty image
 split_fields(config)
 contsub(config,config_raw,config_file)
 plot_spec(config)
-dirty_image(config,config_raw,config_file)
+dirty_image(config,config_raw,config_file)'''
 
 #6. Clean and regrid (if necessary) image
 image(config,config_raw,config_file)
