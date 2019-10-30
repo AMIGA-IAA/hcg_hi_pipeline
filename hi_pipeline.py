@@ -96,7 +96,9 @@ def get_logger(
 def import_data(data_files, msfile):
     """ Import VLA archive files from a location to a single MS """
     logger.info('Starting import vla data')
-    listobs_file = msfile+'.listobs.txt'
+    sum_dir = './summary/'
+    makedir(sum_dir)
+    listobs_file = sum_dir+msfile+'.listobs.summary'
     rmdir(msfile)
     rmfile(listobs_file)
     logger.info('Input files: {}'.format(data_files))
@@ -174,11 +176,12 @@ def plot_elevation(config):
     max_elev = elev['max_elev']
     showgui = False
     plotms(vis=msfile, xaxis='time', yaxis='elevation',
-            correlation=correlation, spw='', coloraxis = 'field', width=width,
+            correlation=correlation, coloraxis = 'field',
             symbolsize=5, plotrange=[-1,-1, min_elev, max_elev],  
-            averagedata=True, avgtime=avgtime, plotfile = plot_file,
+            averagedata=True, avgtime=str(avgtime), plotfile = plot_file,
             expformat = 'png', customsymbol = True, symbolshape = 'circle',
-            overwrite=True, showlegend=False, showgui=showgui)
+            overwrite=True, showlegend=False, showgui=showgui,
+            exprange='all', iteraxis='spw')
 
 def plot_ants():
     """ Plots the layout of the antennae during the observations"""
@@ -187,6 +190,20 @@ def plot_ants():
     plot_file = plots_obs_dir+'{0}_antpos.png'.format(msfile)
     logger.info('Plotting antenna positions to: {}'.format(plot_file))
     plotants(vis=msfile,figfile=plot_file)
+
+def manual_flags():
+    """Apply manual flags"""
+    print("\nManual flags from 'manual_flags.py' are about to be applied.")
+    print("It is strongly recommended that you inspect the data and modify (and save) 'manual_flags.py' appropriately before proceeding.\n")
+    resp = str(raw_input('Do you want to proceed (y/n): '))
+    while resp.lower() not in ['yes','ye','y']:
+        resp = str(raw_input('Do you want to proceed (y/n): '))
+    logger.info('Applying flags from manual_flags.py')
+    flag_file = open('manual_flags.py', 'r')
+    for command in flag_file.readlines():
+        logger.info('Executing command: '+command)
+        exec(command)
+    flag_file.close()
 
 def base_flags(config):
     """ Sets basic initial data flags"""
@@ -250,9 +267,9 @@ def extend_flags():
 
 def flag_sum(name):
     """ Writes a summary of the current flags to file"""
-    plots_obs_dir = './plots/'
-    makedir(plots_obs_dir)
-    out_file = plots_obs_dir+'{0}_{1}_flags.summary'.format(msfile,name)
+    sum_dir = './summary/'
+    makedir(sum_dir)
+    out_file = sum_dir+'{0}.{1}flags.summary'.format(msfile,name)
     logger.info('Writing flag summary to: {}.'.format(out_file))
     flag_info = flagdata(vis=msfile, mode='summary')
     out_file = open(out_file, 'w')
@@ -554,15 +571,19 @@ def calibration(config):
     """ Runs the basic calibration steps"""
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
+    sum_dir = './summary/'
+    makedir(sum_dir)
+    cal_tabs = './cal_tabs/'
+    makedir(cal_tabs)
     calib = config['calibration']
     
     tb.open('{}/SPECTRAL_WINDOW'.format(msfile))
-    spw_names = tb.getcol('NAME')
-    spw_IDs = tb.getcol('DOPPLER_ID')
+    spw_names = list(tb.getcol('NAME'))
+    spw_IDs = list(tb.getcol('DOPPLER_ID'))
     nspw = len(spw_names)
     tb.close()
     
-    gctab = 'gaincurve.cal'
+    gctab = cal_tabs+'gaincurve.cal'
     logger.info('Calibrating gain vs elevation({}).'.format(gctab))
     command = "gencal(vis='{0}', caltable='{1}', caltype='gceff')".format(msfile,gctab)
     logger.info('Executing command: '+command)
@@ -573,6 +594,8 @@ def calibration(config):
         spw_fields = msmd.fieldsforspw(spw_IDs[i], asnames=True)
         msmd.close()
         
+        logger.info('Beginning calibration of SPW {}.'.format(spw_IDs[i]))
+        
         logger.info('Load model for flux calibrator {0} ({1}).'.format(calib['fluxcal'][i],calib['fluxmod'][i]))
         command = "setjy(vis='{0}', field='{1}', spw='{2}', scalebychan=True, model='{3}')".format(msfile,calib['fluxcal'][i],spw_IDs[i],calib['fluxmod'][i])
         logger.info('Executing command: '+command)
@@ -580,15 +603,15 @@ def calibration(config):
 
         plot_file = plots_obs_dir+'{0}_bpphaseint_spw{1}.png'.format(msfile,spw_IDs[i])
         logger.info('Plotting bandpass phase vs. time for reference antenna to: {}'.format(plot_file))
-        plotms(vis=msfile, plotfile=plot_file, xaxis='channel', yaxis='phase', field=calib['bandcal'][i], spw = str(spw_IDs[i]), correlation='RR,LL', avgtime='1E10', antenna=calib['refant'], coloraxis='antenna', expformat='png', overwrite=True, showlegend=False, showgui=False)
+        plotms(vis=msfile, plotfile=plot_file, xaxis='channel', yaxis='phase', field=calib['bandcal'][i], spw = str(spw_IDs[i]), correlation='RR,LL', avgtime='1E10', antenna=calib['refant'], coloraxis='antenna2', expformat='png', overwrite=True, showlegend=False, showgui=False)
 
-        dltab = 'delays_spw{}.cal'.format(spw_IDs[i])
+        dltab = cal_tabs+'delays_spw{}.cal'.format(spw_IDs[i])
         logger.info('Calibrating delays for bandpass calibrator {0} ({1}).'.format(calib['bandcal'][i],dltab))
         command = "gaincal(vis='{0}', field='{1}', spw='{2}', caltable='{3}', refant='{4}', gaintype='K', gaintable=['{5}'])".format(msfile,calib['bandcal'][i],spw_IDs[i],dltab,calib['refant'],gctab)
         logger.info('Executing command: '+command)
         exec(command)
 
-        bptab = 'bpphase_spw{}.gcal'.format(spw_IDs[i])
+        bptab = cal_tabs+'bpphase_spw{}.gcal'.format(spw_IDs[i])
         logger.info('Make bandpass calibrator phase solutions for {0} ({1}).'.format(calib['bandcal'][i],bptab))
         command = "gaincal(vis='{0}', field='{1}',  spw='{2}', caltable='{3}', refant='{4}', calmode='p', solint='int', combine='', minsnr=2.0, gaintable=['{5}','{6}'])".format(msfile,calib['bandcal'][i],spw_IDs[i],bptab,calib['refant'],gctab,dltab)
         logger.info('Executing command: '+command)
@@ -600,7 +623,7 @@ def calibration(config):
                plotrange=[0,0,-180,180], expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
                iteraxis='antenna', spw=str(spw_IDs[i]))
 
-        bstab = 'bandpass_spw{}.bcal'.format(spw_IDs[i])
+        bstab = cal_tabs+'bandpass_spw{}.bcal'.format(spw_IDs[i])
         logger.info('Determining bandpass solution ({}).'.format(bstab))
         command = "bandpass(vis='{0}', caltable='{1}', field='{2}', spw='{3}', refant='{4}', solint='inf', solnorm=True, gaintable=['{5}', '{6}', '{7}'])".format(msfile,bstab,calib['bandcal'][i],spw_IDs[i],calib['refant'],gctab, dltab, bptab)
         logger.info('Executing command: '+command)
@@ -626,19 +649,19 @@ def calibration(config):
         calfields = ','.join(calfields)
         
     
-        iptab = 'intphase_spw{}.gcal'.format(spw_IDs[i])
+        iptab = cal_tabs+'intphase_spw{}.gcal'.format(spw_IDs[i])
         logger.info('Determining integration phase solutions ({}).'.format(iptab))
         command = "gaincal(vis='{0}', field='{1}', spw='{2}', caltable='{3}', refant='{4}', calmode='p', solint='int', minsnr=2.0, gaintable=['{5}', '{6}', '{7}'])".format(msfile,calfields,spw_IDs[i],iptab,calib['refant'],gctab, dltab, bstab)
         logger.info('Executing command: '+command)
         exec(command)
         
-        sptab = 'scanphase_spw{}.gcal'.format(spw_IDs[i])
+        sptab = cal_tabs+'scanphase_spw{}.gcal'.format(spw_IDs[i])
         logger.info('Determining scan phase solutions ({}).'.format(sptab))
         command = "gaincal(vis='{0}', field='{1}', spw='{2}', caltable='{3}', refant='{4}', calmode='p', solint='inf', minsnr=2.0, gaintable=['{5}', '{6}', '{7}'])".format(msfile,calfields,spw_IDs[i],sptab,calib['refant'],gctab, dltab, bstab)
         logger.info('Executing command: '+command)
         exec(command)
         
-        amtab = 'amp_spw{}.gcal'.format(spw_IDs[i])
+        amtab = cal_tabs+'amp_spw{}.gcal'.format(spw_IDs[i])
         logger.info('Determining amplitude solutions ({}).'.format(amtab))
         command = "gaincal(vis='{0}', field='{1}', spw='{2}', caltable='{3}', refant='{4}', calmode='ap', solint='inf', minsnr=2.0, gaintable=['{5}', '{6}', '{7}', '{8}'])".format(msfile,calfields,spw_IDs[i],amtab,calib['refant'],gctab, dltab, bstab, iptab)
         logger.info('Executing command: '+command)
@@ -656,13 +679,13 @@ def calibration(config):
                expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
                iteraxis='antenna', coloraxis='corr', plotrange=[-1,-1,0,1])
         
-        fxtab = 'fluxsol_spw{}.cal'.format(spw_IDs[i])
+        fxtab = cal_tabs+'fluxsol_spw{}.cal'.format(spw_IDs[i])
         logger.info('Applying flux scale to calibrators ({}).'.format(fxtab))
         command = "fluxscale(vis='{0}', caltable='{1}', fluxtable='{2}', reference='{3}', incremental=True)".format(msfile,amtab,fxtab,calib['fluxcal'][i])
         logger.info('Executing command: flux_info = '+command)
         exec('flux_info = '+command)
         
-        out_file = plots_obs_dir+'{0}_flux.summary'.format(msfile)
+        out_file = sum_dir+'{0}.flux.summary'.format(msfile)
         logger.info('Writing calibrator fluxes summary to: {}.'.format(out_file))
         out_file = open(out_file, 'a+')
         out_file.write('Spectral window: {}\n'.format(spw_IDs[i]))
@@ -706,13 +729,13 @@ def calibration(config):
         
         for spw in spws:
             i = spw_IDs.index(spw)
-            dltab = 'delays_spw{}.cal'.format(spw_IDs[i])
-            bptab = 'bpphase_spw{}.gcal'.format(spw_IDs[i])
-            bstab = 'bandpass_spw{}.bcal'.format(spw_IDs[i])
-            iptab = 'intphase_spw{}.gcal'.format(spw_IDs[i])
-            sptab = 'scanphase_spw{}.gcal'.format(spw_IDs[i])
-            amtab = 'amp_spw{}.gcal'.format(spw_IDs[i])
-            fxtab = 'fluxsol_spw{}.cal'.format(spw_IDs[i])
+            dltab = cal_tabs+'delays_spw{}.cal'.format(spw_IDs[i])
+            bptab = cal_tabs+'bpphase_spw{}.gcal'.format(spw_IDs[i])
+            bstab = cal_tabs+'bandpass_spw{}.bcal'.format(spw_IDs[i])
+            iptab = cal_tabs+'intphase_spw{}.gcal'.format(spw_IDs[i])
+            sptab = cal_tabs+'scanphase_spw{}.gcal'.format(spw_IDs[i])
+            amtab = cal_tabs+'amp_spw{}.gcal'.format(spw_IDs[i])
+            fxtab = cal_tabs+'fluxsol_spw{}.cal'.format(spw_IDs[i])
             
             logger.info('Apply applying calibrations in SPW: {}'.format(spw))
             logger.info('Applying clibration to: {}'.format(phasecal))
@@ -800,6 +823,82 @@ def plot_spec(config):
                    ydatacolumn='corrected', spw=str(i), plotfile=plot_file,
                    expformat='png', overwrite=True, showgui=False,
                    freqframe='BARY', restfreq='1420.405751MHz', veldef='OPTICAL')
+
+def dirty_cont_image(config,config_raw,config_file):
+    calib = config['calibration']
+    rest_freq = config['global']['rest_freq']
+    targets = calib['targets']
+    cln_param = config['clean']
+    logger.info('Checking clean parameters for dirty image (inc. continuum).')
+    reset_cln = False
+    if len(cln_param['pix_size']) == 0 or len(cln_param['pix_size']) != len(targets):
+        reset_cln = True
+        if len(cln_param['pix_size']) < len(targets):
+            logger.warning('There are more target fields than pixel sizes. Appending blanks.')
+            while len(cln_param['pix_size']) < len(targets):
+                cln_param['pix_size'].append('')
+        elif len(cln_param['pix_size']) > len(targets):
+            logger.warning('There are more pixel sizes than target fields.')
+            logger.info('Current pixel sizes: {}'.format(cln_param['pix_size']))
+            logger.warning('The pixel size list will now be truncated to match the number of targets.')
+            cln_param['pix_size'] = cln_param['pix_size'][:len(targets)]
+    else:
+        print('Current pixel sizes set as:')
+        for i in range(len(cln_param['pix_size'])):
+            print('{0}: {1}'.format(targets[i],cln_param['pix_size'][i]))
+        resp = str(raw_input('Do you want revise the pixel sizes (y/n): '))
+        if resp.lower() in ['yes','ye','y']:
+            reset_cln = True
+    if reset_cln:
+        print('For each target enter the desired pixel size:')
+        for i in range(len(targets)):
+            cln_param['pix_size'][i] = uinput('Pixel size for {}: '.format(targets[i]), cln_param['pix_size'][i])
+            logger.info('Setting pixel size for {0} as: {1}.'.format(targets[i], cln_param['pix_size'][i]))
+        logger.info('Updating config file to set pixel sizes.')
+        config_raw.set('clean','pix_size',cln_param['pix_size'])
+        configfile = open(config_file,'w')
+        config_raw.write(configfile)
+        configfile.close()
+    logger.info('Pixel sizes set as: {}.'.format(cln_param['pix_size']))
+    logger.info('For the targets: {}.'.format(targets))
+    reset_cln = False
+    if len(cln_param['im_size']) == 0 or len(cln_param['im_size']) != len(targets):
+        reset_cln = True
+        if len(cln_param['im_size']) < len(targets):
+            logger.warning('There are more target fields than image sizes. Appending blanks.')
+            while len(cln_param['im_size']) < len(targets):
+                cln_param['im_size'].append('')
+        elif len(cln_param['im_size']) > len(targets):
+            logger.warning('There are more image sizes than target fields.')
+            logger.info('Current image sizes: {} pixels.'.format(cln_param['im_size']))
+            logger.warning('The image size list will now be truncated to match the number of targets.')
+            cln_param['im_size'] = cln_param['im_size'][:len(targets)]
+    else:
+        print('Current images sizes set as:')
+        for i in range(len(cln_param['im_size'])):
+            print('{0}: {1}'.format(targets[i],cln_param['im_size'][i]))
+        resp = str(raw_input('Do you want revise the image sizes (y/n): '))
+        if resp.lower() in ['yes','ye','y']:
+            reset_cln = True
+    if reset_cln:
+        print('For each target enter the desired image size:')
+        for i in range(len(targets)):
+            print('Note: The pixel size for this target was set to: {}'.format(cln_param['pix_size'][i]))
+            cln_param['im_size'][i] = uinput('Image size for {}: '.format(targets[i]), cln_param['im_size'][i])
+            logger.info('Setting image size for {0} as: {1} x {2}.'.format(targets[i], cln_param['im_size'][i],cln_param['pix_size'][i]))
+        logger.info('Updating config file to set image sizes.')
+        config_raw.set('clean','im_size',cln_param['im_size'])
+        configfile = open(config_file,'w')
+        config_raw.write(configfile)
+        configfile.close()
+    logger.info('Image sizes set as: {} pixels.'.format(cln_param['im_size']))
+    logger.info('For the targets: {}.'.format(targets))
+    for i in range(len(targets)):
+        target = targets[i]
+        logger.info('Making dirty image of {} (inc. continuum).'.format(target))
+        command = "tclean(vis='{0}'+'.split', field='{0}', imagename='{0}'+'.cont.dirty', cell='{1}', imsize=[{2},{2}], specmode='cube', outframe='bary', veltype='radio', restfreq='{3}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={4}, niter=0, interactive=False)".format(target,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+        logger.info('Executing command: '+command)
+        exec(command)            
             
 def dirty_image(config,config_raw,config_file):
     calib = config['calibration']
@@ -905,7 +1004,8 @@ def dirty_image(config,config_raw,config_file):
     logger.info('For the targets: {}.'.format(targets))
     for i in range(len(targets)):
         target = targets[i]
-        command = "tclean(vis='{0}'+'.split.contsub', field='{0}', spw='{1}', imagename='{0}'+'.dirty', cell='{2}', imsize=[{3},{3}], specmode='cube', outframe='bary', veltype='radio', restfreq='{4}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', restoringbeam='common', weighting='briggs', robust={5}, niter=0, interactive=False)".format(target,cln_param['line_ch'][i],cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+        logger.info('Making dirty image of {} (line only).'.format(target))
+        command = "tclean(vis='{0}'+'.split.contsub', field='{0}', imagename='{0}'+'.dirty', cell='{1}', imsize=[{2},{2}], specmode='cube', outframe='bary', veltype='radio', restfreq='{3}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={4}, niter=0, interactive=False)".format(target,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
         logger.info('Executing command: '+command)
         exec(command)
         
@@ -1082,6 +1182,7 @@ def image(config,config_raw,config_file):
 # Read configuration file with parameters
 config_file = sys.argv[-1]
 config,config_raw = read_config(config_file)
+interactive = config['global']['interactive']
 
 # Set up your logger
 logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['project_name']),
@@ -1091,9 +1192,9 @@ logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['proje
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 # 1. Import data and write listobs to file
-'''data_path = config['importdata']['data_path']
+data_path = config['importdata']['data_path']
 data_files = glob.glob(os.path.join(data_path, '*'))
-import_data(data_files, msfile)
+import_data(sorted(data_files), msfile)
 msinfo = get_msinfo(msfile)
 
 # 2. Diagnostic plots
@@ -1103,9 +1204,10 @@ plot_ants()
 # 3. Apply baisc flags
 base_flags(config)
 tfcrop()
+manual_flags()
 flag_sum('initial')
 
-'''# 4. Calibration
+# 4. Calibration
 select_refant(config,config_raw,config_file)
 set_fields(config,config_raw,config_file)
 calibration(config)
@@ -1118,6 +1220,7 @@ calibration(config)
 
 #5. Split, continuum subtract and make dirty image
 split_fields(config)
+dirty_cont_image(config,config_raw,config_file)
 contsub(config,config_raw,config_file)
 plot_spec(config)
 dirty_image(config,config_raw,config_file)
