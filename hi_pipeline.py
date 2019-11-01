@@ -108,7 +108,7 @@ def import_data(data_files, msfile):
     logger.info('Executing command: '+command)
     exec(command)
     listobs(vis=msfile, listfile=listobs_file)
-    logger.info('Finished import vla data')
+    logger.info('Completed import vla data')
 
 
 def get_obsfreq(msfile):
@@ -164,6 +164,7 @@ def get_msinfo(msfile):
 # Plotting
 def plot_elevation(config):
     """ Plots the elevation of the target fields as a function of time"""
+    logger.info('Starting plotting elevation.')
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
     plot_file = plots_obs_dir+'{0}_elevation.png'.format(msfile)
@@ -182,31 +183,44 @@ def plot_elevation(config):
             expformat = 'png', customsymbol = True, symbolshape = 'circle',
             overwrite=True, showlegend=False, showgui=showgui,
             exprange='all', iteraxis='spw')
+    logger.info('Completed plotting elevation.')
 
 def plot_ants():
     """ Plots the layout of the antennae during the observations"""
+    logger.info('Starting plotting antenna positions.')
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
     plot_file = plots_obs_dir+'{0}_antpos.png'.format(msfile)
     logger.info('Plotting antenna positions to: {}'.format(plot_file))
     plotants(vis=msfile,figfile=plot_file)
+    logger.info('Completed plotting antenna positions.')
 
 def manual_flags():
     """Apply manual flags"""
-    print("\nManual flags from 'manual_flags.py' are about to be applied.")
-    print("It is strongly recommended that you inspect the data and modify (and save) 'manual_flags.py' appropriately before proceeding.\n")
-    resp = str(raw_input('Do you want to proceed (y/n): '))
-    while resp.lower() not in ['yes','ye','y']:
+    logger.info('Starting manual flagging.')
+    if interactive:
+        print("\nManual flags from 'manual_flags.py' are about to be applied.")
+        print("It is strongly recommended that you inspect the data and modify (and save) 'manual_flags.py' appropriately before proceeding.\n")
         resp = str(raw_input('Do you want to proceed (y/n): '))
+        while resp.lower() not in ['yes','ye','y']:
+            resp = str(raw_input('Do you want to proceed (y/n): '))
     logger.info('Applying flags from manual_flags.py')
-    flag_file = open('manual_flags.py', 'r')
-    for command in flag_file.readlines():
-        logger.info('Executing command: '+command)
-        exec(command)
-    flag_file.close()
+    try:
+        flag_file = open('manual_flags.py', 'r')
+        if flag_file.readlines() == []:
+            logger.warning("The file is empty. Continuing without manual flagging.")
+        else:
+            for command in flag_file.readlines():
+                logger.info('Executing command: '+command)
+                exec(command)
+        flag_file.close()
+        logger.info('Completed manual flagging.')
+    except IOError:
+        logger.warning("'manual_flags.py' does not exist. Continuing without manual flagging.")
 
 def base_flags(config):
     """ Sets basic initial data flags"""
+    logger.info('Starting basic flagging.')
     flag = config['flagging']
     tol = flag['shadow_tol'] 
     quack_int = flag['quack_int']
@@ -227,11 +241,12 @@ def base_flags(config):
     command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
     logger.info('Executing command: '+command)
     exec(command)
+    logger.info('Completed basic flagging.')
 
 def tfcrop():
     """ Runs CASA's TFcrop flagging algorithm"""
     flag_version = 'tfcrop'
-    logger.info('Running TFCrop.')
+    logger.info('Starting running TFCrop.')
     command = "flagdata(vis='{}', mode='tfcrop', action='apply', display='', flagbackup=False)".format(msfile)
     logger.info('Executing command: '+command)
     exec(command)
@@ -239,13 +254,14 @@ def tfcrop():
     command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
     logger.info('Executing command: '+command)
     exec(command)
+    logger.info('Completed running TFCrop.')
 
 def rflag(config):
     """ Runs CASA's rflag flagging algorithm"""
     flag = config['flagging']
     flag_version = 'rflag'
     thresh = flag['rthresh']
-    logger.info('Running rflag with a threshold of {}.'.format(thresh))
+    logger.info('Starting running rflag with a threshold of {}.'.format(thresh))
     command = "flagdata(vis='{0}', mode='rflag', action='apply', datacolumn='corrected', freqdevscale={1}, timedevscale={1}, display='', flagbackup=False)".format(msfile,thresh)
     logger.info('Executing command: '+command)
     exec(command)
@@ -253,24 +269,26 @@ def rflag(config):
     command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
     logger.info('Executing command: '+command)
     exec(command)
+    logger.info('Completed running TFCrop.')
 
 def extend_flags():
     """ Extends existing flags"""
     flag_version = 'extended'
-    logger.info('Extending existing flags.')
+    logger.info('Starting extending existing flags.')
     command = "flagdata(vis='{}', mode='extend', spw='', extendpols=True, action='apply', display='', flagbackup=False)".format(msfile)
     logger.info('Executing command: '+command)
     exec(command)
     command = "flagdata(vis='{}', mode='extend', spw='', growtime=75.0, growfreq=90.0, action='apply', display='', flagbackup=False)".format(msfile)
     logger.info('Executing command: '+command)
     exec(command)
+    logger.info('Completed extending existing flags.')
 
 def flag_sum(name):
     """ Writes a summary of the current flags to file"""
     sum_dir = './summary/'
     makedir(sum_dir)
     out_file = sum_dir+'{0}.{1}flags.summary'.format(msfile,name)
-    logger.info('Writing flag summary to: {}.'.format(out_file))
+    logger.info('Satrting writing flag summary to: {}.'.format(out_file))
     flag_info = flagdata(vis=msfile, mode='summary')
     out_file = open(out_file, 'w')
     out_file.write('Total flagged data: {:.2%}\n\n'.format(flag_info['flagged']/flag_info['total']))
@@ -285,9 +303,11 @@ def flag_sum(name):
     for ant in flag_info['antenna'].keys():
         out_file.write('{0}: {1:.2%}\n'.format(ant,flag_info['antenna'][ant]['flagged']/flag_info['antenna'][ant]['total']))
     out_file.close()
+    logger.info('Completed writing flag summary.')
 
 def select_refant(config,config_raw,config_file):
     """ Checks if a reference antenna to be set, if it has not been the the user is queried"""
+    logger.info('Starting reference antenna selection.')
     calib = config['calibration']
     tb.open(msfile+'/ANTENNA')
     ant_names = tb.getcol('NAME')
@@ -307,11 +327,13 @@ def select_refant(config,config_raw,config_file):
         configfile = open(config_file,'w')
         config_raw.write(configfile)
         configfile.close()
+        logger.info('Completed reference antenna selection.')
     else:
         logger.info('Reference antenna already set as: {}.'.format(calib['refant']))
 
 def set_fields(config,config_raw,config_file):
     """ Checks if the field intentions have already been set, if not then the user is queried"""
+    logger.info('Starting set field purposes.')
     calib = config['calibration']
     tb.open(msfile+'/FIELD')
     field_names = tb.getcol('NAME')
@@ -322,35 +344,17 @@ def set_fields(config,config_raw,config_file):
     nspw = len(spw_IDs)
     tb.close()
     std_flux_mods = ['3C48_L.im', '3C138_L.im', '3C286_L.im']
+    std_flux_names = {'0134+329': '3C48_L.im', '0137+331': '3C48_L.im', '3C48': '3C48_L.im',
+                      '0518+165': '3C138_L.im', '0521+166': '3C138_L.im', '3C138': '3C138_L.im',
+                      '1328+307': '3C286_L.im', '1331+305': '3C286_L.im', '3C286': '3C286_L.im'}
     
     change_made = False
     if len(calib['targets']) == 0:
-        logger.warning('No target field(s) set. Requesting user input.')
-        print('\n\n')
-        while True:
-            target = ''
-            print('Valid field names:\n{}\n'.format(field_names))
-            target = str(raw_input('Please select a target field by name: '))
-            if target not in field_names:
-                print('\n\nString entered is not a valid field name.')
-                continue
-            else:
-                calib['targets'].append(target)
-                logger.info('{} set as a target field.'.format(target))
-                resp = ''
-                while (resp.lower() not in ['yes','ye','y']) and (resp.lower() not in ['no','n']) :
-                    resp = str(raw_input('Do you want to add another target (y/n): '))
-                if resp.lower() in ['yes','ye','y']:
-                    continue
-                else:
-                    break
-        change_made = True
-    else:
-        logger.info('Target field(s) already set as: {}.'.format(calib['targets']))
-        resp = str(raw_input('Do you want to add another target (y/n): '))
-        while (resp.lower() not in ['yes','ye','y']) and (resp.lower() not in ['no','n']) :
-            resp = str(raw_input('Do you want to add another target (y/n): '))
-        if resp.lower() in ['yes','ye','y']:
+        if not interactive:
+            logger.critical('There are no targets listed in the parameters file.')
+        else:
+            logger.warning('No target field(s) set. Requesting user input.')
+            print('\n\n')
             while True:
                 target = ''
                 print('Valid field names:\n{}\n'.format(field_names))
@@ -369,49 +373,84 @@ def set_fields(config,config_raw,config_file):
                     else:
                         break
             change_made = True
+    else:
+        logger.info('Target field(s) already set as: {}.'.format(calib['targets']))
+        if interactive:
+            resp = str(raw_input('Do you want to add another target (y/n): '))
+            while (resp.lower() not in ['yes','ye','y']) and (resp.lower() not in ['no','n']) :
+                resp = str(raw_input('Do you want to add another target (y/n): '))
+            if resp.lower() in ['yes','ye','y']:
+                while True:
+                    target = ''
+                    print('Valid field names:\n{}\n'.format(field_names))
+                    target = str(raw_input('Please select a target field by name: '))
+                    if target not in field_names:
+                        print('\n\nString entered is not a valid field name.')
+                        continue
+                    else:
+                        calib['targets'].append(target)
+                        logger.info('{} set as a target field.'.format(target))
+                        resp = ''
+                        while (resp.lower() not in ['yes','ye','y']) and (resp.lower() not in ['no','n']) :
+                            resp = str(raw_input('Do you want to add another target (y/n): '))
+                        if resp.lower() in ['yes','ye','y']:
+                            continue
+                        else:
+                            break
+                change_made = True
         
     flux_cal_names_bad = False
     for i in range(len(calib['fluxcal'])):
         if calib['fluxcal'][i] not in field_names:
             flux_cal_names_bad = True
+            if not interactive:
+                logger.critical('Illegal name for flux calibrator: {}'.format(calib['fluxcal'][i]))
     if flux_cal_names_bad or len(calib['fluxcal']) != nspw:
         if nspw == 1:
-            logger.warning('No valid flux calibrator set. Requesting user input.')
-            while calib['fluxcal'][0] not in field_names:
-                if first > 0:
-                    print('\n\nString entered is not a valid field name.')
-                print('Valid field names:\n{}\n'.format(field_names))
-                calib['fluxcal'][0] = str(raw_input('Please select a flux calibrator by name: '))
-                first += 1
-        else:
-            if len(calib['fluxcal']) != nspw:
-                logger.warning('Incorrect number of flux calibrators set. Requesting user input.')
+            if not interactive:
+                logger.critical('No valid flux calibrator set.')
             else:
-                logger.warning('At least one flux calibrator is incorrect. Please revise the list.')
-            logger.info('Current calibrators list: {}'.format(calib['fluxcal']))
-            if len(calib['fluxcal']) > nspw:
-                logger.warning('Too many flux calibrators set.')
-                logger.warning('The following will be truncated: {}'.format(calib['fluxcal'][nspw-1:]))
-                calib['fluxcal'] = calib['fluxcal'][:nspw]
-            if len(calib['fluxcal']) < nspw:
-                logger.warning('Too few flux calibrators set.')
-                for i in range(len(calib['fluxcal']),nspw):
-                    calib['fluxcal'].append('')
-            i = 0
-            first = True
-            print('Valid field names:\n{}\n'.format(field_names))
-            while i in range(len(calib['fluxcal'])):
-                if first:
-                    print('SPW {0}: {1}'.format(spw_IDs[i],spw_names[i]))
-                calib['fluxcal'][i] = uinput('Enter flux calibrator for SPW {}: '.format(spw_IDs[i], default=calib['fluxcal'][i]))
-                if calib['fluxcal'][i] not in field_names:
-                    print('\n\nString entered is not a valid field name.')
+                logger.warning('No valid flux calibrator set. Requesting user input.')
+                while calib['fluxcal'][0] not in field_names:
+                    if first > 0:
+                        print('\n\nString entered is not a valid field name.')
                     print('Valid field names:\n{}\n'.format(field_names))
-                    first = False
+                    calib['fluxcal'][0] = str(raw_input('Please select a flux calibrator by name: '))
+                    first += 1
+                change_made = True
+        else:
+            if not interactive:
+                logger.critical('The number of flux calibrators does not match the number of spectral windows ({}).'.format(nspw))
+                logger.critical('Flux calibrators: {}'.format(calib['fluxcal']))
+            else:
+                if len(calib['fluxcal']) != nspw:
+                    logger.warning('Incorrect number of flux calibrators set. Requesting user input.')
                 else:
-                    i += 1
-                    first = True
-        change_made = True
+                    logger.warning('At least one flux calibrator is incorrect. Please revise the list.')
+                logger.info('Current calibrators list: {}'.format(calib['fluxcal']))
+                if len(calib['fluxcal']) > nspw:
+                    logger.warning('Too many flux calibrators set.')
+                    logger.warning('The following will be truncated: {}'.format(calib['fluxcal'][nspw-1:]))
+                    calib['fluxcal'] = calib['fluxcal'][:nspw]
+                if len(calib['fluxcal']) < nspw:
+                    logger.warning('Too few flux calibrators set.')
+                    for i in range(len(calib['fluxcal']),nspw):
+                        calib['fluxcal'].append('')
+                i = 0
+                first = True
+                print('Valid field names:\n{}\n'.format(field_names))
+                while i in range(len(calib['fluxcal'])):
+                    if first:
+                        print('SPW {0}: {1}'.format(spw_IDs[i],spw_names[i]))
+                    calib['fluxcal'][i] = uinput('Enter flux calibrator for SPW {}: '.format(spw_IDs[i], default=calib['fluxcal'][i]))
+                    if calib['fluxcal'][i] not in field_names:
+                        print('\n\nString entered is not a valid field name.')
+                        print('Valid field names:\n{}\n'.format(field_names))
+                        first = False
+                    else:
+                        i += 1
+                        first = True
+                change_made = True
         logger.info('Flux calibrators set as: {}.'.format(calib['fluxcal']))
     else:
         logger.info('Flux calibrator already set as: {}.'.format(calib['fluxcal']))
@@ -422,46 +461,71 @@ def set_fields(config,config_raw,config_file):
     for i in range(len(calib['fluxmod'])):
         if calib['fluxmod'][i] not in std_flux_mods:
             flux_mod_names_bad = True
+            if not interactive:
+                logger.error('Non-standard name for flux model: {}'.format(calib['fluxmod'][i]))
     if flux_mod_names_bad or len(calib['fluxmod']) != len(calib['fluxcal']):
-        if len(calib['fluxcal']) == 1:
-            logger.warning('No valid flux model set. Requesting user input.')
-            while calib['fluxmod'][0] not in std_flux_mods:
-                print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, or 3C286_L.im.\n')
-                calib['fluxmod'][0] = str(raw_input('Please select a flux model name: '))
-                if calib['fluxmod'][0] not in std_flux_mods:
-                    resp = str(raw_input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][0])))
-                    if resp.lower() not in ['yes','ye','y']:
-                        break
-                    else:
-                        continue
-        else:
-            if len(calib['fluxmod']) != len(calib['fluxcal']):
-                logger.warning('Incorrect number of flux models set. Requesting user input.')
-            else:
-                logger.warning('At least one flux model is incorrect. Please revise the list.')
-            logger.info('Current models list: {}'.format(calib['fluxmod']))
-            if len(calib['fluxmod']) > len(calib['fluxcal']):
-                logger.warning('Too many flux models set.')
-                logger.warning('The following will be truncated: {}'.format(calib['fluxmod'][len(calib['fluxcal'])-1:]))
-                calib['fluxmod'] = calib['fluxmod'][:len(calib['fluxcal'])]
-            if len(calib['fluxmod']) < len(calib['fluxcal']):
-                logger.warning('Too few flux models set.')
-                for i in range(len(calib['fluxmod']),len(calib['fluxcal'])):
-                    calib['fluxmod'].append('')
-            i = 0
-            while i in range(len(calib['fluxmod'])):
-                print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, or 3C286_L.im.\n')
-                calib['fluxmod'][i] = uinput('Enter flux model for calibrator {}: '.format(calib['fluxcal'][i], default=calib['fluxmod'][i]))
-                if calib['fluxmod'][i] not in std_flux_mods:
-                    resp = str(raw_input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][i])))
-                    if resp.lower() in ['yes','ye','y']:
-                        i += 1
-                else:
-                    i += 1
-        change_made = True
-        logger.info('Flux models set as: {}.'.format(calib['fluxmod']))
+        logger.warning('Flux calibrator models do not match flux calibrators.')
     else:
         logger.info('Flux models already set as: {}.'.format(calib['fluxmod']))
+            
+    if len(calib['fluxmod']) == 0:
+        if not interactive:
+            logger.warning('There is no flux calibrator model listed in the parameters file.')
+        flux_mod_names_bad = False
+        for i in range(len(calib['fluxcal'])):
+            if calib['fluxcal'][i] in std_flux_names.keys():
+                calib['fluxmod'].append(std_flux_names[calib['fluxcal'][i]])
+            else:
+                flux_mod_names_bad = True
+                if not interactive:
+                    logger.critical('Some flux calibrator models cannot be automatcially assigned.')
+        if not flux_mod_names_bad:
+            logger.info('Flux models automatically set as: {}.'.format(calib['fluxmod']))
+            change_made = True
+                
+    if flux_mod_names_bad or len(calib['fluxmod']) != len(calib['fluxcal']):
+        if not interactive:
+            logger.critical('The number of models does not match the number of flux calibrators.')
+            logger.critical('Flux calibrators: {}'.format(calib['fluxcal']))
+            logger.critical('Flux calibrator models: {}'.format(calib['fluxmod']))
+        else:
+            if len(calib['fluxcal']) == 1:
+                logger.warning('No valid flux model set. Requesting user input.')
+                while calib['fluxmod'][0] not in std_flux_mods:
+                    print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, or 3C286_L.im.\n')
+                    calib['fluxmod'][0] = str(raw_input('Please select a flux model name: '))
+                    if calib['fluxmod'][0] not in std_flux_mods:
+                        resp = str(raw_input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][0])))
+                        if resp.lower() not in ['yes','ye','y']:
+                            break
+                        else:
+                            continue
+            else:
+                if len(calib['fluxmod']) != len(calib['fluxcal']):
+                    logger.warning('Incorrect number of flux models set. Requesting user input.')
+                else:
+                    logger.warning('At least one flux model is incorrect. Please revise the list.')
+                logger.info('Current models list: {}'.format(calib['fluxmod']))
+                if len(calib['fluxmod']) > len(calib['fluxcal']):
+                    logger.warning('Too many flux models set.')
+                    logger.warning('The following will be truncated: {}'.format(calib['fluxmod'][len(calib['fluxcal'])-1:]))
+                    calib['fluxmod'] = calib['fluxmod'][:len(calib['fluxcal'])]
+                if len(calib['fluxmod']) < len(calib['fluxcal']):
+                    logger.warning('Too few flux models set.')
+                    for i in range(len(calib['fluxmod']),len(calib['fluxcal'])):
+                        calib['fluxmod'].append('')
+                i = 0
+                while i in range(len(calib['fluxmod'])):
+                    print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, or 3C286_L.im.\n')
+                    calib['fluxmod'][i] = uinput('Enter flux model for calibrator {}: '.format(calib['fluxcal'][i], default=calib['fluxmod'][i]))
+                    if calib['fluxmod'][i] not in std_flux_mods:
+                        resp = str(raw_input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][i])))
+                        if resp.lower() in ['yes','ye','y']:
+                            i += 1
+                    else:
+                        i += 1
+            change_made = True
+        logger.info('Flux models set as: {}.'.format(calib['fluxmod']))
         
     
     
@@ -469,44 +533,54 @@ def set_fields(config,config_raw,config_file):
     for i in range(len(calib['bandcal'])):
         if calib['bandcal'][i] not in field_names:
             band_cal_names_bad = True
+            if not interactive:
+                logger.critical('Illegal name for bandpass calibrator: {}'.format(calib['bandcal'][i]))
     if band_cal_names_bad or len(calib['bandcal']) != nspw:
         if nspw == 1:
-            logger.warning('No valid bandpass calibrator set. Requesting user input.')
-            while calib['bandcal'][0] not in field_names:
-                if first > 0:
-                    print('\n\nString entered is not a valid field name.')
-                print('Valid field names:\n{}\n'.format(field_names))
-                calib['bandcal'][0] = str(raw_input('Please select a bandpass calibrator by name: '))
-                first += 1
-        else:
-            if len(calib['bandcal']) != nspw:
-                logger.warning('Incorrect number of bandpass calibrators set. Requesting user input.')
+            if not interactive:
+                logger.critical('No valid bandpass calibrator set.')
             else:
-                logger.warning('At least one bandpass calibrator is incorrect. Please revise the list.')
-            logger.info('Current calibrators list: {}'.format(calib['bandcal']))
-            if len(calib['bandcal']) > nspw:
-                logger.warning('Too many bandpass calibrators set.')
-                logger.warning('The following will be truncated: {}'.format(calib['bandcal'][nspw-1:]))
-                calib['bandcal'] = calib['bandcal'][:nspw]
-            if len(calib['bandcal']) < nspw:
-                logger.warning('Too few bandpass calibrators set.')
-                for i in range(len(calib['bandcal']),nspw):
-                    calib['bandcal'].append('')
-            i = 0
-            first = True
-            print('Valid field names:\n{}\n'.format(field_names))
-            while i in range(len(calib['bandcal'])):
-                if first:
-                    print('SPW {0}: {1}'.format(spw_IDs[i],spw_names[i]))
-                calib['bandcal'][i] = uinput('Enter bandpass calibrator for SPW {}: '.format(spw_IDs[i], default=calib['bandcal'][i]))
-                if calib['bandcal'][i] not in field_names:
-                    print('\n\nString entered is not a valid field name.')
+                logger.warning('No valid bandpass calibrator set. Requesting user input.')
+                while calib['bandcal'][0] not in field_names:
+                    if first > 0:
+                        print('\n\nString entered is not a valid field name.')
                     print('Valid field names:\n{}\n'.format(field_names))
-                    first = False
+                    calib['bandcal'][0] = str(raw_input('Please select a bandpass calibrator by name: '))
+                    first += 1
+                change_made = True
+        else:
+            if not interactive:
+                logger.critical('The number of bandpass calibrators does not match the number of spectral windows ({}).'.format(nspw))
+                logger.critical('Bandpass calibrators: {}'.format(calib['bandcal']))
+            else:
+                if len(calib['bandcal']) != nspw:
+                    logger.warning('Incorrect number of bandpass calibrators set. Requesting user input.')
                 else:
-                    i += 1
-                    first = True
-        change_made = True
+                    logger.warning('At least one bandpass calibrator is incorrect. Please revise the list.')
+                logger.info('Current calibrators list: {}'.format(calib['bandcal']))
+                if len(calib['bandcal']) > nspw:
+                    logger.warning('Too many bandpass calibrators set.')
+                    logger.warning('The following will be truncated: {}'.format(calib['bandcal'][nspw-1:]))
+                    calib['bandcal'] = calib['bandcal'][:nspw]
+                if len(calib['bandcal']) < nspw:
+                    logger.warning('Too few bandpass calibrators set.')
+                    for i in range(len(calib['bandcal']),nspw):
+                        calib['bandcal'].append('')
+                i = 0
+                first = True
+                print('Valid field names:\n{}\n'.format(field_names))
+                while i in range(len(calib['bandcal'])):
+                    if first:
+                        print('SPW {0}: {1}'.format(spw_IDs[i],spw_names[i]))
+                    calib['bandcal'][i] = uinput('Enter bandpass calibrator for SPW {}: '.format(spw_IDs[i], default=calib['bandcal'][i]))
+                    if calib['bandcal'][i] not in field_names:
+                        print('\n\nString entered is not a valid field name.')
+                        print('Valid field names:\n{}\n'.format(field_names))
+                        first = False
+                    else:
+                        i += 1
+                        first = True
+                change_made = True
         logger.info('Bandpass calibrators set as: {}.'.format(calib['bandcal']))
     else:
         logger.info('Bandpass calibrator already set as: {}.'.format(calib['bandcal']))
@@ -519,39 +593,50 @@ def set_fields(config,config_raw,config_file):
     for i in range(len(calib['phasecal'])):
         if calib['phasecal'][i] not in field_names:
             phase_cal_names_bad = True
+            if not interactive:
+                logger.critical('Illegal name for phase calibrator: {}'.format(calib['phasecal'][i]))
     if phase_cal_names_bad or len(calib['phasecal']) != len(calib['targets']):
         if len(calib['targets']) == 1:
-            logger.warning('No valid phase calibrator set. Requesting user input.')
-            while calib['phasecal'][0] not in field_names:
-                if first > 0:
-                    print('\n\nString entered is not a valid field name.')
-                print('Valid field names:\n{}\n'.format(field_names))
-                calib['phasecal'][0] = str(raw_input('Please select a phase calibrator by name: '))
-                first += 1
-        else:
-            if len(calib['phasecal']) != len(calib['targets']):
-                logger.warning('Incorrect number of phase calibrators set. Requesting user input.')
+            if not interactive:
+                logger.critical('No valid phase calibrator set.')
             else:
-                logger.warning('At least one phase calibrator is incorrect. Please revise the list.')
-            logger.info('Current calibrators list: {}'.format(calib['phasecal']))
-            if len(calib['phasecal']) > len(calib['targets']):
-                logger.warning('Too many phase calibrators set.')
-                logger.warning('The following will be truncated: {}'.format(calib['phasecal'][len(calib['targets'])-1:]))
-                calib['phasecal'] = calib['phasecal'][:len(calib['targets'])]
-            if len(calib['phasecal']) < len(calib['targets']):
-                logger.warning('Too few phase calibrators set.')
-                for i in range(len(calib['phasecal']),len(calib['targets'])):
-                    calib['phasecal'].append('')
-            i = 0
-            print('Valid field names:\n{}\n'.format(field_names))
-            while i in range(len(calib['phasecal'])):
-                calib['phasecal'][i] = uinput('Enter phase calibrator for {}: '.format(calib['targets'][i]), default=calib['phasecal'][i])
-                if calib['phasecal'][i] not in field_names:
-                    print('\n\nString entered is not a valid field name.')
+                logger.warning('No valid phase calibrator set. Requesting user input.')
+                while calib['phasecal'][0] not in field_names:
+                    if first > 0:
+                        print('\n\nString entered is not a valid field name.')
                     print('Valid field names:\n{}\n'.format(field_names))
+                    calib['phasecal'][0] = str(raw_input('Please select a phase calibrator by name: '))
+                    first += 1
+                change_made = True
+        else:
+            if not interactive:
+                logger.critical('The number of phase calibrators does not match the number of targets.')
+                logger.critical('Phase calibrators: {}'.format(calib['phasecal']))
+                logger.critical('Targets: {}'.format(calib['targets']))
+            else:
+                if len(calib['phasecal']) != len(calib['targets']):
+                    logger.warning('Incorrect number of phase calibrators set. Requesting user input.')
                 else:
-                    i += 1
-        change_made = True
+                    logger.warning('At least one phase calibrator is incorrect. Please revise the list.')
+                logger.info('Current calibrators list: {}'.format(calib['phasecal']))
+                if len(calib['phasecal']) > len(calib['targets']):
+                    logger.warning('Too many phase calibrators set.')
+                    logger.warning('The following will be truncated: {}'.format(calib['phasecal'][len(calib['targets'])-1:]))
+                    calib['phasecal'] = calib['phasecal'][:len(calib['targets'])]
+                if len(calib['phasecal']) < len(calib['targets']):
+                    logger.warning('Too few phase calibrators set.')
+                    for i in range(len(calib['phasecal']),len(calib['targets'])):
+                        calib['phasecal'].append('')
+                i = 0
+                print('Valid field names:\n{}\n'.format(field_names))
+                while i in range(len(calib['phasecal'])):
+                    calib['phasecal'][i] = uinput('Enter phase calibrator for {}: '.format(calib['targets'][i]), default=calib['phasecal'][i])
+                    if calib['phasecal'][i] not in field_names:
+                        print('\n\nString entered is not a valid field name.')
+                        print('Valid field names:\n{}\n'.format(field_names))
+                    else:
+                        i += 1
+                change_made = True
         logger.info('Phase calibrators set as: {}.'.format(calib['phasecal']))
     else:
         logger.info('Phase calibrator already set as: {}.'.format(calib['phasecal']))
@@ -566,9 +651,13 @@ def set_fields(config,config_raw,config_file):
         configfile.close()
     else:
         logger.info('No changes made to preset target and calibrator fields.')
+    logger.info('Completed set field purposes.')
 
+   
+    
 def calibration(config):
     """ Runs the basic calibration steps"""
+    logger.info('Starting calibration.')
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
     sum_dir = './summary/'
@@ -747,21 +836,29 @@ def calibration(config):
             command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], calwt=False)".format(msfile,target,gctab, dltab, bstab, iptab, amtab, fxtab,calib['bandcal'][i],phasecal)
             logger.info('Executing command: '+command)
             exec(command)
-    logger.info('Calibration completed.')
+    logger.info('Completed calibration.')
 
 
 
 def split_fields(config):
+    logger.info('Starting split fields.')
     calib = config['calibration']
+    src_dir = config['global']['src_dir']+'/'
+    makedir('./'+src_dir)
     for field in calib['targets']:
         logger.info('Splitting {0} into separate file: {1}.'.format(field, field+'.split'))
-        command = "split(vis='{0}', outputvis='{1}'+'.split', field='{1}')".format(msfile,field)
+        command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{2}')".format(msfile,src_dir,field)
         logger.info('Executing command: '+command)
         exec(command)
+    logger.info('Completed split fields.')
+    
+
         
 def contsub(config,config_raw,config_file):
+    logger.info('Starting continuum subtraction.')
     contsub = config['continuum_subtraction']
     calib = config['calibration']
+    src_dir = config['global']['src_dir']+'/'
     logger.info('Checking for line free channel ranges in parameters.')
     reset_ch = False
     if len(contsub['linefree_ch']) == 0 or len(contsub['linefree_ch']) != len(calib['targets']):
@@ -775,7 +872,7 @@ def contsub(config,config_raw,config_file):
             logger.info('Current channel ranges: {}'.format(contsub['linefree_ch']))
             logger.warning('The channel range list will now be truncated to match the number of targets.')
             contsub['linefree_ch'] = contsub['linefree_ch'][:len(calib['targets'])]
-    else:
+    elif interactive:
         print('Current line free channels set as:')
         for i in range(len(contsub['linefree_ch'])):
             print('{0}: {1}'.format(calib['targets'][i],contsub['linefree_ch'][i]))
@@ -783,52 +880,75 @@ def contsub(config,config_raw,config_file):
         if resp.lower() in ['yes','ye','y']:
             reset_ch = True
     if reset_ch:
-        print('For each target enter the line free channels in the following format:\nspwID1:min_ch1~max_ch1;min_ch2~max_ch2,spwID2:min_ch3~max_ch3 etc.')
-        for i in range(len(calib['targets'])):
-            contsub['linefree_ch'][i] = uinput('Line free channels for {}: '.format(calib['targets'][i]), contsub['linefree_ch'][i])
-            logger.info('Setting line free channels for {0} as: {1}.'.format(calib['targets'][i], contsub['linefree_ch'][i]))
-        logger.info('Updating config file to set line free channels.')
-        config_raw.set('continuum_subtraction','linefree_ch',contsub['linefree_ch'])
-        configfile = open(config_file,'w')
-        config_raw.write(configfile)
-        configfile.close()
+        if not interactive:
+            logger.critical('The number of line free channel ranges provided does not match the number of targets.')
+            logger.info('Line free change ranges: {}'.format(contsub['linefree_ch']))
+            logger.info('Targets: {}'.format(calib['targets']))
+        else:
+            print('For each target enter the line free channels in the following format:\nspwID1:min_ch1~max_ch1;min_ch2~max_ch2,spwID2:min_ch3~max_ch3 etc.')
+            for i in range(len(calib['targets'])):
+                contsub['linefree_ch'][i] = uinput('Line free channels for {}: '.format(calib['targets'][i]), contsub['linefree_ch'][i])
+                logger.info('Setting line free channels for {0} as: {1}.'.format(calib['targets'][i], contsub['linefree_ch'][i]))
+            logger.info('Updating config file to set line free channels.')
+            config_raw.set('continuum_subtraction','linefree_ch',contsub['linefree_ch'])
+            configfile = open(config_file,'w')
+            config_raw.write(configfile)
+            configfile.close()
     logger.info('Line free channels set as: {}.'.format(contsub['linefree_ch']))
     logger.info('For the targets: {}.'.format(calib['targets']))
     for i in range(len(calib['targets'])):
         target = calib['targets'][i]
         chans = contsub['linefree_ch'][i]
+        spws = chans.split(',')
+        for i in range(len(spws)):
+            spw = spws[i].strip()
+            spw = spw[0]
+            spws[i] = spw
         logger.info('Subtracting the continuum from field: {}'.format(target))
-        command = "uvcontsub(vis='{0}'+'.split', field='{0}', fitspw='{1}', excludechans=False,combine='',solint='int', fitorder={2}, want_cont={3})".format(target,chans,contsub['fitorder'],contsub['save_cont'])
+        command = "uvcontsub(vis='{0}{1}'+'.split', field='{1}', fitspw='{2}', spw='{3}', excludechans=False,combine='',solint='int', fitorder={4}, want_cont={5})".format(src_dir,target,chans,','.join(spws),contsub['fitorder'],contsub['save_cont'])
         logger.info('Executing command: '+command)
         exec(command)
+    logger.info('Completed continuum subtraction.')
+    
+
 
 def plot_spec(config):
+    logger.info('Starting plotting amplitude spectrum.')
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
     calib = config['calibration']
     targets = calib['targets']
+    src_dir = config['global']['src_dir']+'/'
     for target in targets:
-        tb.open('{}.split/SPECTRAL_WINDOW'.format(target))
-        nspw = len(tb.getcol('NAME'))
-        tb.close()
-        for i in range(nspw):
-            plot_file = plots_obs_dir+'{0}_amp_chn_spw{1}.png'.format(target,i)
+        msmd.open('{0}{1}.split'.format(src_dir,target))
+        spws = msmd.spwsforfield('{}'.format(target))
+        msmd.close()
+        #tb.open('{}.split/SPECTRAL_WINDOW'.format(target))
+        #nspw = len(tb.getcol('NAME'))
+        #tb.close()
+        for spw in range(spws):
+            plot_file = plots_obs_dir+'{0}_amp_chn_spw{1}.png'.format(target,spw)
             logger.info('Plotting amplitude vs channel to {}'.format(plot_file))
-            plotms(vis=target+'.split.contsub', xaxis='chan', yaxis='amp',
-                   ydatacolumn='corrected', spw=str(i), plotfile=plot_file,
+            plotms(vis=src_dir+target+'.split.contsub', xaxis='chan', yaxis='amp',
+                   ydatacolumn='corrected', spw=str(spw), plotfile=plot_file,
                    expformat='png', overwrite=True, showgui=False)
-            plot_file = plots_obs_dir+'{0}_amp_vel_spw{1}.png'.format(target,i)
+            plot_file = plots_obs_dir+'{0}_amp_vel_spw{1}.png'.format(target,spw)
             logger.info('Plotting amplitude vs velocity to {}'.format(plot_file))
-            plotms(vis=target+'.split.contsub', xaxis='velocity', yaxis='amp',
-                   ydatacolumn='corrected', spw=str(i), plotfile=plot_file,
+            plotms(vis=src_dir+target+'.split.contsub', xaxis='velocity', yaxis='amp',
+                   ydatacolumn='corrected', spw=str(spw), plotfile=plot_file,
                    expformat='png', overwrite=True, showgui=False,
                    freqframe='BARY', restfreq='1420.405751MHz', veldef='OPTICAL')
+    logger.info('Completed plotting amplitude spectrum.')
 
 def dirty_cont_image(config,config_raw,config_file):
+    logger.info('Starting making dirty continuum image.')
     calib = config['calibration']
     rest_freq = config['global']['rest_freq']
     targets = calib['targets']
     cln_param = config['clean']
+    src_dir = config['global']['src_dir']+'/'
+    img_dir = config['global']['img_dir']+'/'
+    makedir('/.'+img_dir)
     logger.info('Checking clean parameters for dirty image (inc. continuum).')
     reset_cln = False
     if len(cln_param['pix_size']) == 0 or len(cln_param['pix_size']) != len(targets):
@@ -843,13 +963,18 @@ def dirty_cont_image(config,config_raw,config_file):
             logger.warning('The pixel size list will now be truncated to match the number of targets.')
             cln_param['pix_size'] = cln_param['pix_size'][:len(targets)]
     else:
-        print('Current pixel sizes set as:')
-        for i in range(len(cln_param['pix_size'])):
-            print('{0}: {1}'.format(targets[i],cln_param['pix_size'][i]))
-        resp = str(raw_input('Do you want revise the pixel sizes (y/n): '))
-        if resp.lower() in ['yes','ye','y']:
-            reset_cln = True
-    if reset_cln:
+        if not interactive:
+            logger.critical('The number of pixel sizes provided does not match the number of targets.')
+            logger.info('Pixel sizes: {}'.format(cln_param['pix_size']))
+            logger.info('Targets: {}'.format(targets))
+        else:
+            print('Current pixel sizes set as:')
+            for i in range(len(cln_param['pix_size'])):
+                print('{0}: {1}'.format(targets[i],cln_param['pix_size'][i]))
+            resp = str(raw_input('Do you want revise the pixel sizes (y/n): '))
+            if resp.lower() in ['yes','ye','y']:
+                reset_cln = True
+    if reset_cln and interactive:
         print('For each target enter the desired pixel size:')
         for i in range(len(targets)):
             cln_param['pix_size'][i] = uinput('Pixel size for {}: '.format(targets[i]), cln_param['pix_size'][i])
@@ -874,13 +999,18 @@ def dirty_cont_image(config,config_raw,config_file):
             logger.warning('The image size list will now be truncated to match the number of targets.')
             cln_param['im_size'] = cln_param['im_size'][:len(targets)]
     else:
-        print('Current images sizes set as:')
-        for i in range(len(cln_param['im_size'])):
-            print('{0}: {1}'.format(targets[i],cln_param['im_size'][i]))
-        resp = str(raw_input('Do you want revise the image sizes (y/n): '))
-        if resp.lower() in ['yes','ye','y']:
-            reset_cln = True
-    if reset_cln:
+        if not interactive:
+            logger.critical('The number of image sizes provided does not match the number of targets.')
+            logger.info('Image sizes: {}'.format(cln_param['im_size']))
+            logger.info('Targets: {}'.format(targets))
+        else:
+            print('Current images sizes set as:')
+            for i in range(len(cln_param['im_size'])):
+                print('{0}: {1}'.format(targets[i],cln_param['im_size'][i]))
+            resp = str(raw_input('Do you want revise the image sizes (y/n): '))
+            if resp.lower() in ['yes','ye','y']:
+                reset_cln = True
+    if reset_cln and interactive:
         print('For each target enter the desired image size:')
         for i in range(len(targets)):
             print('Note: The pixel size for this target was set to: {}'.format(cln_param['pix_size'][i]))
@@ -896,49 +1026,22 @@ def dirty_cont_image(config,config_raw,config_file):
     for i in range(len(targets)):
         target = targets[i]
         logger.info('Making dirty image of {} (inc. continuum).'.format(target))
-        command = "tclean(vis='{0}'+'.split', field='{0}', imagename='{0}'+'.cont.dirty', cell='{1}', imsize=[{2},{2}], specmode='cube', outframe='bary', veltype='radio', restfreq='{3}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={4}, niter=0, interactive=False)".format(target,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+        command = "tclean(vis='{0}{1}'+'.split', field='{1}', imagename='{2}{1}'+'.cont.dirty', cell='{3}', imsize=[{4},{4}], specmode='cube', outframe='bary', veltype='radio', restfreq='{5}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={6}, niter=0, interactive=False)".format(src_dir,target,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
         logger.info('Executing command: '+command)
-        exec(command)            
+        exec(command)  
+    logger.info('Completed making dirty continuum image.')
             
 def dirty_image(config,config_raw,config_file):
+    logger.info('Starting making dirty image.')
     calib = config['calibration']
     contsub = config['continuum_subtraction']
     rest_freq = config['global']['rest_freq']
     targets = calib['targets']
     cln_param = config['clean']
+    src_dir = config['global']['src_dir']+'/'
+    img_dir = config['global']['img_dir']+'/'
+    makedir('./'+img_dir)
     logger.info('Checking clean parameters for dirty image.')
-    reset_cln = False
-    if len(cln_param['line_ch']) == 0 or len(cln_param['line_ch']) != len(targets):
-        reset_cln = True
-        if len(cln_param['line_ch']) < len(targets):
-            logger.warning('There are more target fields than channel ranges. Appending blank ranges.')
-            while len(cln_param['line_ch']) < len(targets):
-                cln_param['line_ch'].append('')
-        elif len(cln_param['line_ch']) > len(targets):
-            logger.warning('There are more channel ranges than target fields.')
-            logger.info('Current channel ranges: {}'.format(cln_param['line_ch']))
-            logger.warning('The channel range list will now be truncated to match the number of targets.')
-            cln_param['line_ch'] = cln_param['line_ch'][:len(targets)]
-    else:
-        print('Current image channels set as:')
-        for i in range(len(cln_param['line_ch'])):
-            print('{0}: {1}'.format(targets[i],cln_param['line_ch'][i]))
-        resp = str(raw_input('Do you want revise the channels that will be imaged (y/n): '))
-        if resp.lower() in ['yes','ye','y']:
-            reset_cln = True
-    if reset_cln:
-        print('For each target enter the channels you want to image in the following format:\nspwID:min_ch~max_ch')
-        for i in range(len(targets)):
-            print('Note: The continuum channels for this target were set to: {}'.format(contsub['linefree_ch'][i]))
-            cln_param['line_ch'][i] = uinput('Channels to image for {}: '.format(targets[i]), cln_param['line_ch'][i])
-            logger.info('Setting image channels for {0} as: {1}.'.format(targets[i], cln_param['line_ch'][i]))
-        logger.info('Updating config file to set channels to be imaged.')
-        config_raw.set('clean','line_ch',cln_param['line_ch'])
-        configfile = open(config_file,'w')
-        config_raw.write(configfile)
-        configfile.close()
-    logger.info('Line free channels set as: {}.'.format(cln_param['line_ch']))
-    logger.info('For the targets: {}.'.format(targets))
     reset_cln = False
     if len(cln_param['pix_size']) == 0 or len(cln_param['pix_size']) != len(targets):
         reset_cln = True
@@ -952,13 +1055,18 @@ def dirty_image(config,config_raw,config_file):
             logger.warning('The pixel size list will now be truncated to match the number of targets.')
             cln_param['pix_size'] = cln_param['pix_size'][:len(targets)]
     else:
-        print('Current pixel sizes set as:')
-        for i in range(len(cln_param['pix_size'])):
-            print('{0}: {1}'.format(targets[i],cln_param['pix_size'][i]))
-        resp = str(raw_input('Do you want revise the pixel sizes (y/n): '))
-        if resp.lower() in ['yes','ye','y']:
-            reset_cln = True
-    if reset_cln:
+        if not interactive:
+            logger.critical('The number of pixel sizes provided does not match the number of targets.')
+            logger.info('Pixel sizes: {}'.format(cln_param['pix_size']))
+            logger.info('Targets: {}'.format(targets))
+        else:
+            print('Current pixel sizes set as:')
+            for i in range(len(cln_param['pix_size'])):
+                print('{0}: {1}'.format(targets[i],cln_param['pix_size'][i]))
+            resp = str(raw_input('Do you want revise the pixel sizes (y/n): '))
+            if resp.lower() in ['yes','ye','y']:
+                reset_cln = True
+    if reset_cln and interactive:
         print('For each target enter the desired pixel size:')
         for i in range(len(targets)):
             cln_param['pix_size'][i] = uinput('Pixel size for {}: '.format(targets[i]), cln_param['pix_size'][i])
@@ -983,13 +1091,18 @@ def dirty_image(config,config_raw,config_file):
             logger.warning('The image size list will now be truncated to match the number of targets.')
             cln_param['im_size'] = cln_param['im_size'][:len(targets)]
     else:
-        print('Current images sizes set as:')
-        for i in range(len(cln_param['im_size'])):
-            print('{0}: {1}'.format(targets[i],cln_param['im_size'][i]))
-        resp = str(raw_input('Do you want revise the image sizes (y/n): '))
-        if resp.lower() in ['yes','ye','y']:
-            reset_cln = True
-    if reset_cln:
+        if not interactive:
+            logger.critical('The number of image sizes provided does not match the number of targets.')
+            logger.info('Image sizes: {}'.format(cln_param['im_size']))
+            logger.info('Targets: {}'.format(targets))
+        else:
+            print('Current images sizes set as:')
+            for i in range(len(cln_param['im_size'])):
+                print('{0}: {1}'.format(targets[i],cln_param['im_size'][i]))
+            resp = str(raw_input('Do you want revise the image sizes (y/n): '))
+            if resp.lower() in ['yes','ye','y']:
+                reset_cln = True
+    if reset_cln and interactive:
         print('For each target enter the desired image size:')
         for i in range(len(targets)):
             print('Note: The pixel size for this target was set to: {}'.format(cln_param['pix_size'][i]))
@@ -1005,16 +1118,19 @@ def dirty_image(config,config_raw,config_file):
     for i in range(len(targets)):
         target = targets[i]
         logger.info('Making dirty image of {} (line only).'.format(target))
-        command = "tclean(vis='{0}'+'.split.contsub', field='{0}', imagename='{0}'+'.dirty', cell='{1}', imsize=[{2},{2}], specmode='cube', outframe='bary', veltype='radio', restfreq='{3}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={4}, niter=0, interactive=False)".format(target,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{1}', imagename='{2}{1}'+'.dirty', cell='{3}', imsize=[{4},{4}], specmode='cube', outframe='bary', veltype='radio', restfreq='{5}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={6}, restoringbeam='common', niter=0, interactive=False)".format(src_dir,target,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
         logger.info('Executing command: '+command)
         exec(command)
+    logger.info('Completed making dirty image.')
         
 def noise_est(config):
+    logger.info('Starting making noise estimation.')
     targets = config['calibration']['targets']
     cln_param = config['clean']
+    src_dir = config['global']['src_dir']+'/'
     noise = []
     for target in targets:
-        msmd.open(target+'.split.contsub')
+        msmd.open(src_dir+target+'.split.contsub')
         N = msmd.nantennas()
         t_int = msmd.effexposuretime()['value']
         ch_wid = numpy.mean(msmd.chanwidths(0))
@@ -1024,7 +1140,8 @@ def noise_est(config):
         corr_eff = cln_param['corr_eff']
         SEFD = cln_param['sefd']
         N_pol = 2.
-        noise.append(SEFD/(corr_eff*numpy.sqrt(N_pol*N*(N-1)*t_int*ch_wid)))
+        noise.append(SEFD/(corr_eff*numpy.sqrt(N_pol*N*(N-1.)*t_int*ch_wid)))
+    logger.info('Completed making noise estimation.')
     return noise
 
 def image(config,config_raw,config_file):
@@ -1034,22 +1151,68 @@ def image(config,config_raw,config_file):
     rest_freq = config['global']['rest_freq']
     targets = calib['targets']
     cln_param = config['clean']
-    logger.info('Beginning generation of clean image(s).')
+    src_dir = config['global']['src_dir']+'/'
+    img_dir = config['global']['img_dir']+'/'
+    makedir('./'+img_dir)
+    logger.info('Starting generation of clean image(s).')
+    reset_cln = False
+    if len(cln_param['line_ch']) == 0 or len(cln_param['line_ch']) != len(targets):
+        reset_cln = True
+        if len(cln_param['line_ch']) < len(targets):
+            logger.warning('There are more target fields than channel ranges. Appending blank ranges.')
+            while len(cln_param['line_ch']) < len(targets):
+                cln_param['line_ch'].append('')
+        elif len(cln_param['line_ch']) > len(targets):
+            logger.warning('There are more channel ranges than target fields.')
+            logger.info('Current channel ranges: {}'.format(cln_param['line_ch']))
+            logger.warning('The channel range list will now be truncated to match the number of targets.')
+            cln_param['line_ch'] = cln_param['line_ch'][:len(targets)]
+    else:
+        if not interactive:
+            logger.critical('The number of line channel ranges provided does not match the number of targets.')
+            logger.info('Pixel sizes: {}'.format(cln_param['line_ch']))
+            logger.info('Targets: {}'.format(targets))
+        else:
+            print('Current image channels set as:')
+            for i in range(len(cln_param['line_ch'])):
+                print('{0}: {1}'.format(targets[i],cln_param['line_ch'][i]))
+            resp = str(raw_input('Do you want revise the channels that will be imaged (y/n): '))
+            if resp.lower() in ['yes','ye','y']:
+                reset_cln = True
+    if reset_cln and interactive:
+        print('For each target enter the channels you want to image in the following format:\nspwID:min_ch~max_ch')
+        for i in range(len(targets)):
+            print('Note: The continuum channels for this target were set to: {}'.format(contsub['linefree_ch'][i]))
+            cln_param['line_ch'][i] = uinput('Channels to image for {}: '.format(targets[i]), cln_param['line_ch'][i])
+            logger.info('Setting image channels for {0} as: {1}.'.format(targets[i], cln_param['line_ch'][i]))
+        logger.info('Updating config file to set channels to be imaged.')
+        config_raw.set('clean','line_ch',cln_param['line_ch'])
+        configfile = open(config_file,'w')
+        config_raw.write(configfile)
+        configfile.close()
+    logger.info('Line emission channels set as: {}.'.format(cln_param['line_ch']))
+    logger.info('For the targets: {}.'.format(targets))
     if cln_param['multiscale']:
         algorithm = 'multiscale'
         logger.info('Setting CLEAN algorithm to MS-CLEAN.')
         reset_cln = False
         if cln_param['scales'] == []:
             reset_cln = True
-            logger.info('MS-CLEAN scales not set. Requesting user input.')
+            logger.warning('MS-CLEAN scales not set.')
         elif 0 not in cln_param['scales']:
             logger.warning('MS-CLEAN scales do not include point sources. This is highly recommended.')
-            resp = str(raw_input('Do you want revise MS-CLEAN scales (y/n): '))
-            if resp.lower() in ['yes','ye','y']:
+            if interactive:
+                resp = str(raw_input('Do you want revise MS-CLEAN scales (y/n): '))
+                if resp.lower() in ['yes','ye','y']:
+                    reset_cln = True
+            else:
+                logger.info('Adding point source to MS-CLEAN scales.')
+                cln_param['scales'].append(0)
                 reset_cln = True
         if reset_cln:
-            print('Current scales set to: {} beam diameters.'.format(cln_param['scales']))
-            cln_param['scales'] = uinput('Enter new scales: ', cln_param['scales'])
+            if interactive:
+                print('Current scales set to: {} beam diameters.'.format(cln_param['scales']))
+                cln_param['scales'] = uinput('Enter new scales: ', cln_param['scales'])
             logger.info('Setting MS-CLEAN scales as {} beams.'.format(cln_param['scales']))
             logger.info('Updating config file to set MS-CLEAN scales.')
             config_raw.set('clean','scales',cln_param['scales'])
@@ -1065,10 +1228,10 @@ def image(config,config_raw,config_file):
     for i in range(len(targets)):
         target = targets[i]
         logger.info('Starting {} image.'.format(target))
-        ia.open(target+'.dirty.image')
+        reset_cln = False
+        ia.open(img_dir+target+'.dirty.image')
         rest_beam = ia.restoringbeam()
         ia.close()
-        reset_cln = False
         if rest_beam['minor']['unit'] not in cln_param['pix_size'][i]:
             logger.error('The pixel size and beam size have diffent units.')
             if cln_param['multiscale']:
@@ -1079,14 +1242,15 @@ def image(config,config_raw,config_file):
         pix_size = float(pix_size[:pix_size.find(rest_beam['minor']['unit'])])
         if pix_size > 0.2*rest_beam['minor']['value']:
             logger.warning('There are fewer than 5 pixels across the beam minor axis. Consider decreasing the pixel size.')
-            print('Beam dimensions:')
-            print('Major: {0:.2f} {1}'.format(rest_beam['major']['value'],rest_beam['major']['unit']))
-            print('Minor: {0:.2f} {1}'.format(rest_beam['minor']['value'],rest_beam['minor']['unit']))
-            print('Pixel size: {}'.format(cln_param['pix_size']))
-            resp = str(raw_input('Do you want revise the pixel size (y/n): '))
-            if resp.lower() in ['yes','ye','y']:
-                reset_cln = True
-        if reset_cln:
+            if interactive:
+                print('Beam dimensions:')
+                print('Major: {0:.2f} {1}'.format(rest_beam['major']['value'],rest_beam['major']['unit']))
+                print('Minor: {0:.2f} {1}'.format(rest_beam['minor']['value'],rest_beam['minor']['unit']))
+                print('Pixel size: {}'.format(cln_param['pix_size']))
+                resp = str(raw_input('Do you want revise the pixel size (y/n): '))
+                if resp.lower() in ['yes','ye','y']:
+                    reset_cln = True
+        if reset_cln and interactive:
             print('Enter the desired pixel size:')
             cln_param['pix_size'][i] = uinput('Pixel size for {}: '.format(target), cln_param['pix_size'][i])
             logger.info('Setting pixel size for {0} as: {1}.'.format(target, cln_param['pix_size'][i]))
@@ -1139,20 +1303,20 @@ def image(config,config_raw,config_file):
                     scales = scales[inx]
             logger.info('CLEANing with scales of {} pixels.'.format(scales))
         logger.info('CLEANing {0} to a threshold of {1} Jy.'.format(target,noises[i]*cln_param['thresh']))
-        command = "tclean(vis='{0}'+'.split.contsub', field='{0}', spw='{1}', imagename='{0}', cell='{2}', imsize=[{3},{3}], specmode='cube', outframe='bary', veltype='radio', restfreq='{4}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='{5}', scales={6}, restoringbeam='common', pbcor=True, weighting='briggs', robust={7}, niter=100000, gain=0.1, threshold='{8}Jy', usemask='auto-multithresh', sidelobethreshold={9}, noisethreshold={10}, lownoisethreshold={11}, minbeamfrac={12}, negativethreshold={13}, cyclefactor=2.0,interactive=False)".format(target,cln_param['line_ch'][i],cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
+        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{1}', spw='{2}', imagename='{3}{1}', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='{7}', scales={8}, restoringbeam='common', pbcor=True, weighting='briggs', robust={9}, niter=100000, gain=0.1, threshold='{10}Jy', usemask='auto-multithresh', sidelobethreshold={11}, noisethreshold={12}, lownoisethreshold={13}, minbeamfrac={14}, negativethreshold={15}, cyclefactor=2.0,interactive=False)".format(src_dir,target,cln_param['line_ch'][i],img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
         logger.info('Executing command: '+command)
         exec(command)
         logger.info('CLEANing finished. Image cube saved as {}.'.format(target+'.image'))
-        ia.open(target+'.dirty.image')
+        ia.open(img_dir+target+'.dirty.image')
         coords = ia.coordsys()
         if 'J2000' not in coords.referencecode()[0]:
             coord_chn = True
             logger.info('Coordinate system not J2000. Image will be regridded.')
-            command = "imregrid(imagename='{0}'+'.image', template='J2000', output='{0}'+'.image.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(target)
+            command = "imregrid(imagename='{0}{1}'+'.image', template='J2000', output='{0}{1}'+'.image.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(img_dir,target)
             logger.info('Executing command: '+command)
             exec(command)
             logger.info('{} regridded in J2000 coordinates.'.format(target+'.image.J2000'))
-            command = "imregrid(imagename='{0}'+'.image.pbcor', template='J2000', output='{0}'+'.image.pbcor.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(target)
+            command = "imregrid(imagename='{0}{1}'+'.image.pbcor', template='J2000', output='{0}{1}'+'.image.pbcor.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(img_dir,target)
             logger.info('Executing command: '+command)
             exec(command)
             logger.info('{} regridded in J2000 coordinates.'.format(target+'.image.pbcor.J2000'))
@@ -1164,7 +1328,7 @@ def image(config,config_raw,config_file):
             imagename = target+'.image.J2000'
         else:
             imagename = target+'.image'
-        command = "exportfits(imagename='{0}', fitsimage='{1}', velocity=True,optical=False,overwrite=True,dropstokes=True,stokeslast=True,history=True,dropdeg=True)".format(imagename,fitsname)
+        command = "exportfits(imagename='{0}{1}', fitsimage='{0}{2}', velocity=True,optical=False,overwrite=True,dropstokes=True,stokeslast=True,history=True,dropdeg=True)".format(img_dir,imagename,fitsname)
         logger.info('Executing command: '+command)
         exec(command)
         fitsname = target+'_HI.pbcor.fits'
@@ -1173,10 +1337,11 @@ def image(config,config_raw,config_file):
             imagename = target+'.image.pbcor.J2000'
         else:
             imagename = target+'.image.pbcor'
-        command = "exportfits(imagename='{0}', fitsimage='{1}', velocity=True,optical=False,overwrite=True,dropstokes=True,stokeslast=True,history=True,dropdeg=True)".format(imagename,fitsname)
+        command = "exportfits(imagename='{0}{1}', fitsimage='{0}{2}', velocity=True,optical=False,overwrite=True,dropstokes=True,stokeslast=True,history=True,dropdeg=True)".format(img_dir,imagename,fitsname)
         logger.info('Executing command: '+command)
         exec(command)
         coord_chn = False
+    logger.info('Completed generation of clean image(s).')
 
 ######################   Processing   ####################
 # Read configuration file with parameters
@@ -1192,7 +1357,7 @@ logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['proje
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 # 1. Import data and write listobs to file
-data_path = config['importdata']['data_path']
+'''data_path = config['importdata']['data_path']
 data_files = glob.glob(os.path.join(data_path, '*'))
 import_data(sorted(data_files), msfile)
 msinfo = get_msinfo(msfile)
@@ -1223,7 +1388,7 @@ split_fields(config)
 dirty_cont_image(config,config_raw,config_file)
 contsub(config,config_raw,config_file)
 plot_spec(config)
-dirty_image(config,config_raw,config_file)
+dirty_image(config,config_raw,config_file)'''
 
 #6. Clean and regrid (if necessary) image
 image(config,config_raw,config_file)
