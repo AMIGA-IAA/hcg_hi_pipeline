@@ -926,7 +926,7 @@ def plot_spec(config):
         #tb.open('{}.split/SPECTRAL_WINDOW'.format(target))
         #nspw = len(tb.getcol('NAME'))
         #tb.close()
-        for spw in range(spws):
+        for spw in spws:
             plot_file = plots_obs_dir+'{0}_amp_chn_spw{1}.png'.format(target,spw)
             logger.info('Plotting amplitude vs channel to {}'.format(plot_file))
             plotms(vis=src_dir+target+'.split.contsub', xaxis='chan', yaxis='amp',
@@ -1299,8 +1299,9 @@ def image(config,config_raw,config_file):
                     #THERE NEEDS TO BE AN AUTOMATIC ASSIGNMENT OF ARRAY
                     logger.warning('Some MS-CLEAN scale(s) is (are) larger than largest recoverable angular scales.')
                     logger.info('Removing offending scales.')
-                    inx = numpy.where(numpy.array(scales)*pix_size <= max_scales[3])[0]
-                    scales = scales[inx]
+                    #inx = numpy.where(numpy.array(scales)*pix_size <= max_scales[3])[0]
+                    #scales = scales[inx]
+                    scales = list(set(numpy.where(numpy.array(scales)*pix_size <= max_scales[3],scales,0)))
             logger.info('CLEANing with scales of {} pixels.'.format(scales))
         logger.info('CLEANing {0} to a threshold of {1} Jy.'.format(target,noises[i]*cln_param['thresh']))
         command = "tclean(vis='{0}{1}'+'.split.contsub', field='{1}', spw='{2}', imagename='{3}{1}', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='{7}', scales={8}, restoringbeam='common', pbcor=True, weighting='briggs', robust={9}, niter=100000, gain=0.1, threshold='{10}Jy', usemask='auto-multithresh', sidelobethreshold={11}, noisethreshold={12}, lownoisethreshold={13}, minbeamfrac={14}, negativethreshold={15}, cyclefactor=2.0,interactive=False)".format(src_dir,target,cln_param['line_ch'][i],img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
@@ -1342,6 +1343,60 @@ def image(config,config_raw,config_file):
         exec(command)
         coord_chn = False
     logger.info('Completed generation of clean image(s).')
+    
+    
+def cleanup(config):
+    src_dir = config['global']['src_dir']+'/'
+    img_dir = config['global']['img_dir']+'/'
+    cln_lvl = config['global']['cleanup_level']
+    logger.info('Starting level {} cleanup.'.format(cln_lvl))
+    if cln_lvl >= 1:
+        logger.info('Deleting CASA .last files.')
+        del_list = glob.glob('./*.last')
+        for file_path in del_list:
+            os.remove(file_path)
+        logger.info('Deleting calibration tables.')
+        shutil.rmtree('./cal_tabs')
+        logger.info('Deleting flag tables.')
+        shutil.rmtree('./{}.flagversions'.format(msfile))
+    if cln_lvl >= 2:
+        logger.info('Deleting full measurement set.')
+        shutil.rmtree('./{}'.format(msfile))        
+        logger.info('Deleting dirty images.')
+        del_list = glob.glob(img_dir+'*.dirty.*')
+        for file_path in del_list:
+            shutil.rmtree(file_path)
+        logger.info('Deleting CLEANing masks.')
+        del_list = glob.glob(img_dir+'*.mask')
+        for file_path in del_list:
+            shutil.rmtree(file_path)
+        logger.info('Deleting CLEAN models.')
+        del_list = glob.glob(img_dir+'*.model')
+        for file_path in del_list:
+            shutil.rmtree(file_path)
+        logger.info('Deleting primary beam and PSF models.')
+        del_list = glob.glob(img_dir+'*.pb')
+        for file_path in del_list:
+            shutil.rmtree(file_path)
+        del_list = glob.glob(img_dir+'*.psf')
+        for file_path in del_list:
+            shutil.rmtree(file_path)
+        logger.info('Deleting weighting.')
+        del_list = glob.glob(img_dir+'*.sumwt')
+        for file_path in del_list:
+            shutil.rmtree(file_path)
+    if cln_lvl >= 3:
+        logger.info('Deleting split measurement sets.')
+        shutil.rmtree(src_dir)
+        logger.info('Deleting CLEAN residuals.')
+        del_list = glob.glob(img_dir+'*.residual')
+        for file_path in del_list:
+            shutil.rmtree(file_path)
+        logger.info('Deleting image files (except fits).')
+        del_list = glob.glob(img_dir+'*.image*')
+        for file_path in del_list:
+            shutil.rmtree(file_path)
+    logger.info('Cleanup completed.')
 
 ######################   Processing   ####################
 # Read configuration file with parameters
@@ -1357,7 +1412,7 @@ logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['proje
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 # 1. Import data and write listobs to file
-'''data_path = config['importdata']['data_path']
+data_path = config['importdata']['data_path']
 data_files = glob.glob(os.path.join(data_path, '*'))
 import_data(sorted(data_files), msfile)
 msinfo = get_msinfo(msfile)
@@ -1388,7 +1443,10 @@ split_fields(config)
 dirty_cont_image(config,config_raw,config_file)
 contsub(config,config_raw,config_file)
 plot_spec(config)
-dirty_image(config,config_raw,config_file)'''
+dirty_image(config,config_raw,config_file)
 
 #6. Clean and regrid (if necessary) image
 image(config,config_raw,config_file)
+
+#7. Cleanup
+cleanup(config)
