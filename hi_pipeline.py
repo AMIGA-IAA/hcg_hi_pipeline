@@ -951,7 +951,11 @@ def dirty_cont_image(config,config_raw,config_file):
     makedir('/.'+img_dir)
     logger.info('Checking clean parameters for dirty image (inc. continuum).')
     reset_cln = False
-    if len(cln_param['pix_size']) == 0 or len(cln_param['pix_size']) != len(targets):
+    if (len(cln_param['pix_size']) == 0) or (len(cln_param['pix_size']) != len(targets)):
+        if not interactive:
+            logger.critical('The number of pixel sizes provided does not match the number of targets.')
+            logger.info('Pixel sizes: {}'.format(cln_param['pix_size']))
+            logger.info('Targets: {}'.format(targets))
         reset_cln = True
         if len(cln_param['pix_size']) < len(targets):
             logger.warning('There are more target fields than pixel sizes. Appending blanks.')
@@ -962,18 +966,13 @@ def dirty_cont_image(config,config_raw,config_file):
             logger.info('Current pixel sizes: {}'.format(cln_param['pix_size']))
             logger.warning('The pixel size list will now be truncated to match the number of targets.')
             cln_param['pix_size'] = cln_param['pix_size'][:len(targets)]
-    else:
-        if not interactive:
-            logger.critical('The number of pixel sizes provided does not match the number of targets.')
-            logger.info('Pixel sizes: {}'.format(cln_param['pix_size']))
-            logger.info('Targets: {}'.format(targets))
-        else:
-            print('Current pixel sizes set as:')
-            for i in range(len(cln_param['pix_size'])):
-                print('{0}: {1}'.format(targets[i],cln_param['pix_size'][i]))
-            resp = str(raw_input('Do you want revise the pixel sizes (y/n): '))
-            if resp.lower() in ['yes','ye','y']:
-                reset_cln = True
+    elif interactive:
+        print('Current pixel sizes set as:')
+        for i in range(len(cln_param['pix_size'])):
+            print('{0}: {1}'.format(targets[i],cln_param['pix_size'][i]))
+        resp = str(raw_input('Do you want revise the pixel sizes (y/n): '))
+        if resp.lower() in ['yes','ye','y']:
+            reset_cln = True
     if reset_cln and interactive:
         print('For each target enter the desired pixel size:')
         for i in range(len(targets)):
@@ -988,6 +987,10 @@ def dirty_cont_image(config,config_raw,config_file):
     logger.info('For the targets: {}.'.format(targets))
     reset_cln = False
     if len(cln_param['im_size']) == 0 or len(cln_param['im_size']) != len(targets):
+        if not interactive:
+            logger.critical('The number of image sizes provided does not match the number of targets.')
+            logger.info('Image sizes: {}'.format(cln_param['im_size']))
+            logger.info('Targets: {}'.format(targets))
         reset_cln = True
         if len(cln_param['im_size']) < len(targets):
             logger.warning('There are more target fields than image sizes. Appending blanks.')
@@ -998,18 +1001,13 @@ def dirty_cont_image(config,config_raw,config_file):
             logger.info('Current image sizes: {} pixels.'.format(cln_param['im_size']))
             logger.warning('The image size list will now be truncated to match the number of targets.')
             cln_param['im_size'] = cln_param['im_size'][:len(targets)]
-    else:
-        if not interactive:
-            logger.critical('The number of image sizes provided does not match the number of targets.')
-            logger.info('Image sizes: {}'.format(cln_param['im_size']))
-            logger.info('Targets: {}'.format(targets))
-        else:
-            print('Current images sizes set as:')
-            for i in range(len(cln_param['im_size'])):
-                print('{0}: {1}'.format(targets[i],cln_param['im_size'][i]))
-            resp = str(raw_input('Do you want revise the image sizes (y/n): '))
-            if resp.lower() in ['yes','ye','y']:
-                reset_cln = True
+    elif interactive:
+        print('Current images sizes set as:')
+        for i in range(len(cln_param['im_size'])):
+            print('{0}: {1}'.format(targets[i],cln_param['im_size'][i]))
+        resp = str(raw_input('Do you want revise the image sizes (y/n): '))
+        if resp.lower() in ['yes','ye','y']:
+            reset_cln = True
     if reset_cln and interactive:
         print('For each target enter the desired image size:')
         for i in range(len(targets)):
@@ -1044,6 +1042,10 @@ def dirty_image(config,config_raw,config_file):
     logger.info('Checking clean parameters for dirty image.')
     reset_cln = False
     if len(cln_param['pix_size']) == 0 or len(cln_param['pix_size']) != len(targets):
+        if not interactive:
+            logger.critical('The number of pixel sizes provided does not match the number of targets.')
+            logger.info('Pixel sizes: {}'.format(cln_param['pix_size']))
+            logger.info('Targets: {}'.format(targets))
         reset_cln = True
         if len(cln_param['pix_size']) < len(targets):
             logger.warning('There are more target fields than pixel sizes. Appending blanks.')
@@ -1054,18 +1056,13 @@ def dirty_image(config,config_raw,config_file):
             logger.info('Current pixel sizes: {}'.format(cln_param['pix_size']))
             logger.warning('The pixel size list will now be truncated to match the number of targets.')
             cln_param['pix_size'] = cln_param['pix_size'][:len(targets)]
-    else:
-        if not interactive:
-            logger.critical('The number of pixel sizes provided does not match the number of targets.')
-            logger.info('Pixel sizes: {}'.format(cln_param['pix_size']))
-            logger.info('Targets: {}'.format(targets))
-        else:
-            print('Current pixel sizes set as:')
-            for i in range(len(cln_param['pix_size'])):
-                print('{0}: {1}'.format(targets[i],cln_param['pix_size'][i]))
-            resp = str(raw_input('Do you want revise the pixel sizes (y/n): '))
-            if resp.lower() in ['yes','ye','y']:
-                reset_cln = True
+    elif interactive:
+        print('Current pixel sizes set as:')
+        for i in range(len(cln_param['pix_size'])):
+            print('{0}: {1}'.format(targets[i],cln_param['pix_size'][i]))
+        resp = str(raw_input('Do you want revise the pixel sizes (y/n): '))
+        if resp.lower() in ['yes','ye','y']:
+            reset_cln = True
     if reset_cln and interactive:
         print('For each target enter the desired pixel size:')
         for i in range(len(targets)):
@@ -1080,6 +1077,10 @@ def dirty_image(config,config_raw,config_file):
     logger.info('For the targets: {}.'.format(targets))
     reset_cln = False
     if len(cln_param['im_size']) == 0 or len(cln_param['im_size']) != len(targets):
+        if not interactive:
+            logger.critical('The number of image sizes provided does not match the number of targets.')
+            logger.info('Image sizes: {}'.format(cln_param['im_size']))
+            logger.info('Targets: {}'.format(targets))
         reset_cln = True
         if len(cln_param['im_size']) < len(targets):
             logger.warning('There are more target fields than image sizes. Appending blanks.')
@@ -1090,18 +1091,13 @@ def dirty_image(config,config_raw,config_file):
             logger.info('Current image sizes: {} pixels.'.format(cln_param['im_size']))
             logger.warning('The image size list will now be truncated to match the number of targets.')
             cln_param['im_size'] = cln_param['im_size'][:len(targets)]
-    else:
-        if not interactive:
-            logger.critical('The number of image sizes provided does not match the number of targets.')
-            logger.info('Image sizes: {}'.format(cln_param['im_size']))
-            logger.info('Targets: {}'.format(targets))
-        else:
-            print('Current images sizes set as:')
-            for i in range(len(cln_param['im_size'])):
-                print('{0}: {1}'.format(targets[i],cln_param['im_size'][i]))
-            resp = str(raw_input('Do you want revise the image sizes (y/n): '))
-            if resp.lower() in ['yes','ye','y']:
-                reset_cln = True
+    elif interactive:
+        print('Current images sizes set as:')
+        for i in range(len(cln_param['im_size'])):
+            print('{0}: {1}'.format(targets[i],cln_param['im_size'][i]))
+        resp = str(raw_input('Do you want revise the image sizes (y/n): '))
+        if resp.lower() in ['yes','ye','y']:
+            reset_cln = True
     if reset_cln and interactive:
         print('For each target enter the desired image size:')
         for i in range(len(targets)):
@@ -1157,6 +1153,10 @@ def image(config,config_raw,config_file):
     logger.info('Starting generation of clean image(s).')
     reset_cln = False
     if len(cln_param['line_ch']) == 0 or len(cln_param['line_ch']) != len(targets):
+        if not interactive:
+            logger.critical('The number of line channel ranges provided does not match the number of targets.')
+            logger.info('Pixel sizes: {}'.format(cln_param['line_ch']))
+            logger.info('Targets: {}'.format(targets))
         reset_cln = True
         if len(cln_param['line_ch']) < len(targets):
             logger.warning('There are more target fields than channel ranges. Appending blank ranges.')
@@ -1167,18 +1167,13 @@ def image(config,config_raw,config_file):
             logger.info('Current channel ranges: {}'.format(cln_param['line_ch']))
             logger.warning('The channel range list will now be truncated to match the number of targets.')
             cln_param['line_ch'] = cln_param['line_ch'][:len(targets)]
-    else:
-        if not interactive:
-            logger.critical('The number of line channel ranges provided does not match the number of targets.')
-            logger.info('Pixel sizes: {}'.format(cln_param['line_ch']))
-            logger.info('Targets: {}'.format(targets))
-        else:
-            print('Current image channels set as:')
-            for i in range(len(cln_param['line_ch'])):
-                print('{0}: {1}'.format(targets[i],cln_param['line_ch'][i]))
-            resp = str(raw_input('Do you want revise the channels that will be imaged (y/n): '))
-            if resp.lower() in ['yes','ye','y']:
-                reset_cln = True
+    elif interactive:
+        print('Current image channels set as:')
+        for i in range(len(cln_param['line_ch'])):
+            print('{0}: {1}'.format(targets[i],cln_param['line_ch'][i]))
+        resp = str(raw_input('Do you want revise the channels that will be imaged (y/n): '))
+        if resp.lower() in ['yes','ye','y']:
+            reset_cln = True
     if reset_cln and interactive:
         print('For each target enter the channels you want to image in the following format:\nspwID:min_ch~max_ch')
         for i in range(len(targets)):
