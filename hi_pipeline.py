@@ -1280,6 +1280,7 @@ def image(config,config_raw,config_file):
             pix_size = cln_param['pix_size'][i]
             pix_size = float(pix_size[:pix_size.find(rest_beam['minor']['unit'])])
             pix_per_beam = rest_beam['major']['value']/pix_size
+            scales = cln_param['scales']
             scales = list(numpy.array(numpy.array(scales)*pix_per_beam,dtype='int'))
             max_scales = [36., 120., 970., 970.] #arcsec 
             #For VLA A, B, C, and D array respectively
