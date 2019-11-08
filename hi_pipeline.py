@@ -1282,22 +1282,25 @@ def image(config,config_raw,config_file):
             pix_per_beam = rest_beam['major']['value']/pix_size
             scales = cln_param['scales']
             scales = list(numpy.array(numpy.array(scales)*pix_per_beam,dtype='int'))
-            max_scales = [36., 120., 970., 970.] #arcsec 
-            #For VLA A, B, C, and D array respectively
-            #science.nrao.edu/facilities/vla/docs/manuals/oss/performance/resolution
+            B_min = au.getBaselineLengths('{0}{1}'+'.split.contsub'.format(src_dir,target), sort=True)[0][1]
+            msmd.open('{0}{1}'+'.split.contsub'.format(src_dir,target))
+            spws = msmd.spwsforfield(target)
+            f_min = None
+            for spw in spws:
+                if f_min == None or f_min > min(msmd.chanfreqs(spw=spw,unit='Hz')):
+                    f_min = min(msmd.chanfreqs(spw=spw,unit='Hz'))
+            msmd.close()
+            max_scale = 180.*3600.*299792458./(1.2*numpy.pi*f_min*b_min)
+            logger.info('The maximum recoverable scale for {0} is {1} arcsec.'.format(target,int(max_scale)))
             if 'arcsec' not in cln_param['pix_size'][i]:
                 logger.warning('Pixel size not in arcsec. Maximum scale not checked.')
             else:
                 pix_size = cln_param['pix_size'][i]
                 pix_size = float(pix_size[:pix_size.find('arcsec')])
-                if max(scales)*pix_size > max_scales[3]:
-                    #THE ABOVE LINE MUST BE CHANGED
-                    #THERE NEEDS TO BE AN AUTOMATIC ASSIGNMENT OF ARRAY
+                if max(scales)*pix_size > max_scale:
                     logger.warning('Some MS-CLEAN scale(s) is (are) larger than largest recoverable angular scales.')
                     logger.info('Removing offending scales.')
-                    #inx = numpy.where(numpy.array(scales)*pix_size <= max_scales[3])[0]
-                    #scales = scales[inx]
-                    scales = list(set(numpy.where(numpy.array(scales)*pix_size <= max_scales[3],scales,0)))
+                    scales = list(set(numpy.where(numpy.array(scales)*pix_size <= max_scale,scales,0)))
             logger.info('CLEANing with scales of {} pixels.'.format(scales))
         logger.info('CLEANing {0} to a threshold of {1} Jy.'.format(target,noises[i]*cln_param['thresh']))
         command = "tclean(vis='{0}{1}'+'.split.contsub', field='{1}', spw='{2}', imagename='{3}{1}', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='{7}', scales={8}, restoringbeam='common', pbcor=True, weighting='briggs', robust={9}, niter=100000, gain=0.1, threshold='{10}Jy', usemask='auto-multithresh', sidelobethreshold={11}, noisethreshold={12}, lownoisethreshold={13}, minbeamfrac={14}, negativethreshold={15}, cyclefactor=2.0,interactive=False)".format(src_dir,target,cln_param['line_ch'][i],img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
