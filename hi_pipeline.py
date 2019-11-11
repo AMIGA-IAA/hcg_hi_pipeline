@@ -11,9 +11,19 @@ import collections
 
 # Read configuration file
 def read_config(configfile):
+    '''
+    Parses the configuration file of parameters passed when the pipeline is executed.
+    
+    Input:
+    configfile = Path to configuration file. (String)
+    
+    Output:
+    config = The parameters read from the file. (Ordered dictionary)
+    config_raw = The instance of the parser.
+    '''
     if not os.path.isfile(configfile):
         logger.critical('configfile: {} not found'.format(configfile))
-        sys.exit()
+        sys.exit(-1)
     config_raw = ConfigParser.RawConfigParser()
     config_raw.read(configfile)
     config = config_raw._sections
@@ -30,6 +40,12 @@ def read_config(configfile):
 
 # Utilities
 def makedir(pathdir):
+    '''
+    Makes new directory.
+    
+    Input:
+    pathdir = Path for new directory to create. (String)
+    '''
     try:
         os.mkdir(pathdir)
         logger.info('Create directory: {}'.format(pathdir))
@@ -37,27 +53,49 @@ def makedir(pathdir):
         logger.debug('Cannot create directory: {}'.format(pathdir))
         pass
 
-def rmdir(pathdir,message='Deleted:'):
+def rmdir(pathdir):
+    '''
+    Removes an entire directory.
+    
+    Input:
+    pathdir = Path of the directory to be removed. (String)
+    '''
     if os.path.exists(pathdir):
         try:
             shutil.rmtree(pathdir)
-            logger.info('{0} {1}'.format(message, pathdir))
+            logger.info('Deleted: {0}'.format(message, pathdir))
         except:
-            logger.debug('Could not delete: {0} {1}'.format(message, pathdir))
+            logger.debug('Could not delete: {0}'.format(pathdir))
             pass
 
 
-def rmfile(pathdir,message='Deleted:'):
+def rmfile(pathdir):
+    '''
+    Removes an file.
+    
+    Input:
+    pathdir = Path of the file to be removed. (String)
+    '''
     if os.path.exists(pathdir):
         try:
             os.remove(pathdir)
-            logger.info('{0} {1}'.format(message, pathdir))
+            logger.info('Deleted: {0}'.format(pathdir))
         except:
-            logger.debug('Could not delete: {0} {1}'.format(message, pathdir))
+            logger.debug('Could not delete: {0}'.format(pathdir))
             pass
         
 #User input function
 def uinput(prompt, default=''):
+    '''
+    Prompts the user to input a string and provides a default.
+    
+    Input:
+    prompt = Input prompt. (String)
+    default = Default input. (String)
+    
+    Output:
+    Final string entered by user. (String)
+    '''
     readline.set_startup_hook(lambda: readline.insert_text(default))
     try:
         return raw_input(prompt)
@@ -94,7 +132,13 @@ def get_logger(
 
 
 def import_data(data_files, msfile):
-    """ Import VLA archive files from a location to a single MS """
+    """ 
+    Import VLA archive files from a location to a single MS.
+    
+    Input:
+    data_files = Paths to the VLA archive files. (List/Array of Strings)
+    msfile = Path where the MS will be created. (String)
+    """
     logger.info('Starting import vla data')
     sum_dir = './summary/'
     makedir(sum_dir)
@@ -112,8 +156,18 @@ def import_data(data_files, msfile):
 
 
 def get_obsfreq(msfile):
-    """ Returns freq of first and last channels, channel resolution
-     and number of channels (first spw) in GHz """
+    """ 
+    Returns freq of first and last channels, channel resolution and number of channels (first spw) in GHz.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    
+    Output:
+    freq_ini = Start frequency. (Float)
+    freq_end = Final frequency. (Float)
+    chan_res = Channel width. (Float)
+    nchan = Number of channels. (Integer)
+    """
     msmd.open(msfile)
     nspw = msmd.nspw()
     freq_ini = msmd.chanfreqs(0)[0]/1e9
@@ -124,23 +178,47 @@ def get_obsfreq(msfile):
     return freq_ini, freq_end, chan_res, nchan
 
 def find_mssources(msfile):
-    """ Extract source names from msfile metadata.
-    Output format is a comma-separated string """
+    """
+    Extract source names from msfile metadata.
+    Output format is a comma-separated string.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    
+    Output:
+    mssources = All the fields observed in the MS separated by ','. (String)
+    """
     msmd.open(msfile)
     mssources = ','.join(np.sort(msmd.fieldnames()))
     msmd.done()
-    logger.debug('Sources in MS {0}: {1}'.format(msfile, mssources))
+    logger.info('Sources in MS {0}: {1}'.format(msfile, mssources))
     return mssources
 
 def get_project(msfile):
-    """ Extract project code from msfile metadata """
+    """
+    Extract project code from msfile metadata.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    
+    Output:
+    Project identifier. (String)
+    """
     tb.open(msfile+'/OBSERVATION')
     project = tb.getcol('PROJECT')
     tb.close()
     return project[0]
 
 def get_msinfo(msfile):
-    """ Extracts and prints basic information from the measurement set"""
+    """
+    Extracts and prints basic information from the measurement set.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    
+    Output:
+    msinfo = Summary of the the observations. (Ordered dictionary)
+    """
     logger.info('Reading ms file information for MS: {0}'.format(msfile))
     msinfo = collections.OrderedDict()
     msinfo['msfile'] = msfile
@@ -162,8 +240,14 @@ def get_msinfo(msfile):
 
 
 # Plotting
-def plot_elevation(config):
-    """ Plots the elevation of the target fields as a function of time"""
+def plot_elevation(msfile,config):
+    """
+    Plots the elevation of the fields in each SPW as a function of time.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    """
     logger.info('Starting plotting elevation.')
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
@@ -185,8 +269,13 @@ def plot_elevation(config):
             exprange='all', iteraxis='spw')
     logger.info('Completed plotting elevation.')
 
-def plot_ants():
-    """ Plots the layout of the antennae during the observations"""
+def plot_ants(msfile):
+    """
+    Plots the layout of the antennae during the observations
+    
+    Input:
+    msfile = Path to the MS. (String)
+    """
     logger.info('Starting plotting antenna positions.')
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
@@ -196,7 +285,9 @@ def plot_ants():
     logger.info('Completed plotting antenna positions.')
 
 def manual_flags():
-    """Apply manual flags"""
+    """
+    Apply manual flags from the file 'manual_flags.py'.
+    """
     logger.info('Starting manual flagging.')
     if interactive:
         print("\nManual flags from 'manual_flags.py' are about to be applied.")
@@ -218,8 +309,14 @@ def manual_flags():
     except IOError:
         logger.warning("'manual_flags.py' does not exist. Continuing without manual flagging.")
 
-def base_flags(config):
-    """ Sets basic initial data flags"""
+def base_flags(msfile, config):
+    """ 
+    Sets basic initial data flags.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    """
     logger.info('Starting basic flagging.')
     flag = config['flagging']
     tol = flag['shadow_tol'] 
@@ -243,8 +340,13 @@ def base_flags(config):
     exec(command)
     logger.info('Completed basic flagging.')
 
-def tfcrop():
-    """ Runs CASA's TFcrop flagging algorithm"""
+def tfcrop(msfile):
+    """
+    Runs CASA's TFcrop flagging algorithm.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    """
     flag_version = 'tfcrop'
     logger.info('Starting running TFCrop.')
     command = "flagdata(vis='{}', mode='tfcrop', action='apply', display='', flagbackup=False)".format(msfile)
@@ -256,8 +358,14 @@ def tfcrop():
     exec(command)
     logger.info('Completed running TFCrop.')
 
-def rflag(config):
-    """ Runs CASA's rflag flagging algorithm"""
+def rflag(msfile,config):
+    """
+    Runs CASA's rflag flagging algorithm.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    """
     flag = config['flagging']
     flag_version = 'rflag'
     thresh = flag['rthresh']
@@ -269,10 +377,15 @@ def rflag(config):
     command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
     logger.info('Executing command: '+command)
     exec(command)
-    logger.info('Completed running TFCrop.')
+    logger.info('Completed running rflag.')
 
-def extend_flags():
-    """ Extends existing flags"""
+def extend_flags(msfile):
+    """
+    Extends existing flags.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    """
     flag_version = 'extended'
     logger.info('Starting extending existing flags.')
     command = "flagdata(vis='{}', mode='extend', spw='', extendpols=True, action='apply', display='', flagbackup=False)".format(msfile)
@@ -283,8 +396,14 @@ def extend_flags():
     exec(command)
     logger.info('Completed extending existing flags.')
 
-def flag_sum(name):
-    """ Writes a summary of the current flags to file"""
+def flag_sum(msfile,name):
+    """
+    Writes a summary of the current flags to file.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    name = Root of filename where flags summary will be saved. (String) 
+    """
     sum_dir = './summary/'
     makedir(sum_dir)
     out_file = sum_dir+'{0}.{1}flags.summary'.format(msfile,name)
@@ -305,8 +424,16 @@ def flag_sum(name):
     out_file.close()
     logger.info('Completed writing flag summary.')
 
-def select_refant(config,config_raw,config_file):
-    """ Checks if a reference antenna to be set, if it has not been the the user is queried"""
+def select_refant(msfile,config,config_raw,config_file):
+    """
+    Checks if a reference antenna is set, if it has not been then the user is queried to set it.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    config_raw = The instance of the parser.
+    config_file = Path to configuration file. (String)
+    """
     logger.info('Starting reference antenna selection.')
     calib = config['calibration']
     tb.open(msfile+'/ANTENNA')
@@ -331,8 +458,16 @@ def select_refant(config,config_raw,config_file):
     else:
         logger.info('Reference antenna already set as: {}.'.format(calib['refant']))
 
-def set_fields(config,config_raw,config_file):
-    """ Checks if the field intentions have already been set, if not then the user is queried"""
+def set_fields(msfile,config,config_raw,config_file):
+    """
+    Checks if the field intentions have already been set, if not then the user is queried.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    config_raw = The instance of the parser.
+    config_file = Path to configuration file. (String)
+    """
     logger.info('Starting set field purposes.')
     calib = config['calibration']
     tb.open(msfile+'/FIELD')
@@ -528,7 +663,6 @@ def set_fields(config,config_raw,config_file):
         logger.info('Flux models set as: {}.'.format(calib['fluxmod']))
         
     
-    
     band_cal_names_bad = False
     for i in range(len(calib['bandcal'])):
         if calib['bandcal'][i] not in field_names:
@@ -585,10 +719,7 @@ def set_fields(config,config_raw,config_file):
     else:
         logger.info('Bandpass calibrator already set as: {}.'.format(calib['bandcal']))
         
-        
-    
-        
-        
+
     phase_cal_names_bad = False
     for i in range(len(calib['phasecal'])):
         if calib['phasecal'][i] not in field_names:
@@ -651,12 +782,19 @@ def set_fields(config,config_raw,config_file):
         configfile.close()
     else:
         logger.info('No changes made to preset target and calibrator fields.')
-    logger.info('Completed set field purposes.')
+    logger.info('Completed setting field purposes.')
 
    
     
-def calibration(config):
-    """ Runs the basic calibration steps"""
+def calibration(msfile,config):
+    """
+    Runs the basic calibration steps on each SPW based on the intents described in the configuration file.
+    Applies the calibration to all science target fields.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    """
     logger.info('Starting calibration.')
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
@@ -736,7 +874,6 @@ def calibration(config):
                 calfields.append(field)
         calfields = list(set(calfields))
         calfields = ','.join(calfields)
-        
     
         iptab = cal_tabs+'intphase_spw{}.gcal'.format(spw_IDs[i])
         logger.info('Determining integration phase solutions ({}).'.format(iptab))
@@ -840,7 +977,14 @@ def calibration(config):
 
 
 
-def split_fields(config):
+def split_fields(msfile,config):
+    """
+    Splits the MS into separate MS for each science target.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    """
     logger.info('Starting split fields.')
     calib = config['calibration']
     src_dir = config['global']['src_dir']+'/'
@@ -854,7 +998,17 @@ def split_fields(config):
     
 
         
-def contsub(config,config_raw,config_file):
+def contsub(msfile,config,config_raw,config_file):
+    """
+    Subtracts the continuum from each of the science target MSs.
+    If the no line free range is set then the user is queried (in interactive mode) and the configuration file updated.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    config_raw = The instance of the parser.
+    config_file = Path to configuration file. (String)
+    """
     logger.info('Starting continuum subtraction.')
     contsub = config['continuum_subtraction']
     calib = config['calibration']
@@ -913,6 +1067,12 @@ def contsub(config,config_raw,config_file):
 
 
 def plot_spec(config):
+    """
+    For each SPW and each science target amplitude vs channel and amplitude vs velocity are plotted.
+    
+    Input:
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    """
     logger.info('Starting plotting amplitude spectrum.')
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
@@ -923,9 +1083,6 @@ def plot_spec(config):
         msmd.open('{0}{1}.split'.format(src_dir,target))
         spws = msmd.spwsforfield('{}'.format(target))
         msmd.close()
-        #tb.open('{}.split/SPECTRAL_WINDOW'.format(target))
-        #nspw = len(tb.getcol('NAME'))
-        #tb.close()
         for spw in spws:
             plot_file = plots_obs_dir+'{0}_amp_chn_spw{1}.png'.format(target,spw)
             logger.info('Plotting amplitude vs channel to {}'.format(plot_file))
@@ -937,10 +1094,19 @@ def plot_spec(config):
             plotms(vis=src_dir+target+'.split.contsub', xaxis='velocity', yaxis='amp',
                    ydatacolumn='corrected', spw=str(spw), plotfile=plot_file,
                    expformat='png', overwrite=True, showgui=False,
-                   freqframe='BARY', restfreq='1420.405751MHz', veldef='OPTICAL')
+                   freqframe='BARY', restfreq=str(config['global']['rest_freq']), veldef='OPTICAL')
     logger.info('Completed plotting amplitude spectrum.')
 
 def dirty_cont_image(config,config_raw,config_file):
+    """
+    Generates a dirty image of each science target including the continuum emission.
+    Checks that the pixel size and image size are set (will prompt user if in interactive mode).
+    
+    Input:
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    config_raw = The instance of the parser.
+    config_file = Path to configuration file. (String)
+    """
     logger.info('Starting making dirty continuum image.')
     calib = config['calibration']
     rest_freq = config['global']['rest_freq']
@@ -1030,6 +1196,15 @@ def dirty_cont_image(config,config_raw,config_file):
     logger.info('Completed making dirty continuum image.')
             
 def dirty_image(config,config_raw,config_file):
+    """
+    Generates a dirty (continuum subtracted) image of each science target.
+    Checks that the pixel size and image size are set (will prompt user if in interactive mode).
+    
+    Input:
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    config_raw = The instance of the parser.
+    config_file = Path to configuration file. (String)
+    """
     logger.info('Starting making dirty image.')
     calib = config['calibration']
     contsub = config['continuum_subtraction']
@@ -1120,6 +1295,15 @@ def dirty_image(config,config_raw,config_file):
     logger.info('Completed making dirty image.')
         
 def noise_est(config):
+    """
+    Makes an estimate of the theortically expected noise level for each science target.
+    
+    Input:
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    
+    Output:
+    noise = Estimate of the theortical noise in Jy/beam. (List of Floats)
+    """
     logger.info('Starting making noise estimation.')
     targets = config['calibration']['targets']
     cln_param = config['clean']
@@ -1141,6 +1325,17 @@ def noise_est(config):
     return noise
 
 def image(config,config_raw,config_file):
+    """
+    Generates a clean (continuum subtracted) image of each science target.
+    Checks that the line emission channels and CLEANing scales are set (may prompt user if in interactive mode).
+    Makes varies check on the ratio of pixel size to beam size and the scales and the maximum baseline (may prompt user if in interactive mode).
+    Exports the final images as fits cubes (after regridding to J2000 if necessary).
+    
+    Input:
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    config_raw = The instance of the parser.
+    config_file = Path to configuration file. (String)
+    """
     noises = noise_est(config)
     calib = config['calibration']
     contsub = config['continuum_subtraction']
@@ -1345,6 +1540,16 @@ def image(config,config_raw,config_file):
     
     
 def cleanup(config):
+    """
+    Deleted non-essential files at the end of the pipeline.
+    Uses the 'cleanup_level' parameter. The levels are as follows:
+    1) Calibration and flagging tabled deleted as well as CASA .last files.
+    2) In addition to 1, the full (not split) MS is deleted along with the dirty images amd non-essential output from tclean.
+    3) Everything except the final fits cubes and the summary information is deleted.
+    
+    Input:
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    """
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
     cln_lvl = config['global']['cleanup_level']
@@ -1417,28 +1622,28 @@ import_data(sorted(data_files), msfile)
 msinfo = get_msinfo(msfile)
 
 # 2. Diagnostic plots
-plot_elevation(config)
-plot_ants()
+plot_elevation(msfile,config)
+plot_ants(msfile)
 
 # 3. Apply baisc flags
-base_flags(config)
-tfcrop()
+base_flags(msfile,config)
+tfcrop(msfile)
 manual_flags()
 flag_sum('initial')
 
 # 4. Calibration
-select_refant(config,config_raw,config_file)
-set_fields(config,config_raw,config_file)
-calibration(config)
-rflag(config)
-flag_sum('rflag')
-extend_flags()
-flag_sum('extended')
-flag_sum('final')
-calibration(config)
+select_refant(msfile,config,config_raw,config_file)
+set_fields(msfile,config,config_raw,config_file)
+calibration(msfile,config)
+rflag(msfile,config)
+flag_sum(msfile,'rflag')
+extend_flags(msfile)
+flag_sum(msfile,'extended')
+flag_sum(msfile,'final')
+calibration(msfile,config)
 
 #5. Split, continuum subtract and make dirty image
-split_fields(config)
+split_fields(msfile,config)
 dirty_cont_image(config,config_raw,config_file)
 contsub(config,config_raw,config_file)
 plot_spec(config)
