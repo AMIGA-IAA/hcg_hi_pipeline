@@ -308,6 +308,7 @@ def manual_flags():
         logger.info('Completed manual flagging.')
     except IOError:
         logger.warning("'manual_flags.py' does not exist. Continuing without manual flagging.")
+        
 
 def base_flags(msfile, config):
     """ 
@@ -321,7 +322,7 @@ def base_flags(msfile, config):
     flag = config['flagging']
     tol = flag['shadow_tol'] 
     quack_int = flag['quack_int']
-    flag_version = 'base_flags'
+    #flag_version = 'base_flags'
     logger.info('Flagging antennae with more than {} m of shadowing.'.format(tol))
     command = "flagdata(vis='{0}', mode='shadow', tolerance={1}, flagbackup=False)".format(msfile,tol)
     logger.info('Executing command: '+command)
@@ -334,10 +335,10 @@ def base_flags(msfile, config):
     command = "flagdata(vis='{0}', mode='quack', quackinterval={1}, quackmode='beg', flagbackup=False)".format(msfile,quack_int)
     logger.info('Executing command: '+command)
     exec(command)
-    logger.info('Saving flag version as: {}.'.format(flag_version))
-    command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
-    logger.info('Executing command: '+command)
-    exec(command)
+    #logger.info('Saving flag version as: {}.'.format(flag_version))
+    #command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
+    #logger.info('Executing command: '+command)
+    #exec(command)
     logger.info('Completed basic flagging.')
 
 def tfcrop(msfile):
@@ -347,15 +348,15 @@ def tfcrop(msfile):
     Input:
     msfile = Path to the MS. (String)
     """
-    flag_version = 'tfcrop'
+    #flag_version = 'tfcrop'
     logger.info('Starting running TFCrop.')
     command = "flagdata(vis='{}', mode='tfcrop', action='apply', display='', flagbackup=False)".format(msfile)
     logger.info('Executing command: '+command)
     exec(command)
-    logger.info('Saving flag version as: {}.'.format(flag_version))
-    command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
-    logger.info('Executing command: '+command)
-    exec(command)
+    #logger.info('Saving flag version as: {}.'.format(flag_version))
+    #command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
+    #logger.info('Executing command: '+command)
+    #exec(command)
     logger.info('Completed running TFCrop.')
 
 def rflag(msfile,config):
@@ -367,15 +368,15 @@ def rflag(msfile,config):
     config = The parameters read from the configuration file. (Ordered dictionary)
     """
     flag = config['flagging']
-    flag_version = 'rflag'
+    #flag_version = 'rflag'
     thresh = flag['rthresh']
     logger.info('Starting running rflag with a threshold of {}.'.format(thresh))
     command = "flagdata(vis='{0}', mode='rflag', action='apply', datacolumn='corrected', freqdevscale={1}, timedevscale={1}, display='', flagbackup=False)".format(msfile,thresh)
     logger.info('Executing command: '+command)
     exec(command)
-    logger.info('Saving flag version as: {}.'.format(flag_version))
-    command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
-    logger.info('Executing command: '+command)
+    #logger.info('Saving flag version as: {}.'.format(flag_version))
+    #command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
+    #logger.info('Executing command: '+command)
     exec(command)
     logger.info('Completed running rflag.')
 
@@ -407,7 +408,7 @@ def flag_sum(msfile,name):
     sum_dir = './summary/'
     makedir(sum_dir)
     out_file = sum_dir+'{0}.{1}flags.summary'.format(msfile,name)
-    logger.info('Satrting writing flag summary to: {}.'.format(out_file))
+    logger.info('Starting writing flag summary to: {}.'.format(out_file))
     flag_info = flagdata(vis=msfile, mode='summary')
     out_file = open(out_file, 'w')
     out_file.write('Total flagged data: {:.2%}\n\n'.format(flag_info['flagged']/flag_info['total']))
@@ -423,6 +424,35 @@ def flag_sum(msfile,name):
         out_file.write('{0}: {1:.2%}\n'.format(ant,flag_info['antenna'][ant]['flagged']/flag_info['antenna'][ant]['total']))
     out_file.close()
     logger.info('Completed writing flag summary.')
+    
+def restore_flags(msfile,name):
+    """
+    Restored the flag version corresponding to the named file.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    name = Root of filename for the flag version. (String) 
+    """
+    logger.info('Restoring flag version from: {}.'.format(name))
+    command = "flagmanager(vis='{0}', mode='restore', versionname='{1}')".format(msfile,name)
+    logger.info('Executing command: '+command)
+    exec(command)
+    logger.info('Completed restoring flag version.')
+    
+def save_flags(msfile,name):
+    """
+    Save the current flag version as "name".
+    
+    Input:
+    msfile = Path to the MS. (String)
+    name = Root of filename for the flag version. (String) 
+    """
+    logger.info('Saving flag version as: {}.'.format(name))
+    command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,name)
+    logger.info('Executing command: '+command)
+    exec(command)
+    logger.info('Completed saving flag version.')
+    
 
 def select_refant(msfile,config,config_raw,config_file):
     """
@@ -487,6 +517,7 @@ def set_fields(msfile,config,config_raw,config_file):
     if len(calib['targets']) == 0:
         if not interactive:
             logger.critical('There are no targets listed in the parameters file.')
+            sys.exit(-1)
         else:
             logger.warning('No target field(s) set. Requesting user input.')
             print('\n\n')
@@ -540,10 +571,12 @@ def set_fields(msfile,config,config_raw,config_file):
             flux_cal_names_bad = True
             if not interactive:
                 logger.critical('Illegal name for flux calibrator: {}'.format(calib['fluxcal'][i]))
+                sys.exit(-1)
     if flux_cal_names_bad or len(calib['fluxcal']) != nspw:
         if nspw == 1:
             if not interactive:
                 logger.critical('No valid flux calibrator set.')
+                sys.exit(-1)
             else:
                 logger.warning('No valid flux calibrator set. Requesting user input.')
                 while calib['fluxcal'][0] not in field_names:
@@ -556,7 +589,8 @@ def set_fields(msfile,config,config_raw,config_file):
         else:
             if not interactive:
                 logger.critical('The number of flux calibrators does not match the number of spectral windows ({}).'.format(nspw))
-                logger.critical('Flux calibrators: {}'.format(calib['fluxcal']))
+                logger.info('Flux calibrators: {}'.format(calib['fluxcal']))
+                sys.exit(-1)
             else:
                 if len(calib['fluxcal']) != nspw:
                     logger.warning('Incorrect number of flux calibrators set. Requesting user input.')
@@ -614,6 +648,7 @@ def set_fields(msfile,config,config_raw,config_file):
                 flux_mod_names_bad = True
                 if not interactive:
                     logger.critical('Some flux calibrator models cannot be automatcially assigned.')
+                    sys.exit(-1)
         if not flux_mod_names_bad:
             logger.info('Flux models automatically set as: {}.'.format(calib['fluxmod']))
             change_made = True
@@ -621,8 +656,9 @@ def set_fields(msfile,config,config_raw,config_file):
     if flux_mod_names_bad or len(calib['fluxmod']) != len(calib['fluxcal']):
         if not interactive:
             logger.critical('The number of models does not match the number of flux calibrators.')
-            logger.critical('Flux calibrators: {}'.format(calib['fluxcal']))
-            logger.critical('Flux calibrator models: {}'.format(calib['fluxmod']))
+            logger.info('Flux calibrators: {}'.format(calib['fluxcal']))
+            logger.info('Flux calibrator models: {}'.format(calib['fluxmod']))
+            sys.exit(-1)
         else:
             if len(calib['fluxcal']) == 1:
                 logger.warning('No valid flux model set. Requesting user input.')
@@ -669,10 +705,12 @@ def set_fields(msfile,config,config_raw,config_file):
             band_cal_names_bad = True
             if not interactive:
                 logger.critical('Illegal name for bandpass calibrator: {}'.format(calib['bandcal'][i]))
+                sys.exit(-1)
     if band_cal_names_bad or len(calib['bandcal']) != nspw:
         if nspw == 1:
             if not interactive:
                 logger.critical('No valid bandpass calibrator set.')
+                sys.exit(-1)
             else:
                 logger.warning('No valid bandpass calibrator set. Requesting user input.')
                 while calib['bandcal'][0] not in field_names:
@@ -685,7 +723,8 @@ def set_fields(msfile,config,config_raw,config_file):
         else:
             if not interactive:
                 logger.critical('The number of bandpass calibrators does not match the number of spectral windows ({}).'.format(nspw))
-                logger.critical('Bandpass calibrators: {}'.format(calib['bandcal']))
+                logger.info('Bandpass calibrators: {}'.format(calib['bandcal']))
+                sys.exit(-1)
             else:
                 if len(calib['bandcal']) != nspw:
                     logger.warning('Incorrect number of bandpass calibrators set. Requesting user input.')
@@ -726,10 +765,12 @@ def set_fields(msfile,config,config_raw,config_file):
             phase_cal_names_bad = True
             if not interactive:
                 logger.critical('Illegal name for phase calibrator: {}'.format(calib['phasecal'][i]))
+                sys.exit(-1)
     if phase_cal_names_bad or len(calib['phasecal']) != len(calib['targets']):
         if len(calib['targets']) == 1:
             if not interactive:
                 logger.critical('No valid phase calibrator set.')
+                sys.exit(-1)
             else:
                 logger.warning('No valid phase calibrator set. Requesting user input.')
                 while calib['phasecal'][0] not in field_names:
@@ -742,8 +783,9 @@ def set_fields(msfile,config,config_raw,config_file):
         else:
             if not interactive:
                 logger.critical('The number of phase calibrators does not match the number of targets.')
-                logger.critical('Phase calibrators: {}'.format(calib['phasecal']))
-                logger.critical('Targets: {}'.format(calib['targets']))
+                logger.info('Phase calibrators: {}'.format(calib['phasecal']))
+                logger.info('Targets: {}'.format(calib['targets']))
+                sys.exit(-1)
             else:
                 if len(calib['phasecal']) != len(calib['targets']):
                     logger.warning('Incorrect number of phase calibrators set. Requesting user input.')
@@ -1038,6 +1080,7 @@ def contsub(msfile,config,config_raw,config_file):
             logger.critical('The number of line free channel ranges provided does not match the number of targets.')
             logger.info('Line free change ranges: {}'.format(contsub['linefree_ch']))
             logger.info('Targets: {}'.format(calib['targets']))
+            sys.exit(-1)
         else:
             print('For each target enter the line free channels in the following format:\nspwID1:min_ch1~max_ch1;min_ch2~max_ch2,spwID2:min_ch3~max_ch3 etc.')
             for i in range(len(calib['targets'])):
@@ -1115,6 +1158,11 @@ def dirty_cont_image(config,config_raw,config_file):
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
     makedir('/.'+img_dir)
+    logger.info('Removing any existing dirty continuum images.')
+    del_list = glob.glob(img_dir+'*cont.dirty*')
+    for file_path in del_list:
+        logger.info('Deleting: '+file_path)
+        shutil.rmtree(file_path)
     logger.info('Checking clean parameters for dirty image (inc. continuum).')
     reset_cln = False
     if (len(cln_param['pix_size']) == 0) or (len(cln_param['pix_size']) != len(targets)):
@@ -1122,6 +1170,7 @@ def dirty_cont_image(config,config_raw,config_file):
             logger.critical('The number of pixel sizes provided does not match the number of targets.')
             logger.info('Pixel sizes: {}'.format(cln_param['pix_size']))
             logger.info('Targets: {}'.format(targets))
+            sys.exit(-1)
         reset_cln = True
         if len(cln_param['pix_size']) < len(targets):
             logger.warning('There are more target fields than pixel sizes. Appending blanks.')
@@ -1157,6 +1206,7 @@ def dirty_cont_image(config,config_raw,config_file):
             logger.critical('The number of image sizes provided does not match the number of targets.')
             logger.info('Image sizes: {}'.format(cln_param['im_size']))
             logger.info('Targets: {}'.format(targets))
+            sys.exit(-1)
         reset_cln = True
         if len(cln_param['im_size']) < len(targets):
             logger.warning('There are more target fields than image sizes. Appending blanks.')
@@ -1198,7 +1248,7 @@ def dirty_cont_image(config,config_raw,config_file):
 def dirty_image(config,config_raw,config_file):
     """
     Generates a dirty (continuum subtracted) image of each science target.
-    Checks that the pixel size and image size are set (will prompt user if in interactive mode).
+    Checks that the pixel size, image size, and line emission channels are set (will prompt user if in interactive mode).
     
     Input:
     config = The parameters read from the configuration file. (Ordered dictionary)
@@ -1214,6 +1264,12 @@ def dirty_image(config,config_raw,config_file):
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
     makedir('./'+img_dir)
+    logger.info('Removing any existing dirty images.')
+    for target in targets:
+        del_list = glob.glob(img_dir+'{}.dirty*'.format(target))
+        for file_path in del_list:
+            logger.info('Deleting: '+file_path)
+            shutil.rmtree(file_path)
     logger.info('Checking clean parameters for dirty image.')
     reset_cln = False
     if len(cln_param['pix_size']) == 0 or len(cln_param['pix_size']) != len(targets):
@@ -1221,6 +1277,7 @@ def dirty_image(config,config_raw,config_file):
             logger.critical('The number of pixel sizes provided does not match the number of targets.')
             logger.info('Pixel sizes: {}'.format(cln_param['pix_size']))
             logger.info('Targets: {}'.format(targets))
+            sys.exit(-1)
         reset_cln = True
         if len(cln_param['pix_size']) < len(targets):
             logger.warning('There are more target fields than pixel sizes. Appending blanks.')
@@ -1256,6 +1313,7 @@ def dirty_image(config,config_raw,config_file):
             logger.critical('The number of image sizes provided does not match the number of targets.')
             logger.info('Image sizes: {}'.format(cln_param['im_size']))
             logger.info('Targets: {}'.format(targets))
+            sys.exit(-1)
         reset_cln = True
         if len(cln_param['im_size']) < len(targets):
             logger.warning('There are more target fields than image sizes. Appending blanks.')
@@ -1285,6 +1343,43 @@ def dirty_image(config,config_raw,config_file):
         config_raw.write(configfile)
         configfile.close()
     logger.info('Image sizes set as: {} pixels.'.format(cln_param['im_size']))
+    logger.info('For the targets: {}.'.format(targets))
+    reset_cln = False
+    if len(cln_param['line_ch']) == 0 or len(cln_param['line_ch']) != len(targets):
+        if not interactive:
+            logger.critical('The number of line channel ranges provided does not match the number of targets.')
+            logger.info('Pixel sizes: {}'.format(cln_param['line_ch']))
+            logger.info('Targets: {}'.format(targets))
+            sys.exit(-1)
+        reset_cln = True
+        if len(cln_param['line_ch']) < len(targets):
+            logger.warning('There are more target fields than channel ranges. Appending blank ranges.')
+            while len(cln_param['line_ch']) < len(targets):
+                cln_param['line_ch'].append('')
+        elif len(cln_param['line_ch']) > len(targets):
+            logger.warning('There are more channel ranges than target fields.')
+            logger.info('Current channel ranges: {}'.format(cln_param['line_ch']))
+            logger.warning('The channel range list will now be truncated to match the number of targets.')
+            cln_param['line_ch'] = cln_param['line_ch'][:len(targets)]
+    elif interactive:
+        print('Current image channels set as:')
+        for i in range(len(cln_param['line_ch'])):
+            print('{0}: {1}'.format(targets[i],cln_param['line_ch'][i]))
+        resp = str(raw_input('Do you want revise the channels that will be imaged (y/n): '))
+        if resp.lower() in ['yes','ye','y']:
+            reset_cln = True
+    if reset_cln and interactive:
+        print('For each target enter the channels you want to image in the following format:\nspwID:min_ch~max_ch')
+        for i in range(len(targets)):
+            print('Note: The continuum channels for this target were set to: {}'.format(contsub['linefree_ch'][i]))
+            cln_param['line_ch'][i] = uinput('Channels to image for {}: '.format(targets[i]), cln_param['line_ch'][i])
+            logger.info('Setting image channels for {0} as: {1}.'.format(targets[i], cln_param['line_ch'][i]))
+        logger.info('Updating config file to set channels to be imaged.')
+        config_raw.set('clean','line_ch',cln_param['line_ch'])
+        configfile = open(config_file,'w')
+        config_raw.write(configfile)
+        configfile.close()
+    logger.info('Line emission channels set as: {}.'.format(cln_param['line_ch']))
     logger.info('For the targets: {}.'.format(targets))
     for i in range(len(targets)):
         target = targets[i]
@@ -1327,7 +1422,7 @@ def noise_est(config):
 def image(config,config_raw,config_file):
     """
     Generates a clean (continuum subtracted) image of each science target.
-    Checks that the line emission channels and CLEANing scales are set (may prompt user if in interactive mode).
+    Checks that the CLEANing scales and line emission channels are set (may prompt user if in interactive mode).
     Makes varies check on the ratio of pixel size to beam size and the scales and the maximum baseline (may prompt user if in interactive mode).
     Exports the final images as fits cubes (after regridding to J2000 if necessary).
     
@@ -1345,13 +1440,41 @@ def image(config,config_raw,config_file):
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
     makedir('./'+img_dir)
+    logger.info('Removing any existing images.')
+    for target in targets:
+        del_list = glob.glob(img_dir+'{}.image'.format(target))
+        for file_path in del_list:
+            logger.info('Deleting: '+file_path)
+            shutil.rmtree(file_path)
+        del_list = glob.glob(img_dir+'{}.model'.format(target))
+        for file_path in del_list:
+            logger.info('Deleting: '+file_path)
+            shutil.rmtree(file_path)
+        del_list = glob.glob(img_dir+'{}.pb'.format(target))
+        for file_path in del_list:
+            logger.info('Deleting: '+file_path)
+            shutil.rmtree(file_path)
+        del_list = glob.glob(img_dir+'{}.psf'.format(target))
+        for file_path in del_list:
+            logger.info('Deleting: '+file_path)
+            shutil.rmtree(file_path)
+        del_list = glob.glob(img_dir+'{}.residual'.format(target))
+        for file_path in del_list:
+            logger.info('Deleting: '+file_path)
+            shutil.rmtree(file_path)
+        del_list = glob.glob(img_dir+'{}.sumwt'.format(target))
+        for file_path in del_list:
+            logger.info('Deleting: '+file_path)
+            shutil.rmtree(file_path)
     logger.info('Starting generation of clean image(s).')
+    reset_cln = False
     reset_cln = False
     if len(cln_param['line_ch']) == 0 or len(cln_param['line_ch']) != len(targets):
         if not interactive:
             logger.critical('The number of line channel ranges provided does not match the number of targets.')
             logger.info('Pixel sizes: {}'.format(cln_param['line_ch']))
             logger.info('Targets: {}'.format(targets))
+            sys.exit(-1)
         reset_cln = True
         if len(cln_param['line_ch']) < len(targets):
             logger.warning('There are more target fields than channel ranges. Appending blank ranges.')
@@ -1629,23 +1752,38 @@ plot_ants(msfile)
 base_flags(msfile,config)
 tfcrop(msfile)
 manual_flags()
-flag_sum('initial')
+flag_version = 'initial'
+rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
+flag_sum(msfile,flag_version)
+save_flags(msfile,flag_version)
 
 # 4. Calibration
+restore_flags(msfile,'initial')
 select_refant(msfile,config,config_raw,config_file)
 set_fields(msfile,config,config_raw,config_file)
 calibration(msfile,config)
 rflag(msfile,config)
-flag_sum(msfile,'rflag')
+flag_version = 'rflag'
+flag_sum(msfile,flag_version)
+rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
+save_flags(msfile,flag_version)
 extend_flags(msfile)
-flag_sum(msfile,'extended')
-flag_sum(msfile,'final')
+flag_version = 'extended'
+flag_sum(msfile,flag_version)
+rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
+save_flags(msfile,flag_version)
 calibration(msfile,config)
+flag_version = 'final'
+flag_sum(msfile,flag_version)
+rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
+save_flags(msfile,flag_version)
 
 #5. Split, continuum subtract and make dirty image
+restore_flags(msfile,'final')
+rmdir(config['global']['src_dir'])
 split_fields(msfile,config)
 dirty_cont_image(config,config_raw,config_file)
-contsub(config,config_raw,config_file)
+contsub(msfile,config,config_raw,config_file)
 plot_spec(config)
 dirty_image(config,config_raw,config_file)
 
