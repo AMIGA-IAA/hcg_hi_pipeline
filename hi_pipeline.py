@@ -1600,15 +1600,15 @@ def image(config,config_raw,config_file):
             pix_per_beam = rest_beam['major']['value']/pix_size
             scales = cln_param['scales']
             scales = list(numpy.array(numpy.array(scales)*pix_per_beam,dtype='int'))
-            B_min = au.getBaselineLengths('{0}{1}'+'.split.contsub'.format(src_dir,target), sort=True)[0][1]
-            msmd.open('{0}{1}'+'.split.contsub'.format(src_dir,target))
+            B_min = au.getBaselineLengths('{0}{1}.split.contsub'.format(src_dir,target), sort=True)[0][1]
+            msmd.open('{0}{1}.split.contsub'.format(src_dir,target))
             spws = msmd.spwsforfield(target)
             f_min = None
             for spw in spws:
                 if f_min == None or f_min > min(msmd.chanfreqs(spw=spw,unit='Hz')):
                     f_min = min(msmd.chanfreqs(spw=spw,unit='Hz'))
             msmd.close()
-            max_scale = 180.*3600.*299792458./(1.2*numpy.pi*f_min*b_min)
+            max_scale = 180.*3600.*299792458./(1.2*numpy.pi*f_min*B_min)
             logger.info('The maximum recoverable scale for {0} is {1} arcsec.'.format(target,int(max_scale)))
             if 'arcsec' not in cln_param['pix_size'][i]:
                 logger.warning('Pixel size not in arcsec. Maximum scale not checked.')
