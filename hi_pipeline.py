@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 import os
 import logging
@@ -11,6 +13,13 @@ from ast import literal_eval
 import glob
 import collections
 
+from ruffus import *
+import cgatcore.experiment as E
+from cgatcore import pipeline as P
+
+
+# Read pipeline config
+PARAMS = P.get_parameters("pipeline.yml")
 
 # Read configuration file
 def read_config(configfile):
@@ -1795,3 +1804,11 @@ image(config,config_raw,config_file)
 
 #7. Cleanup
 cleanup(config)
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+    P.main(argv)
+
+if __name__ == "__main__":
+    sys.exit(P.main(sys.argv))
