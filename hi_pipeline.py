@@ -1737,73 +1737,73 @@ def cleanup(config):
             shutil.rmtree(file_path)
     logger.info('Cleanup completed.')
 
-######################   Processing   ####################
-# Read configuration file with parameters
-config_file = sys.argv[-1]
-config,config_raw = read_config(config_file)
-interactive = config['global']['interactive']
-
-# Set up your logger
-logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['project_name']),
-                    LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name'])) # Set up your logger
-
-# Start processing
-msfile = '{0}.ms'.format(config['global']['project_name'])
-
-# 1. Import data and write listobs to file
-data_path = config['importdata']['data_path']
-data_files = glob.glob(os.path.join(data_path, '*'))
-import_data(sorted(data_files), msfile)
-msinfo = get_msinfo(msfile)
-
-# 2. Diagnostic plots
-plot_elevation(msfile,config)
-plot_ants(msfile)
-
-# 3. Apply baisc flags
-base_flags(msfile,config)
-tfcrop(msfile)
-manual_flags()
-flag_version = 'initial'
-rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
-flag_sum(msfile,flag_version)
-save_flags(msfile,flag_version)
-
-# 4. Calibration
-restore_flags(msfile,'initial')
-select_refant(msfile,config,config_raw,config_file)
-set_fields(msfile,config,config_raw,config_file)
-calibration(msfile,config)
-rflag(msfile,config)
-flag_version = 'rflag'
-flag_sum(msfile,flag_version)
-rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
-save_flags(msfile,flag_version)
-extend_flags(msfile)
-flag_version = 'extended'
-flag_sum(msfile,flag_version)
-rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
-save_flags(msfile,flag_version)
-calibration(msfile,config)
-flag_version = 'final'
-flag_sum(msfile,flag_version)
-rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
-save_flags(msfile,flag_version)
-
-#5. Split, continuum subtract and make dirty image
-restore_flags(msfile,'final')
-rmdir(config['global']['src_dir'])
-split_fields(msfile,config)
-dirty_cont_image(config,config_raw,config_file)
-contsub(msfile,config,config_raw,config_file)
-plot_spec(config)
-dirty_image(config,config_raw,config_file)
-
-#6. Clean and regrid (if necessary) image
-image(config,config_raw,config_file)
-
-#7. Cleanup
-cleanup(config)
+#######################   Processing   ####################
+## Read configuration file with parameters
+#config_file = sys.argv[-1]
+#config,config_raw = read_config(config_file)
+#interactive = config['global']['interactive']
+#
+## Set up your logger
+#logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['project_name']),
+#                    LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name'])) # Set up your logger
+#
+## Start processing
+#msfile = '{0}.ms'.format(config['global']['project_name'])
+#
+## 1. Import data and write listobs to file
+#data_path = config['importdata']['data_path']
+#data_files = glob.glob(os.path.join(data_path, '*'))
+#import_data(sorted(data_files), msfile)
+#msinfo = get_msinfo(msfile)
+#
+## 2. Diagnostic plots
+#plot_elevation(msfile,config)
+#plot_ants(msfile)
+#
+## 3. Apply baisc flags
+#base_flags(msfile,config)
+#tfcrop(msfile)
+#manual_flags()
+#flag_version = 'initial'
+#rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
+#flag_sum(msfile,flag_version)
+#save_flags(msfile,flag_version)
+#
+## 4. Calibration
+#restore_flags(msfile,'initial')
+#select_refant(msfile,config,config_raw,config_file)
+#set_fields(msfile,config,config_raw,config_file)
+#calibration(msfile,config)
+#rflag(msfile,config)
+#flag_version = 'rflag'
+#flag_sum(msfile,flag_version)
+#rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
+#save_flags(msfile,flag_version)
+#extend_flags(msfile)
+#flag_version = 'extended'
+#flag_sum(msfile,flag_version)
+#rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
+#save_flags(msfile,flag_version)
+#calibration(msfile,config)
+#flag_version = 'final'
+#flag_sum(msfile,flag_version)
+#rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
+#save_flags(msfile,flag_version)
+#
+##5. Split, continuum subtract and make dirty image
+#restore_flags(msfile,'final')
+#rmdir(config['global']['src_dir'])
+#split_fields(msfile,config)
+#dirty_cont_image(config,config_raw,config_file)
+#contsub(msfile,config,config_raw,config_file)
+#plot_spec(config)
+#dirty_image(config,config_raw,config_file)
+#
+##6. Clean and regrid (if necessary) image
+#image(config,config_raw,config_file)
+#
+##7. Cleanup
+#cleanup(config)
 
 def main(argv=None):
     if argv is None:
