@@ -155,7 +155,16 @@ def get_logger(
     return logger
 
 
-def import_data(data_files, msfile):
+# start of the cgat-core pipeline
+@originate('step.0')
+def init_function(outfile):
+    """
+    This function starts the pipeline
+    """
+    open(outfile, 'a').close()
+
+@transform(init_function, suffix('step.0'), 'step.1')
+def import_data(infile, outfile):
     """ 
     Import VLA archive files from a location to a single MS.
     
@@ -163,15 +172,11 @@ def import_data(data_files, msfile):
     data_files = Paths to the VLA archive files. (List/Array of Strings)
     msfile = Path where the MS will be created. (String)
     """
-    # setup
+
+    # re-use existing code
     msfile = '{0}.ms'.format(config['global']['project_name'])
-
-    ## 1. Import data and write listobs to file
     data_path = config['importdata']['data_path']
-    data_files = glob.glob(os.path.join(data_path, '*'))
-    import_data(sorted(data_files), msfile)
-    msinfo = get_msinfo(msfile)
-
+    data_files = sorted(glob.glob(os.path.join(data_path, '*')))
 
     logger.info('Starting import vla data')
     sum_dir = './summary/'
@@ -1837,26 +1842,22 @@ input_validation()
 # Read hi_pipeline configuration
 config, config_raw = read_config(cgatcore_params['configfile'])
 
+# deactivate cgat-core logging to stdout
+# cgat-core logs were sent to both stdout and pipeline.log
+# to-do: we want to have it enable only for pipeline.log
+logging.getLogger("cgatcore.pipeline").disabled = True
+logging.getLogger("cgatcore").disabled = True
+
+# configure logging
+logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['project_name']),
+                    LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name']))
+
 
 def main(argv=None):
-    """
-    Main processing
-    """
-
     if argv is None:
         argv = sys.argv
-
-    # deactivate cgat-core logging to stdout
-    # cgat-core logs were sent to both stdout and pipeline.log
-    # to-do: we want to have it enable only for pipeline.log
-    logging.getLogger("cgatcore.pipeline").disabled = True
-    logging.getLogger("cgatcore").disabled = True
-
-    # configure logging
-    logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['project_name']),
-                    LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name']))
 
     P.main(argv)
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(P.main(sys.argv))
