@@ -40,7 +40,9 @@ def read_config(configfile):
     config_raw.read(configfile)
     config = config_raw._sections
     for key in list(config.keys()):
-        config[key].pop('__name__')
+        # SLV: is this required?
+        # SLV: it failed to me with: template_params.cfg
+        #config[key].pop('__name__')
         for key2 in list(config[key].keys()):
             try:
                 config[key][key2] = literal_eval(config[key][key2])
@@ -1805,10 +1807,43 @@ def cleanup(config):
 ##7. Cleanup
 #cleanup(config)
 
+def input_validation():
+    """
+    Auxiliary function to make sure input configuration is valid
+    """
+
+    # check whether 'configfile' was specified in pipeline.yml
+    if 'configfile' not in PARAMS:
+        raise RuntimeError(' Please specify a configfile in pipeline.yml ')
+
+    # check whether configfile is readable
+    if not os.access(PARAMS['configfile'], os.R_OK):
+        raise FileNotFoundError(' Configuration file is required but not found.')
+
 def main(argv=None):
+
     if argv is None:
         argv = sys.argv
+
+    # sanity check on input parameters
+    input_validation()
+
+    # deactivate cgat-core logging to stdout
+    # cgat-core logs were sent to both stdout and pipeline.log
+    # to-do: we want to have it enable only for pipeline.log
+    logging.getLogger("cgatcore.pipeline").disabled = True
+    logging.getLogger("cgatcore").disabled = True
+
+    # read configuration
+    config,config_raw = read_config(PARAMS['configfile'])
+    interactive = config['global']['interactive']
+
+    # configure logging
+    logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['project_name']),
+                    LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name']))
+
+
     P.main(argv)
 
 if __name__ == "__main__":
-    sys.exit(P.main(sys.argv))
+    sys.exit(main(sys.argv))
