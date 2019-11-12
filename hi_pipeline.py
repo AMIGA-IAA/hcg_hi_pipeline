@@ -25,7 +25,7 @@ def read_config(configfile):
     config_raw = The instance of the parser.
     '''
     if not os.path.isfile(configfile):
-        logger.critical('configfile: {} not found'.format(configfile))
+        print('configfile: {} not found'.format(configfile))
         sys.exit(-1)
     config_raw = configparser.RawConfigParser()
     config_raw.read(configfile)
