@@ -3,7 +3,7 @@ import numpy
 import shutil
 import readline
 import logging
-import ConfigParser
+import configparser
 from ast import literal_eval
 import glob
 import collections
@@ -24,12 +24,12 @@ def read_config(configfile):
     if not os.path.isfile(configfile):
         logger.critical('configfile: {} not found'.format(configfile))
         sys.exit(-1)
-    config_raw = ConfigParser.RawConfigParser()
+    config_raw = configparser.RawConfigParser()
     config_raw.read(configfile)
     config = config_raw._sections
-    for key in config.keys():
+    for key in list(config.keys()):
         config[key].pop('__name__')
-        for key2 in config[key].keys():
+        for key2 in list(config[key].keys()):
             try:
                 config[key][key2] = literal_eval(config[key][key2])
             except ValueError:
@@ -98,7 +98,7 @@ def uinput(prompt, default=''):
     '''
     readline.set_startup_hook(lambda: readline.insert_text(default))
     try:
-        return raw_input(prompt)
+        return input(prompt)
     finally:
         readline.set_startup_hook()
 
@@ -292,9 +292,9 @@ def manual_flags():
     if interactive:
         print("\nManual flags from 'manual_flags.py' are about to be applied.")
         print("It is strongly recommended that you inspect the data and modify (and save) 'manual_flags.py' appropriately before proceeding.\n")
-        resp = str(raw_input('Do you want to proceed (y/n): '))
+        resp = str(input('Do you want to proceed (y/n): '))
         while resp.lower() not in ['yes','ye','y']:
-            resp = str(raw_input('Do you want to proceed (y/n): '))
+            resp = str(input('Do you want to proceed (y/n): '))
     logger.info('Applying flags from manual_flags.py')
     try:
         flag_file = open('manual_flags.py', 'r')
@@ -414,13 +414,13 @@ def flag_sum(msfile,name):
     out_file.write('Total flagged data: {:.2%}\n\n'.format(flag_info['flagged']/flag_info['total']))
     logger.info('Total flagged data: {:.2%}'.format(flag_info['flagged']/flag_info['total']))
     out_file.write('Flagging per spectral window\n')
-    for spw in flag_info['spw'].keys():
+    for spw in list(flag_info['spw'].keys()):
         out_file.write('SPW {0}: {1:.2%}\n'.format(spw,flag_info['spw'][spw]['flagged']/flag_info['spw'][spw]['total']))
     out_file.write('\nFlagging per field\n')
-    for field in flag_info['field'].keys():
+    for field in list(flag_info['field'].keys()):
         out_file.write('{0}: {1:.2%}\n'.format(field,flag_info['field'][field]['flagged']/flag_info['field'][field]['total']))
     out_file.write('\nFlagging per antenna\n')
-    for ant in flag_info['antenna'].keys():
+    for ant in list(flag_info['antenna'].keys()):
         out_file.write('{0}: {1:.2%}\n'.format(ant,flag_info['antenna'][ant]['flagged']/flag_info['antenna'][ant]['total']))
     out_file.close()
     logger.info('Completed writing flag summary.')
@@ -476,8 +476,8 @@ def select_refant(msfile,config,config_raw,config_file):
         while calib['refant'] not in ant_names:
             if first > 0:
                 print('\n\nString entered is not a valid antenna name.')
-            print('Valid antenna names:\n{}\n'.format(ant_names))
-            calib['refant'] = str(raw_input('Please select a reference antenna by name: '))
+            print(('Valid antenna names:\n{}\n'.format(ant_names)))
+            calib['refant'] = str(input('Please select a reference antenna by name: '))
             first += 1
         logger.info('Updating config file ({0}) to set reference antenna as {1}.'.format(config_file,calib['refant']))
         config_raw.set('calibration','refant',calib['refant'])
@@ -523,8 +523,8 @@ def set_fields(msfile,config,config_raw,config_file):
             print('\n\n')
             while True:
                 target = ''
-                print('Valid field names:\n{}\n'.format(field_names))
-                target = str(raw_input('Please select a target field by name: '))
+                print(('Valid field names:\n{}\n'.format(field_names)))
+                target = str(input('Please select a target field by name: '))
                 if target not in field_names:
                     print('\n\nString entered is not a valid field name.')
                     continue
@@ -533,7 +533,7 @@ def set_fields(msfile,config,config_raw,config_file):
                     logger.info('{} set as a target field.'.format(target))
                     resp = ''
                     while (resp.lower() not in ['yes','ye','y']) and (resp.lower() not in ['no','n']) :
-                        resp = str(raw_input('Do you want to add another target (y/n): '))
+                        resp = str(input('Do you want to add another target (y/n): '))
                     if resp.lower() in ['yes','ye','y']:
                         continue
                     else:
@@ -542,14 +542,14 @@ def set_fields(msfile,config,config_raw,config_file):
     else:
         logger.info('Target field(s) already set as: {}.'.format(calib['targets']))
         if interactive:
-            resp = str(raw_input('Do you want to add another target (y/n): '))
+            resp = str(input('Do you want to add another target (y/n): '))
             while (resp.lower() not in ['yes','ye','y']) and (resp.lower() not in ['no','n']) :
-                resp = str(raw_input('Do you want to add another target (y/n): '))
+                resp = str(input('Do you want to add another target (y/n): '))
             if resp.lower() in ['yes','ye','y']:
                 while True:
                     target = ''
-                    print('Valid field names:\n{}\n'.format(field_names))
-                    target = str(raw_input('Please select a target field by name: '))
+                    print(('Valid field names:\n{}\n'.format(field_names)))
+                    target = str(input('Please select a target field by name: '))
                     if target not in field_names:
                         print('\n\nString entered is not a valid field name.')
                         continue
@@ -558,7 +558,7 @@ def set_fields(msfile,config,config_raw,config_file):
                         logger.info('{} set as a target field.'.format(target))
                         resp = ''
                         while (resp.lower() not in ['yes','ye','y']) and (resp.lower() not in ['no','n']) :
-                            resp = str(raw_input('Do you want to add another target (y/n): '))
+                            resp = str(input('Do you want to add another target (y/n): '))
                         if resp.lower() in ['yes','ye','y']:
                             continue
                         else:
@@ -582,8 +582,8 @@ def set_fields(msfile,config,config_raw,config_file):
                 while calib['fluxcal'][0] not in field_names:
                     if first > 0:
                         print('\n\nString entered is not a valid field name.')
-                    print('Valid field names:\n{}\n'.format(field_names))
-                    calib['fluxcal'][0] = str(raw_input('Please select a flux calibrator by name: '))
+                    print(('Valid field names:\n{}\n'.format(field_names)))
+                    calib['fluxcal'][0] = str(input('Please select a flux calibrator by name: '))
                     first += 1
                 change_made = True
         else:
@@ -607,14 +607,14 @@ def set_fields(msfile,config,config_raw,config_file):
                         calib['fluxcal'].append('')
                 i = 0
                 first = True
-                print('Valid field names:\n{}\n'.format(field_names))
+                print(('Valid field names:\n{}\n'.format(field_names)))
                 while i in range(len(calib['fluxcal'])):
                     if first:
-                        print('SPW {0}: {1}'.format(spw_IDs[i],spw_names[i]))
+                        print(('SPW {0}: {1}'.format(spw_IDs[i],spw_names[i])))
                     calib['fluxcal'][i] = uinput('Enter flux calibrator for SPW {}: '.format(spw_IDs[i], default=calib['fluxcal'][i]))
                     if calib['fluxcal'][i] not in field_names:
                         print('\n\nString entered is not a valid field name.')
-                        print('Valid field names:\n{}\n'.format(field_names))
+                        print(('Valid field names:\n{}\n'.format(field_names)))
                         first = False
                     else:
                         i += 1
@@ -642,7 +642,7 @@ def set_fields(msfile,config,config_raw,config_file):
             logger.warning('There is no flux calibrator model listed in the parameters file.')
         flux_mod_names_bad = False
         for i in range(len(calib['fluxcal'])):
-            if calib['fluxcal'][i] in std_flux_names.keys():
+            if calib['fluxcal'][i] in list(std_flux_names.keys()):
                 calib['fluxmod'].append(std_flux_names[calib['fluxcal'][i]])
             else:
                 flux_mod_names_bad = True
@@ -664,9 +664,9 @@ def set_fields(msfile,config,config_raw,config_file):
                 logger.warning('No valid flux model set. Requesting user input.')
                 while calib['fluxmod'][0] not in std_flux_mods:
                     print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, or 3C286_L.im.\n')
-                    calib['fluxmod'][0] = str(raw_input('Please select a flux model name: '))
+                    calib['fluxmod'][0] = str(input('Please select a flux model name: '))
                     if calib['fluxmod'][0] not in std_flux_mods:
-                        resp = str(raw_input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][0])))
+                        resp = str(input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][0])))
                         if resp.lower() not in ['yes','ye','y']:
                             break
                         else:
@@ -690,7 +690,7 @@ def set_fields(msfile,config,config_raw,config_file):
                     print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, or 3C286_L.im.\n')
                     calib['fluxmod'][i] = uinput('Enter flux model for calibrator {}: '.format(calib['fluxcal'][i], default=calib['fluxmod'][i]))
                     if calib['fluxmod'][i] not in std_flux_mods:
-                        resp = str(raw_input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][i])))
+                        resp = str(input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][i])))
                         if resp.lower() in ['yes','ye','y']:
                             i += 1
                     else:
@@ -716,8 +716,8 @@ def set_fields(msfile,config,config_raw,config_file):
                 while calib['bandcal'][0] not in field_names:
                     if first > 0:
                         print('\n\nString entered is not a valid field name.')
-                    print('Valid field names:\n{}\n'.format(field_names))
-                    calib['bandcal'][0] = str(raw_input('Please select a bandpass calibrator by name: '))
+                    print(('Valid field names:\n{}\n'.format(field_names)))
+                    calib['bandcal'][0] = str(input('Please select a bandpass calibrator by name: '))
                     first += 1
                 change_made = True
         else:
@@ -741,14 +741,14 @@ def set_fields(msfile,config,config_raw,config_file):
                         calib['bandcal'].append('')
                 i = 0
                 first = True
-                print('Valid field names:\n{}\n'.format(field_names))
+                print(('Valid field names:\n{}\n'.format(field_names)))
                 while i in range(len(calib['bandcal'])):
                     if first:
-                        print('SPW {0}: {1}'.format(spw_IDs[i],spw_names[i]))
+                        print(('SPW {0}: {1}'.format(spw_IDs[i],spw_names[i])))
                     calib['bandcal'][i] = uinput('Enter bandpass calibrator for SPW {}: '.format(spw_IDs[i], default=calib['bandcal'][i]))
                     if calib['bandcal'][i] not in field_names:
                         print('\n\nString entered is not a valid field name.')
-                        print('Valid field names:\n{}\n'.format(field_names))
+                        print(('Valid field names:\n{}\n'.format(field_names)))
                         first = False
                     else:
                         i += 1
@@ -776,8 +776,8 @@ def set_fields(msfile,config,config_raw,config_file):
                 while calib['phasecal'][0] not in field_names:
                     if first > 0:
                         print('\n\nString entered is not a valid field name.')
-                    print('Valid field names:\n{}\n'.format(field_names))
-                    calib['phasecal'][0] = str(raw_input('Please select a phase calibrator by name: '))
+                    print(('Valid field names:\n{}\n'.format(field_names)))
+                    calib['phasecal'][0] = str(input('Please select a phase calibrator by name: '))
                     first += 1
                 change_made = True
         else:
@@ -801,12 +801,12 @@ def set_fields(msfile,config,config_raw,config_file):
                     for i in range(len(calib['phasecal']),len(calib['targets'])):
                         calib['phasecal'].append('')
                 i = 0
-                print('Valid field names:\n{}\n'.format(field_names))
+                print(('Valid field names:\n{}\n'.format(field_names)))
                 while i in range(len(calib['phasecal'])):
                     calib['phasecal'][i] = uinput('Enter phase calibrator for {}: '.format(calib['targets'][i]), default=calib['phasecal'][i])
                     if calib['phasecal'][i] not in field_names:
                         print('\n\nString entered is not a valid field name.')
-                        print('Valid field names:\n{}\n'.format(field_names))
+                        print(('Valid field names:\n{}\n'.format(field_names)))
                     else:
                         i += 1
                 change_made = True
@@ -957,11 +957,11 @@ def calibration(msfile,config):
         logger.info('Writing calibrator fluxes summary to: {}.'.format(out_file))
         out_file = open(out_file, 'a+')
         out_file.write('Spectral window: {}\n'.format(spw_IDs[i]))
-        for k in range(len(flux_info.keys())):
-            if 'spw' in flux_info.keys()[k] or 'freq' in flux_info.keys()[k]:
+        for k in range(len(list(flux_info.keys()))):
+            if 'spw' in list(flux_info.keys())[k] or 'freq' in list(flux_info.keys())[k]:
                 continue
             else:
-                fieldID = flux_info.keys()[k]
+                fieldID = list(flux_info.keys())[k]
                 out_file.write('Flux density for {0}: {1} +/- {2} Jy\n'.format(flux_info[fieldID]['fieldName'], flux_info[fieldID][str(spw_IDs[i])]['fluxd'][0], flux_info[fieldID][str(spw_IDs[i])]['fluxdErr'][0]))
                 out_file.write('\n')
         out_file.close()
@@ -1071,8 +1071,8 @@ def contsub(msfile,config,config_raw,config_file):
     elif interactive:
         print('Current line free channels set as:')
         for i in range(len(contsub['linefree_ch'])):
-            print('{0}: {1}'.format(calib['targets'][i],contsub['linefree_ch'][i]))
-        resp = str(raw_input('Do you want revise the line free channels (y/n): '))
+            print(('{0}: {1}'.format(calib['targets'][i],contsub['linefree_ch'][i])))
+        resp = str(input('Do you want revise the line free channels (y/n): '))
         if resp.lower() in ['yes','ye','y']:
             reset_ch = True
     if reset_ch:
@@ -1184,8 +1184,8 @@ def dirty_cont_image(config,config_raw,config_file):
     elif interactive:
         print('Current pixel sizes set as:')
         for i in range(len(cln_param['pix_size'])):
-            print('{0}: {1}'.format(targets[i],cln_param['pix_size'][i]))
-        resp = str(raw_input('Do you want revise the pixel sizes (y/n): '))
+            print(('{0}: {1}'.format(targets[i],cln_param['pix_size'][i])))
+        resp = str(input('Do you want revise the pixel sizes (y/n): '))
         if resp.lower() in ['yes','ye','y']:
             reset_cln = True
     if reset_cln and interactive:
@@ -1220,14 +1220,14 @@ def dirty_cont_image(config,config_raw,config_file):
     elif interactive:
         print('Current images sizes set as:')
         for i in range(len(cln_param['im_size'])):
-            print('{0}: {1}'.format(targets[i],cln_param['im_size'][i]))
-        resp = str(raw_input('Do you want revise the image sizes (y/n): '))
+            print(('{0}: {1}'.format(targets[i],cln_param['im_size'][i])))
+        resp = str(input('Do you want revise the image sizes (y/n): '))
         if resp.lower() in ['yes','ye','y']:
             reset_cln = True
     if reset_cln and interactive:
         print('For each target enter the desired image size:')
         for i in range(len(targets)):
-            print('Note: The pixel size for this target was set to: {}'.format(cln_param['pix_size'][i]))
+            print(('Note: The pixel size for this target was set to: {}'.format(cln_param['pix_size'][i])))
             cln_param['im_size'][i] = uinput('Image size for {}: '.format(targets[i]), cln_param['im_size'][i])
             logger.info('Setting image size for {0} as: {1} x {2}.'.format(targets[i], cln_param['im_size'][i],cln_param['pix_size'][i]))
         logger.info('Updating config file to set image sizes.')
@@ -1291,8 +1291,8 @@ def dirty_image(config,config_raw,config_file):
     elif interactive:
         print('Current pixel sizes set as:')
         for i in range(len(cln_param['pix_size'])):
-            print('{0}: {1}'.format(targets[i],cln_param['pix_size'][i]))
-        resp = str(raw_input('Do you want revise the pixel sizes (y/n): '))
+            print(('{0}: {1}'.format(targets[i],cln_param['pix_size'][i])))
+        resp = str(input('Do you want revise the pixel sizes (y/n): '))
         if resp.lower() in ['yes','ye','y']:
             reset_cln = True
     if reset_cln and interactive:
@@ -1327,14 +1327,14 @@ def dirty_image(config,config_raw,config_file):
     elif interactive:
         print('Current images sizes set as:')
         for i in range(len(cln_param['im_size'])):
-            print('{0}: {1}'.format(targets[i],cln_param['im_size'][i]))
-        resp = str(raw_input('Do you want revise the image sizes (y/n): '))
+            print(('{0}: {1}'.format(targets[i],cln_param['im_size'][i])))
+        resp = str(input('Do you want revise the image sizes (y/n): '))
         if resp.lower() in ['yes','ye','y']:
             reset_cln = True
     if reset_cln and interactive:
         print('For each target enter the desired image size:')
         for i in range(len(targets)):
-            print('Note: The pixel size for this target was set to: {}'.format(cln_param['pix_size'][i]))
+            print(('Note: The pixel size for this target was set to: {}'.format(cln_param['pix_size'][i])))
             cln_param['im_size'][i] = uinput('Image size for {}: '.format(targets[i]), cln_param['im_size'][i])
             logger.info('Setting image size for {0} as: {1} x {2}.'.format(targets[i], cln_param['im_size'][i],cln_param['pix_size'][i]))
         logger.info('Updating config file to set image sizes.')
@@ -1364,14 +1364,14 @@ def dirty_image(config,config_raw,config_file):
     elif interactive:
         print('Current image channels set as:')
         for i in range(len(cln_param['line_ch'])):
-            print('{0}: {1}'.format(targets[i],cln_param['line_ch'][i]))
-        resp = str(raw_input('Do you want revise the channels that will be imaged (y/n): '))
+            print(('{0}: {1}'.format(targets[i],cln_param['line_ch'][i])))
+        resp = str(input('Do you want revise the channels that will be imaged (y/n): '))
         if resp.lower() in ['yes','ye','y']:
             reset_cln = True
     if reset_cln and interactive:
         print('For each target enter the channels you want to image in the following format:\nspwID:min_ch~max_ch')
         for i in range(len(targets)):
-            print('Note: The continuum channels for this target were set to: {}'.format(contsub['linefree_ch'][i]))
+            print(('Note: The continuum channels for this target were set to: {}'.format(contsub['linefree_ch'][i])))
             cln_param['line_ch'][i] = uinput('Channels to image for {}: '.format(targets[i]), cln_param['line_ch'][i])
             logger.info('Setting image channels for {0} as: {1}.'.format(targets[i], cln_param['line_ch'][i]))
         logger.info('Updating config file to set channels to be imaged.')
@@ -1488,14 +1488,14 @@ def image(config,config_raw,config_file):
     elif interactive:
         print('Current image channels set as:')
         for i in range(len(cln_param['line_ch'])):
-            print('{0}: {1}'.format(targets[i],cln_param['line_ch'][i]))
-        resp = str(raw_input('Do you want revise the channels that will be imaged (y/n): '))
+            print(('{0}: {1}'.format(targets[i],cln_param['line_ch'][i])))
+        resp = str(input('Do you want revise the channels that will be imaged (y/n): '))
         if resp.lower() in ['yes','ye','y']:
             reset_cln = True
     if reset_cln and interactive:
         print('For each target enter the channels you want to image in the following format:\nspwID:min_ch~max_ch')
         for i in range(len(targets)):
-            print('Note: The continuum channels for this target were set to: {}'.format(contsub['linefree_ch'][i]))
+            print(('Note: The continuum channels for this target were set to: {}'.format(contsub['linefree_ch'][i])))
             cln_param['line_ch'][i] = uinput('Channels to image for {}: '.format(targets[i]), cln_param['line_ch'][i])
             logger.info('Setting image channels for {0} as: {1}.'.format(targets[i], cln_param['line_ch'][i]))
         logger.info('Updating config file to set channels to be imaged.')
@@ -1515,7 +1515,7 @@ def image(config,config_raw,config_file):
         elif 0 not in cln_param['scales']:
             logger.warning('MS-CLEAN scales do not include point sources. This is highly recommended.')
             if interactive:
-                resp = str(raw_input('Do you want revise MS-CLEAN scales (y/n): '))
+                resp = str(input('Do you want revise MS-CLEAN scales (y/n): '))
                 if resp.lower() in ['yes','ye','y']:
                     reset_cln = True
             else:
@@ -1524,7 +1524,7 @@ def image(config,config_raw,config_file):
                 reset_cln = True
         if reset_cln:
             if interactive:
-                print('Current scales set to: {} beam diameters.'.format(cln_param['scales']))
+                print(('Current scales set to: {} beam diameters.'.format(cln_param['scales'])))
                 cln_param['scales'] = uinput('Enter new scales: ', cln_param['scales'])
             logger.info('Setting MS-CLEAN scales as {} beams.'.format(cln_param['scales']))
             logger.info('Updating config file to set MS-CLEAN scales.')
@@ -1557,10 +1557,10 @@ def image(config,config_raw,config_file):
             logger.warning('There are fewer than 5 pixels across the beam minor axis. Consider decreasing the pixel size.')
             if interactive:
                 print('Beam dimensions:')
-                print('Major: {0:.2f} {1}'.format(rest_beam['major']['value'],rest_beam['major']['unit']))
-                print('Minor: {0:.2f} {1}'.format(rest_beam['minor']['value'],rest_beam['minor']['unit']))
-                print('Pixel size: {}'.format(cln_param['pix_size']))
-                resp = str(raw_input('Do you want revise the pixel size (y/n): '))
+                print(('Major: {0:.2f} {1}'.format(rest_beam['major']['value'],rest_beam['major']['unit'])))
+                print(('Minor: {0:.2f} {1}'.format(rest_beam['minor']['value'],rest_beam['minor']['unit'])))
+                print(('Pixel size: {}'.format(cln_param['pix_size'])))
+                resp = str(input('Do you want revise the pixel size (y/n): '))
                 if resp.lower() in ['yes','ye','y']:
                     reset_cln = True
         if reset_cln and interactive:
