@@ -18,10 +18,20 @@ import cgatcore.experiment as E
 from cgatcore import pipeline as P
 
 
-# Read pipeline config
-PARAMS = P.get_parameters("pipeline.yml")
+def input_validation():
+    """
+    Auxiliary function to make sure input configuration is valid
+    """
 
-# Read configuration file
+    # check whether 'configfile' was specified in pipeline.yml
+    if 'configfile' not in cgatcore_params:
+        raise RuntimeError(' Please specify a configfile in pipeline.yml ')
+
+    # check whether configfile is readable
+    if not os.access(cgatcore_params['configfile'], os.R_OK):
+        raise FileNotFoundError(' Configuration file is required but not found.')
+
+
 def read_config(configfile):
     '''
     Parses the configuration file of parameters passed when the pipeline is executed.
@@ -153,6 +163,16 @@ def import_data(data_files, msfile):
     data_files = Paths to the VLA archive files. (List/Array of Strings)
     msfile = Path where the MS will be created. (String)
     """
+    # setup
+    msfile = '{0}.ms'.format(config['global']['project_name'])
+
+    ## 1. Import data and write listobs to file
+    data_path = config['importdata']['data_path']
+    data_files = glob.glob(os.path.join(data_path, '*'))
+    import_data(sorted(data_files), msfile)
+    msinfo = get_msinfo(msfile)
+
+
     logger.info('Starting import vla data')
     sum_dir = './summary/'
     makedir(sum_dir)
@@ -1807,26 +1827,24 @@ def cleanup(config):
 ##7. Cleanup
 #cleanup(config)
 
-def input_validation():
-    """
-    Auxiliary function to make sure input configuration is valid
-    """
 
-    # check whether 'configfile' was specified in pipeline.yml
-    if 'configfile' not in PARAMS:
-        raise RuntimeError(' Please specify a configfile in pipeline.yml ')
+# Read cgat-core configuration
+cgatcore_params = P.get_parameters("pipeline.yml")
 
-    # check whether configfile is readable
-    if not os.access(PARAMS['configfile'], os.R_OK):
-        raise FileNotFoundError(' Configuration file is required but not found.')
+# Sanity checks on input parameters
+input_validation()
+
+# Read hi_pipeline configuration
+config, config_raw = read_config(cgatcore_params['configfile'])
+
 
 def main(argv=None):
+    """
+    Main processing
+    """
 
     if argv is None:
         argv = sys.argv
-
-    # sanity check on input parameters
-    input_validation()
 
     # deactivate cgat-core logging to stdout
     # cgat-core logs were sent to both stdout and pipeline.log
@@ -1834,14 +1852,9 @@ def main(argv=None):
     logging.getLogger("cgatcore.pipeline").disabled = True
     logging.getLogger("cgatcore").disabled = True
 
-    # read configuration
-    config,config_raw = read_config(PARAMS['configfile'])
-    interactive = config['global']['interactive']
-
     # configure logging
     logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['project_name']),
                     LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name']))
-
 
     P.main(argv)
 
