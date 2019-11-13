@@ -168,17 +168,15 @@ def import_data(infile, outfile):
     """ 
     Import VLA archive files from a location to a single MS.
     
-    Input:
     data_files = Paths to the VLA archive files. (List/Array of Strings)
     msfile = Path where the MS will be created. (String)
     """
 
-    msfile = '{0}.ms'.format(config['global']['project_name'])
     data_path = config['importdata']['data_path']
     data_files = sorted(glob.glob(os.path.join(data_path, '*')))
     sum_dir = './summary/'
     makedir(sum_dir)
-    listobs_file = sum_dir+msfile+'.listobs.summary'
+    listobs_file = sum_dir + msfile + '.listobs.summary'
     rmdir(msfile)
     rmfile(listobs_file)
 
@@ -1857,6 +1855,9 @@ input_validation()
 
 # Read hi_pipeline configuration
 config, config_raw = read_config(cgatcore_params['configfile'])
+
+# Initialize other global variables
+msfile = '{0}.ms'.format(config['global']['project_name'])
 
 # deactivate cgat-core logging to stdout
 # cgat-core logs were sent to both stdout and pipeline.log
