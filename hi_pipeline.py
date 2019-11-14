@@ -453,6 +453,20 @@ def save_flags(msfile,name):
     exec(command)
     logger.info('Completed saving flag version.')
     
+def rm_flags(msfile,name):
+    """
+    Delete the flag version "name".
+    
+    Input:
+    msfile = Path to the MS. (String)
+    name = Root of filename for the flag version. (String) 
+    """
+    logger.info('Removing flag version: {}.'.format(name))
+    command = "flagmanager(vis='{0}', mode='delete', versionname='{1}')".format(msfile,name)
+    logger.info('Executing command: '+command)
+    exec(command)
+    logger.info('Completed removing flag version.')
+    
 
 def select_refant(msfile,config,config_raw,config_file):
     """
@@ -471,14 +485,14 @@ def select_refant(msfile,config,config_raw,config_file):
     tb.close()
     if calib['refant'] not in ant_names:
         logger.warning('No valid reference antenna set. Requesting user input.')
-        first = 0
+        first = True
         print('\n\n\n')
         while calib['refant'] not in ant_names:
-            if first > 0:
+            if not first:
                 print('\n\nString entered is not a valid antenna name.')
             print('Valid antenna names:\n{}\n'.format(ant_names))
             calib['refant'] = str(raw_input('Please select a reference antenna by name: '))
-            first += 1
+            first = False
         logger.info('Updating config file ({0}) to set reference antenna as {1}.'.format(config_file,calib['refant']))
         config_raw.set('calibration','refant',calib['refant'])
         configfile = open(config_file,'w')
@@ -564,6 +578,16 @@ def set_fields(msfile,config,config_raw,config_file):
                         else:
                             break
                 change_made = True
+                
+    if len(calib['targets']) != nspw:
+        msmd.open(msfile)
+        spw_IDs = []
+        for target in calib['targets']:
+            spw_IDs.extend(list(msmd.spwsforfield(target)))
+        spw_IDs = list(set(list(spw_IDs)))
+        spw_names = msmd.namesforspws(spw_IDs)
+        nspw = len(spw_IDs)
+        msmd.close()
         
     flux_cal_names_bad = False
     for i in range(len(calib['fluxcal'])):
@@ -579,12 +603,15 @@ def set_fields(msfile,config,config_raw,config_file):
                 sys.exit(-1)
             else:
                 logger.warning('No valid flux calibrator set. Requesting user input.')
+                if len(calib['fluxcal']) == 0:
+                    calib['fluxcal'].append('')
+                first = True
                 while calib['fluxcal'][0] not in field_names:
-                    if first > 0:
+                    if not first:
                         print('\n\nString entered is not a valid field name.')
                     print('Valid field names:\n{}\n'.format(field_names))
                     calib['fluxcal'][0] = str(raw_input('Please select a flux calibrator by name: '))
-                    first += 1
+                    first = False
                 change_made = True
         else:
             if not interactive:
@@ -713,12 +740,15 @@ def set_fields(msfile,config,config_raw,config_file):
                 sys.exit(-1)
             else:
                 logger.warning('No valid bandpass calibrator set. Requesting user input.')
+                if len(calib['bandcal']) == 0:
+                    calib['bandcal'].append('')
+                first = True
                 while calib['bandcal'][0] not in field_names:
-                    if first > 0:
+                    if not first:
                         print('\n\nString entered is not a valid field name.')
                     print('Valid field names:\n{}\n'.format(field_names))
                     calib['bandcal'][0] = str(raw_input('Please select a bandpass calibrator by name: '))
-                    first += 1
+                    first = False
                 change_made = True
         else:
             if not interactive:
@@ -773,12 +803,15 @@ def set_fields(msfile,config,config_raw,config_file):
                 sys.exit(-1)
             else:
                 logger.warning('No valid phase calibrator set. Requesting user input.')
+                if len(calib['phasecal']) == 0:
+                    calib['phasecal'].append('')
+                first = True
                 while calib['phasecal'][0] not in field_names:
-                    if first > 0:
+                    if not first:
                         print('\n\nString entered is not a valid field name.')
                     print('Valid field names:\n{}\n'.format(field_names))
                     calib['phasecal'][0] = str(raw_input('Please select a phase calibrator by name: '))
-                    first += 1
+                    first = False
                 change_made = True
         else:
             if not interactive:
@@ -846,11 +879,14 @@ def calibration(msfile,config):
     makedir(cal_tabs)
     calib = config['calibration']
     
-    tb.open('{}/SPECTRAL_WINDOW'.format(msfile))
-    spw_names = list(tb.getcol('NAME'))
-    spw_IDs = list(tb.getcol('DOPPLER_ID'))
-    nspw = len(spw_names)
-    tb.close()
+    msmd.open(msfile)
+    spw_IDs = []
+    for target in calib['targets']:
+        spw_IDs.extend(list(msmd.spwsforfield(target)))
+    spw_IDs = list(set(list(spw_IDs)))
+    spw_names = msmd.namesforspws(spw_IDs)
+    nspw = len(spw_IDs)
+    msmd.close()
     
     gctab = cal_tabs+'gaincurve.cal'
     logger.info('Calibrating gain vs elevation({}).'.format(gctab))
@@ -1753,9 +1789,9 @@ base_flags(msfile,config)
 tfcrop(msfile)
 manual_flags()
 flag_version = 'initial'
-rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
-flag_sum(msfile,flag_version)
+rm_flags(msfile,flag_version)
 save_flags(msfile,flag_version)
+flag_sum(msfile,flag_version)
 
 # 4. Calibration
 restore_flags(msfile,'initial')
@@ -1764,19 +1800,19 @@ set_fields(msfile,config,config_raw,config_file)
 calibration(msfile,config)
 rflag(msfile,config)
 flag_version = 'rflag'
-flag_sum(msfile,flag_version)
-rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
+rm_flags(msfile,flag_version)
 save_flags(msfile,flag_version)
+flag_sum(msfile,flag_version)
 extend_flags(msfile)
 flag_version = 'extended'
-flag_sum(msfile,flag_version)
-rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
+rm_flags(msfile,flag_version)
 save_flags(msfile,flag_version)
+flag_sum(msfile,flag_version)
 calibration(msfile,config)
 flag_version = 'final'
-flag_sum(msfile,flag_version)
-rmdir('{0}.flagversions/flags.{1}'.format(msfile,flag_version))
+rm_flags(msfile,flag_version)
 save_flags(msfile,flag_version)
+flag_sum(msfile,flag_version)
 
 #5. Split, continuum subtract and make dirty image
 restore_flags(msfile,'final')
