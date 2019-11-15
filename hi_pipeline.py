@@ -157,13 +157,19 @@ def get_logger(
 
 # start of the cgat-core pipeline
 @originate('step.0')
-def init_function(outfile):
+def dependency_check(outfile):
     """
-    This function starts the pipeline
+    Check required dependencies to run the pipeline
     """
+    deps = ["casa"]
+    for cmd in deps:
+        if shutil.which(cmd) is None:
+            raise EnvironmentError("Required dependency \"{}\" not found".format(cmd))
+
     open(outfile, 'a').close()
 
-@transform(init_function, suffix('step.0'), 'step.1')
+
+@transform(dependency_check, suffix('step.0'), 'step.1')
 def import_data(infile, outfile):
     """ 
     Import VLA archive files from a location to a single MS.
@@ -1861,7 +1867,8 @@ input_validation()
 config, config_raw = read_config(cgatcore_params['configfile'])
 
 # Initialize other global variables
-CASA       = '{} --nogui --logfile casa.log'.format(config['global']['casa'])
+os.environ["PATH"] += os.pathsep + config['global']['casa']
+CASA       = 'casa --nogui --logfile casa.log'
 msfile     = '{0}.ms'.format(config['global']['project_name'])
 log2file   = config_raw.getboolean('global', 'log2file')
 log2stdout = config_raw.getboolean('global', 'log2stdout')
