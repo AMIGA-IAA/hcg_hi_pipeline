@@ -1866,8 +1866,10 @@ input_validation()
 # Read hi_pipeline configuration
 config, config_raw = read_config(cgatcore_params['configfile'])
 
-# Initialize other global variables
+# Add CASA to the PATH
 os.environ["PATH"] += os.pathsep + config['global']['casa']
+
+# Initialize other global variables
 CASA       = 'casa --nogui --logfile casa.log'
 msfile     = '{0}.ms'.format(config['global']['project_name'])
 log2file   = config_raw.getboolean('global', 'log2file')
