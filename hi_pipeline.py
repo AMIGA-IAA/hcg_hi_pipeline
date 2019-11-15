@@ -308,22 +308,22 @@ def plot_elevation(infile, outfile):
     max_elev = elev['max_elev']
     plotrange = [-1, -1, min_elev, max_elev]
 
-    casa_command= ("""plotms(vis='{}', xaxis='time', yaxis='elevation',""" +
+    casa_command = ("""plotms(vis='{}', xaxis='time', yaxis='elevation',""" +
             """correlation='{}', coloraxis = 'field',""" +
             """symbolsize=5, plotrange={},""" +
             """averagedata=True, avgtime='{}', plotfile='{}',""" +
             """expformat = 'png', customsymbol = True, symbolshape = 'circle',""" +
             """overwrite=True, showlegend=False, showgui=False,""" +
             """exprange='all', iteraxis='spw')""").format(msfile, correlation,
-                plotrange, str(avgtime), plot_file)
+                plotrange, avgtime, plot_file)
 
     P.run('''{} -c "{}"'''.format(CASA, casa_command))
 
     logger.info('Completed plotting elevation.')
     open(outfile, 'a').close()
 
-
-def plot_ants(msfile):
+@transform(import_data, suffix('step.1'), 'step.2b')
+def plot_ants(infile, outfile):
     """
     Plots the layout of the antennae during the observations
     
@@ -333,10 +333,13 @@ def plot_ants(msfile):
     logger.info('Starting plotting antenna positions.')
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
-    plot_file = plots_obs_dir+'{0}_antpos.png'.format(msfile)
+    plot_file = plots_obs_dir + '{0}_antpos.png'.format(msfile)
     logger.info('Plotting antenna positions to: {}'.format(plot_file))
-    plotants(vis=msfile,figfile=plot_file)
+
+    casa_command = """plotants(vis='{}', figfile='{}')""".format(msfile, plot_file)
+    P.run('''{} -c "{}"'''.format(CASA, casa_command))
     logger.info('Completed plotting antenna positions.')
+
 
 def manual_flags():
     """
