@@ -1,0 +1,115 @@
+#!/usr/bin/env python
+
+import sys
+import os
+import logging
+import time
+import numpy
+import shutil
+import readline
+import logging
+import configparser
+from ast import literal_eval
+import glob
+import collections
+
+from ruffus import *
+import cgatcore.experiment as E
+from cgatcore import pipeline as P
+
+
+def input_validation():
+    """
+    Auxiliary function to make sure input configuration is valid
+    """
+
+    # check whether 'configfile' was specified in pipeline.yml
+    if 'configfile' not in cgatcore_params:
+        raise RuntimeError(' Please specify a configfile in pipeline.yml ')
+
+    # check whether configfile is readable
+    if not os.access(cgatcore_params['configfile'], os.R_OK):
+        raise FileNotFoundError(' Configuration file is required but not found.')
+        
+    # check casa path exists
+    if not os.access(cgatcore_params['casa'] + '/casa', os.R_OK):
+        raise FileNotFoundError(' CASA is required but not found. Check path in yml file.')
+        
+    # check project ID exists
+    if cgatcore_params['project'] == '':
+        raise ValueError(' Project ID is required but not found.')
+        
+    
+        
+
+
+
+# Read cgat-core configuration
+cgatcore_params = P.get_parameters("hi_segmented_pipeline.yml")
+
+# Sanity checks on input parameters
+input_validation()
+
+# Add CASA to the PATH
+os.environ["PATH"] += os.pathsep + cgatcore_params['casa']
+
+# Initialize other global variables
+CASA       = 'casa --nogui --logfile casa.log'
+
+# deactivate cgat-core logging to stdout
+# cgat-core logs were sent to both stdout and pipeline.log
+# to-do: we want to have it enable only for pipeline.log
+logging.getLogger("cgatcore.pipeline").disabled = False
+logging.getLogger("cgatcore").disabled = False
+
+
+
+
+# start of the cgat-core pipeline
+@originate('dependency_check.done')
+def dependency_check(outfile):
+    """
+    Check required dependencies to run the pipeline
+    """
+    deps = ["casa"]
+    for cmd in deps:
+        if shutil.which(cmd) is None:
+            raise EnvironmentError("Required dependency \"{}\" not found".format(cmd))
+
+    open(outfile, 'a').close()
+    
+    
+
+@transform(dependency_check, suffix('dependency_check.done'), '{}_import_data.log'.format(cgatcore_params['project']))
+def import_data(infile,outfile):
+    statement = 'casa -c import_data.py {}'.format(cgatcore_params['configfile'])
+    P.run(statement)
+    
+@transform(import_data, suffix('{}_import_data.log'.format(cgatcore_params['project'])), '{}_flag_calib_split.log'.format(cgatcore_params['project']))
+def flag_calib_split(infile,outfile):
+    statement = 'casa -c flag_calib_split.py {}'.format(cgatcore_params['configfile'])
+    P.run(statement)
+    
+@transform(flag_calib_split, suffix('{}_flag_calib_split.log'.format(cgatcore_params['project'])), '{}_dirty_cont_image.log'.format(cgatcore_params['project']))
+def dirty_cont_image(infile,outfile):
+    statement = 'casa -c dirty_cont_image.py {}'.format(cgatcore_params['configfile'])
+    P.run(statement)
+    
+@transform(dirty_cont_image, suffix('{}_dirty_cont_image.log'.format(cgatcore_params['project'])), '{}_contsub_dirty_image.log'.format(cgatcore_params['project']))
+def contsub_dirty_image(infile,outfile):
+    statement = 'casa -c contsub_dirty_image.py {}'.format(cgatcore_params['configfile'])
+    P.run(statement)
+    
+@transform(contsub_dirty_image, suffix('{}_contsub_dirty_image.log'.format(cgatcore_params['project'])), '{}_clean_image.log'.format(cgatcore_params['project']))
+def clean_image(infile,outfile):
+    statement = 'casa -c clean_image.py {}'.format(cgatcore_params['configfile'])
+    P.run(statement)
+    
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+    P.main(argv)
+
+if __name__ == "__main__":
+    sys.exit(P.main(sys.argv))
