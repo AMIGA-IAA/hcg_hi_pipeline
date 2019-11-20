@@ -110,7 +110,8 @@ def get_logger(
         DATE_FORMAT    = '%Y-%m-%d %H:%M:%S',
         LOG_NAME       = 'logger',
         LOG_FILE_INFO  = 'mylog.log',
-        LOG_FILE_ERROR = 'errors.log'):
+        LOG_FILE_ERROR = 'errors.log',
+        new_log = False):
 
     """ Set up a logger with UTC timestamps"""
     logger = logging.getLogger(LOG_NAME)
@@ -123,7 +124,11 @@ def get_logger(
     logger.addHandler(stream_handler) 
 
     # File mylog.log with all information
-    file_handler_info = logging.FileHandler(LOG_FILE_INFO, mode='w')
+    if new_log:
+        mode = 'w'
+    else:
+        mode = 'a+'
+    file_handler_info = logging.FileHandler(LOG_FILE_INFO, mode=mode)
     file_handler_info.setFormatter(log_formatter)
     file_handler_info.setLevel(logging.INFO)
     logger.addHandler(file_handler_info)

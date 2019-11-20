@@ -1,3 +1,3 @@
-casa: /home/users/dae/mjones/software/casa-release-5.4.2-5.el7/bin
-configfile: AB651_params.cfg
-project: AB651
+casa: CASA_INSTALLATION_PATH --- CHANGEME
+configfile: PROJECTID_params.cfg --- CHANGME
+project: PROJECTID --- CHANGME

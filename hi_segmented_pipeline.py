@@ -80,29 +80,34 @@ def dependency_check(outfile):
     
     
 
-@transform(dependency_check, suffix('dependency_check.done'), '{}_import_data.log'.format(cgatcore_params['project']))
+@transform(dependency_check, suffix('dependency_check.done'), 'import_data.done'.format(cgatcore_params['project']))
 def import_data(infile,outfile):
-    statement = 'casa -c import_data.py {}'.format(cgatcore_params['configfile'])
+    statement = 'casa -c import_data.py {} && touch import_data.done'.format(cgatcore_params['configfile'])
     P.run(statement)
     
-@transform(import_data, suffix('{}_import_data.log'.format(cgatcore_params['project'])), '{}_flag_calib_split.log'.format(cgatcore_params['project']))
+@transform(import_data, suffix('import_data.done'.format(cgatcore_params['project'])), 'flag_calib_split.done'.format(cgatcore_params['project']))
 def flag_calib_split(infile,outfile):
-    statement = 'casa -c flag_calib_split.py {}'.format(cgatcore_params['configfile'])
+    statement = 'casa -c flag_calib_split.py {} && touch flag_calib_split.done'.format(cgatcore_params['configfile'])
     P.run(statement)
     
-@transform(flag_calib_split, suffix('{}_flag_calib_split.log'.format(cgatcore_params['project'])), '{}_dirty_cont_image.log'.format(cgatcore_params['project']))
+@transform(flag_calib_split, suffix('flag_calib_split.done'.format(cgatcore_params['project'])), 'dirty_cont_image.done'.format(cgatcore_params['project']))
 def dirty_cont_image(infile,outfile):
-    statement = 'casa -c dirty_cont_image.py {}'.format(cgatcore_params['configfile'])
+    statement = 'casa -c dirty_cont_image.py {} && touch dirty_cont_image.done'.format(cgatcore_params['configfile'])
     P.run(statement)
     
-@transform(dirty_cont_image, suffix('{}_dirty_cont_image.log'.format(cgatcore_params['project'])), '{}_contsub_dirty_image.log'.format(cgatcore_params['project']))
+@transform(dirty_cont_image, suffix('dirty_cont_image.done'.format(cgatcore_params['project'])), 'contsub_dirty_image.done'.format(cgatcore_params['project']))
 def contsub_dirty_image(infile,outfile):
-    statement = 'casa -c contsub_dirty_image.py {}'.format(cgatcore_params['configfile'])
+    statement = 'casa -c contsub_dirty_image.py {} && touch contsub_dirty_image.done'.format(cgatcore_params['configfile'])
     P.run(statement)
     
-@transform(contsub_dirty_image, suffix('{}_contsub_dirty_image.log'.format(cgatcore_params['project'])), '{}_clean_image.log'.format(cgatcore_params['project']))
+@transform(contsub_dirty_image, suffix('contsub_dirty_image.done'.format(cgatcore_params['project'])), 'clean_image.done'.format(cgatcore_params['project']))
 def clean_image(infile,outfile):
-    statement = 'casa -c clean_image.py {}'.format(cgatcore_params['configfile'])
+    statement = 'casa -c clean_image.py {} && touch clean_image.done'.format(cgatcore_params['configfile'])
+    P.run(statement)
+    
+@transform(clean_image, suffix('clean_image.done'.format(cgatcore_params['project'])), 'cleanup.done'.format(cgatcore_params['project']))
+def cleanup(infile,outfile):
+    statement = 'casa -c cleanup.py {} && touch cleanup.done'.format(cgatcore_params['configfile'])
     P.run(statement)
     
 

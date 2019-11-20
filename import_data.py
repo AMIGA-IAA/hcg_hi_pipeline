@@ -161,8 +161,9 @@ config,config_raw = read_config(config_file)
 interactive = config['global']['interactive']
 
 # Set up your logger
-logger = get_logger(LOG_FILE_INFO  = '{}_import_data.log'.format(config['global']['project_name']),
-                    LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name'])) # Set up your logger
+logger = get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['project_name']),
+                    LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name']),
+                    new_log = True) # Set up your logger
 
 # Define MS file name
 msfile = '{0}.ms'.format(config['global']['project_name'])
