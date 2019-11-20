@@ -240,6 +240,7 @@ def image(config,config_raw,config_file,logger):
         logger.info('CLEANing finished. Image cube saved as {}.'.format(target+'.image'))
         ia.open(img_dir+target+'.dirty.image')
         coords = ia.coordsys()
+        coord_chn = False
         if 'J2000' not in coords.referencecode()[0]:
             coord_chn = True
             logger.info('Coordinate system not J2000. Image will be regridded.')
