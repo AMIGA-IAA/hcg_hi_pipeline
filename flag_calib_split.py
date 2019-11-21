@@ -578,11 +578,11 @@ def calibration(msfile,config,logger):
     """
     logger.info('Starting calibration.')
     plots_obs_dir = './plots/'
-    makedir(plots_obs_dir)
+    makedir(plots_obs_dir,logger)
     sum_dir = './summary/'
-    makedir(sum_dir)
+    makedir(sum_dir,logger)
     cal_tabs = './cal_tabs/'
-    makedir(cal_tabs)
+    makedir(cal_tabs,logger)
     calib = config['calibration']
     
     msmd.open(msfile)
