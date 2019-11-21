@@ -17,14 +17,15 @@ def manual_flags(logger):
     logger.info('Applying flags from manual_flags.py')
     try:
         flag_file = open('manual_flags.py', 'r')
-        if flag_file.readlines() == []:
+        lines = flag_file.readlines()
+        if lines == []:
             logger.warning("The file is empty. Continuing without manual flagging.")
         else:
-            for command in flag_file.readlines():
+            for command in lines:
                 logger.info('Executing command: '+command)
                 exec(command)
+            logger.info('Completed manual flagging.')
         flag_file.close()
-        logger.info('Completed manual flagging.')
     except IOError:
         logger.warning("'manual_flags.py' does not exist. Continuing without manual flagging.")
         
