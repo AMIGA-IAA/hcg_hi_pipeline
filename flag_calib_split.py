@@ -811,9 +811,9 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
 
 #Flag, set intents, calibrate, flag more, calibrate again, then split fields
 restore_flags(msfile,'Original',logger)
+manual_flags(logger)
 base_flags(msfile,config,logger)
 tfcrop(msfile,logger)
-manual_flags(logger)
 flag_version = 'initial'
 rm_flags(msfile,flag_version,logger)
 save_flags(msfile,flag_version,logger)
