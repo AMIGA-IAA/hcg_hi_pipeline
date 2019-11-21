@@ -618,7 +618,7 @@ def calibration(msfile,config,logger):
                 logger.critical('More than one target in SPW {}.'.format(spw_IDs[i]))
                 sys.exit(-1)
             inx = list(calib['targets']).index(targets_in_spw[0])
-            if calib['phasecal'][inx] in cals_in_field:
+            if calib['phasecal'][inx] in cals_in_spw:
                 phase_cals.append(calib['phasecal'][inx])
             else:
                 logger.critical('The expected phase calibrator for {0} was not observed in SPW {1}.'.format(targets_in_spw[0],spw_IDs[i]))
