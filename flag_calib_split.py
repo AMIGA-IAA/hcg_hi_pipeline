@@ -568,7 +568,7 @@ def set_fields(msfile,config,config_raw,config_file,logger):
    
     
 def calibration(msfile,config,logger):
-    """
+"""
     Runs the basic calibration steps on each SPW based on the intents described in the configuration file.
     Applies the calibration to all science target fields.
     
@@ -578,11 +578,11 @@ def calibration(msfile,config,logger):
     """
     logger.info('Starting calibration.')
     plots_obs_dir = './plots/'
-    makedir(plots_obs_dir,logger)
+    makedir(plots_obs_dir)
     sum_dir = './summary/'
-    makedir(sum_dir,logger)
+    makedir(sum_dir)
     cal_tabs = './cal_tabs/'
-    makedir(cal_tabs,logger)
+    makedir(cal_tabs)
     calib = config['calibration']
     
     msmd.open(msfile)
@@ -593,6 +593,36 @@ def calibration(msfile,config,logger):
     spw_names = msmd.namesforspws(spw_IDs)
     nspw = len(spw_IDs)
     msmd.close()
+    
+    if len(calib['targets']) != nspw:
+        if len(calib['targets']) < nspw:
+            logger.info('Some targets were observed in multiple SPWs.')
+        else:
+            logger.critical('There are more targets than SPWs. The pipeline is not designed for the eventuality.')
+            sys.exit(-1)
+        logger.info('Matching phase calibrators to the appropriate SPWs.')
+        phase_cals = []
+        for i in range(nspw):
+            msmd.open(msfile)
+            spw_fields = msmd.fieldsforspw(spw_IDs[i], asnames=True)
+            msmd.close()
+            cals_in_spw = list(set(spw_fields).intersection(calib['phasecal']))
+            targets_in_spw = list(set(spw_fields).intersection(calib['targets']))
+            if len(cals_in_spw) == 0:
+                logger.critical('No phase calibrator for SPW {}.'.format(spw_IDs[i]))
+                sys.exit(-1)
+            if len(targets_in_spw) == 0:
+                logger.critical('No targets in SPW {}.'.format(spw_IDs[i]))
+                sys.exit(-1)
+            if len(targets_in_spw) > 1:
+                logger.critical('More than one target in SPW {}.'.format(spw_IDs[i]))
+                sys.exit(-1)
+            inx = list(calib['targets']).index(targets_in_spw[0])
+            if calib['phasecal'][inx] in cals_in_field:
+                phase_cals.append(calib['phasecal'][inx])
+            else:
+                logger.critical('The expected phase calibrator for {0} was not observed in SPW {1}.'.format(targets_in_spw[0],spw_IDs[i]))
+                sys.exit(-1)
     
     gctab = cal_tabs+'gaincurve.cal'
     logger.info('Calibrating gain vs elevation({}).'.format(gctab))
@@ -689,7 +719,7 @@ def calibration(msfile,config,logger):
                expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
                iteraxis='antenna', coloraxis='corr', plotrange=[-1,-1,0,1])
         
-        if not (calib['bandcal'][i] == calib['fluxcal'][i] and calib['bandcal'][i] == calib['phasecal'][i]):
+        if not (calib['bandcal'][i] == calib['fluxcal'][i] and calib['bandcal'][i] == phase_cals[i]):
             fxtab = cal_tabs+'fluxsol_spw{}.cal'.format(spw_IDs[i])
             logger.info('Applying flux scale to calibrators ({}).'.format(fxtab))
             command = "fluxscale(vis='{0}', caltable='{1}', fluxtable='{2}', reference='{3}', incremental=True)".format(msfile,amtab,fxtab,calib['fluxcal'][i])
@@ -713,7 +743,7 @@ def calibration(msfile,config,logger):
         
         logger.info('Apply all calibrations to bandpass and flux calibrators in SPW {}.'.format(spw_IDs[i]))
         logger.info('Applying clibration to: {}'.format(calib['bandcal'][i]))
-        if not (calib['bandcal'][i] == calib['fluxcal'][i] and calib['bandcal'][i] == calib['phasecal'][i]):
+        if not (calib['bandcal'][i] == calib['fluxcal'][i] and calib['bandcal'][i] == phase_cals[i]):
             command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{1}', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'][i],gctab, dltab, bstab, iptab, amtab, fxtab)
             logger.info('Executing command: '+command)
             exec(command)
