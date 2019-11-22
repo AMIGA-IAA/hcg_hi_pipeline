@@ -842,7 +842,7 @@ def split_fields(msfile,config,logger):
         listobs_file = sum_dir+field+'.listobs.summary'
         rmfile(listobs_file,logger)
         logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
-        listobs(vis=field+'.split', listfile=listobs_file)
+        listobs(vis=src_dir+field+'.split', listfile=listobs_file)
     logger.info('Completed split fields.')
 
 
