@@ -22,6 +22,7 @@ def import_data(data_files, msfile, logger):
     command = "importvla(archivefiles = {0}, vis = '{1}')".format(data_files, msfile)
     logger.info('Executing command: '+command)
     exec(command)
+    logger.info('Writing listobs summary of data set to: {}'.format(listobs_file))
     listobs(vis=msfile, listfile=listobs_file)
     logger.info('Completed import vla data')
 

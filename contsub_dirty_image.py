@@ -17,6 +17,8 @@ def contsub(msfile,config,config_raw,config_file,logger):
     contsub = config['continuum_subtraction']
     calib = config['calibration']
     src_dir = config['global']['src_dir']+'/'
+    sum_dir = './summary/'
+    makedir(sum_dir,logger)
     logger.info('Checking for line free channel ranges in parameters.')
     reset_ch = False
     if len(contsub['linefree_ch']) == 0 or len(contsub['linefree_ch']) != len(calib['targets']):
@@ -64,9 +66,13 @@ def contsub(msfile,config,config_raw,config_file,logger):
             spw = spw[0]
             spws[i] = spw
         logger.info('Subtracting the continuum from field: {}'.format(target))
-        command = "uvcontsub(vis='{0}{1}'+'.split', field='{1}', fitspw='{2}', spw='{3}', excludechans=False,combine='',solint='int', fitorder={4}, want_cont={5})".format(src_dir,target,chans,','.join(spws),contsub['fitorder'],contsub['save_cont'])
+        command = "uvcontsub(vis='{0}{1}'+'.split', field='{1}', fitspw='{2}', spw='{3}', excludechans=False,combine='spw',solint='int', fitorder={4}, want_cont={5})".format(src_dir,target,chans,','.join(spws),contsub['fitorder'],contsub['save_cont'])
         logger.info('Executing command: '+command)
         exec(command)
+        listobs_file = sum_dir+target+'.listobs.summary'
+        rmfile(listobs_file,logger)
+        logger.info('Writing listobs summary for continuum subtracted data set to: {}'.format(listobs_file))
+        listobs(vis=msfile, listfile=listobs_file)
     logger.info('Completed continuum subtraction.')
     
 
