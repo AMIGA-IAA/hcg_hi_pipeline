@@ -97,12 +97,12 @@ def plot_spec(config,logger):
         for spw in spws:
             plot_file = plots_obs_dir+'{0}_amp_chn_spw{1}.png'.format(target,spw)
             logger.info('Plotting amplitude vs channel to {}'.format(plot_file))
-            plotms(vis=src_dir+target+'.split.contsub', xaxis='chan', yaxis='amp',
+            plotms(vis=src_dir+target+'.split', xaxis='chan', yaxis='amp',
                    ydatacolumn='corrected', spw=str(spw), plotfile=plot_file,
                    expformat='png', overwrite=True, showgui=False)
             plot_file = plots_obs_dir+'{0}_amp_vel_spw{1}.png'.format(target,spw)
             logger.info('Plotting amplitude vs velocity to {}'.format(plot_file))
-            plotms(vis=src_dir+target+'.split.contsub', xaxis='velocity', yaxis='amp',
+            plotms(vis=src_dir+target+'.split', xaxis='velocity', yaxis='amp',
                    ydatacolumn='corrected', spw=str(spw), plotfile=plot_file,
                    expformat='png', overwrite=True, showgui=False,
                    freqframe='BARY', restfreq=str(config['global']['rest_freq']), veldef='OPTICAL')
@@ -266,8 +266,8 @@ logger = get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['project_n
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 #Contsub and make dity image
-contsub(msfile,config,config_raw,config_file,logger)
 plot_spec(config,logger)
+contsub(msfile,config,config_raw,config_file,logger)
 del_list = glob.glob(config['global']['img_dir']+'/'+'*.dirty.*')
 if len(del_list) > 0:
     logger.info('Deleting existing dirty image(s): {}'.format(del_list))
