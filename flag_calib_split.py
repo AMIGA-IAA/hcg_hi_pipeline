@@ -819,12 +819,25 @@ def split_fields(msfile,config,logger):
     src_dir = config['global']['src_dir']+'/'
     makedir('./'+src_dir,logger)
     for field in calib['targets']:
-        logger.info('Splitting {0} into separate file: {1}.'.format(field, field+'.split'))
-        command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{2}')".format(msfile,src_dir,field)
-        logger.info('Executing command: '+command)
-        exec(command)
+        msmd.open(msfile)
+        spws = msmd.spwsforfield(field)
+        msmd.close()
+        if len(spws) > 1:
+            logger.info('{0} was observed in multiple SPWs. These will now be combined.'.format(field))
+            command = "mstransform(vis='{0}', outputvis='{1}.tmp', field='{1}', combinespws=True)".format(msfile,field)
+            logger.info('Executing command: '+command)
+            exec(command)
+            logger.info('Splitting {0} into separate file: {1}.'.format(field, field+'.split'))
+            command = "split(vis='{0}.tmp', outputvis='{1}{0}'+'.split', field='{0}', datacolumn='data')".format(field,src_dir)
+            logger.info('Executing command: '+command)
+            exec(command)
+            rmdir(field+'.tmp',logger)
+        else:
+            logger.info('Splitting {0} into separate file: {1}.'.format(field, field+'.split'))
+            command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{2}')".format(msfile,src_dir,field)
+            logger.info('Executing command: '+command)
+            exec(command)
     logger.info('Completed split fields.')
-
 
 
 # Read configuration file with parameters
