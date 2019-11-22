@@ -817,6 +817,8 @@ def split_fields(msfile,config,logger):
     logger.info('Starting split fields.')
     calib = config['calibration']
     src_dir = config['global']['src_dir']+'/'
+    sum_dir = './summary/'
+    makedir(sum_dir,logger)
     makedir('./'+src_dir,logger)
     for field in calib['targets']:
         msmd.open(msfile)
@@ -837,6 +839,10 @@ def split_fields(msfile,config,logger):
             command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{2}')".format(msfile,src_dir,field)
             logger.info('Executing command: '+command)
             exec(command)
+        listobs_file = sum_dir+field+'.listobs.summary'
+        rmfile(listobs_file,logger)
+        logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
+        listobs(vis=field+'.split', listfile=listobs_file)
     logger.info('Completed split fields.')
 
 
