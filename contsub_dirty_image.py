@@ -72,7 +72,7 @@ def contsub(msfile,config,config_raw,config_file,logger):
         listobs_file = sum_dir+target+'.listobs.summary'
         rmfile(listobs_file,logger)
         logger.info('Writing listobs summary for continuum subtracted data set to: {}'.format(listobs_file))
-        listobs(vis=msfile, listfile=listobs_file)
+        listobs(vis=target+'.split.contsub', listfile=listobs_file)
     logger.info('Completed continuum subtraction.')
     
 
