@@ -598,7 +598,7 @@ def calibration(msfile,config,logger):
         if len(calib['targets']) < nspw:
             logger.info('Some targets were observed in multiple SPWs.')
         else:
-            logger.critical('There are more targets than SPWs. The pipeline is not designed for the eventuality.')
+            logger.critical('There are more targets than SPWs. The pipeline is not designed for this eventuality.')
             sys.exit(-1)
         logger.info('Matching phase calibrators to the appropriate SPWs.')
         phase_cals = []
@@ -615,8 +615,14 @@ def calibration(msfile,config,logger):
                 logger.critical('No targets in SPW {}.'.format(spw_IDs[i]))
                 sys.exit(-1)
             if len(targets_in_spw) > 1:
-                logger.critical('More than one target in SPW {}.'.format(spw_IDs[i]))
-                sys.exit(-1)
+                logger.warning('More than one target in SPW {}.'.format(spw_IDs[i]))
+                inx1 = list(calib['targets']).index(targets_in_spw[0])
+                inx2 = list(calib['targets']).index(targets_in_spw[1])
+                if calib['phasecal'][inx1] == calib['phasecal'][inx2]:
+                    logger.info('Both used the same phase calibrator, which should not cause problems.')
+                else:
+                    logger.warning('Multiple targets with different phase calibrators in SPW {}.'.format(spw_IDs[i]))
+                    sys.exit(-1)
             inx = list(calib['targets']).index(targets_in_spw[0])
             if calib['phasecal'][inx] in cals_in_spw:
                 phase_cals.append(calib['phasecal'][inx])

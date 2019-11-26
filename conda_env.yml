@@ -1,0 +1,7 @@
+name: cgatcore
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - python=3.7
+    - cgatcore=0.6
