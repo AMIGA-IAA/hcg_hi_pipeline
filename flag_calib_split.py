@@ -228,10 +228,11 @@ def set_fields(msfile,config,config_raw,config_file,logger):
     spw_IDs = tb.getcol('DOPPLER_ID')
     nspw = len(spw_IDs)
     tb.close()
-    std_flux_mods = ['3C48_L.im', '3C138_L.im', '3C286_L.im']
+    std_flux_mods = ['3C48_L.im', '3C138_L.im', '3C286_L.im', '3C147_L.im']
     std_flux_names = {'0134+329': '3C48_L.im', '0137+331': '3C48_L.im', '3C48': '3C48_L.im',
                       '0518+165': '3C138_L.im', '0521+166': '3C138_L.im', '3C138': '3C138_L.im',
-                      '1328+307': '3C286_L.im', '1331+305': '3C286_L.im', '3C286': '3C286_L.im'}
+                      '1328+307': '3C286_L.im', '1331+305': '3C286_L.im', '3C286': '3C286_L.im',
+                      '0538+498': '3C147_L.im', '0542+498': '3C147_L.im'}
     
     change_made = False
     if len(calib['targets']) == 0:
