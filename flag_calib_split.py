@@ -56,15 +56,17 @@ def base_flags(msfile, config,logger):
     exec(command)
     logger.info('Completed basic flagging.')
 
-def tfcrop(msfile,logger):
+def tfcrop(msfile,config,logger):
     """
     Runs CASA's TFcrop flagging algorithm.
     
     Input:
     msfile = Path to the MS. (String)
+    config = The parameters read from the configuration file. (Ordered dictionary)
     """
+    flag = config['flagging']
     logger.info('Starting running TFCrop.')
-    command = "flagdata(vis='{}', mode='tfcrop', action='apply', display='', flagbackup=False)".format(msfile)
+    command = "flagdata(vis='{0}', mode='tfcrop', action='apply', display='', timecutoff={1}, freqcutoff={2}, flagbackup=False)".format(msfile,flag['timecutoff'],flag['freqcutoff'])
     logger.info('Executing command: '+command)
     exec(command)
     logger.info('Completed running TFCrop.')
@@ -869,7 +871,7 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
 restore_flags(msfile,'Original',logger)
 manual_flags(logger)
 base_flags(msfile,config,logger)
-tfcrop(msfile,logger)
+tfcrop(msfile,config,logger)
 flag_version = 'initial'
 rm_flags(msfile,flag_version,logger)
 save_flags(msfile,flag_version,logger)
