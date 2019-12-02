@@ -571,7 +571,7 @@ def set_fields(msfile,config,config_raw,config_file,logger):
    
     
 def calibration(msfile,config,logger):
-"""
+    """
     Runs the basic calibration steps on each SPW based on the intents described in the configuration file.
     Applies the calibration to all science target fields.
     
@@ -834,22 +834,17 @@ def split_fields(msfile,config,logger):
         spws = msmd.spwsforfield(field)
         msmd.close()
         if len(spws) > 1:
-            logger.info('{0} was observed in multiple SPWs. These will now be combined.'.format(field))
-            command = "mstransform(vis='{0}', outputvis='{1}.tmp', field='{1}', combinespws=True)".format(msfile,field)
+            logger.info('{0} was observed in multiple SPWs. These will now be combined and the field split into a separate MS.'.format(field))
+            command = "mstransform(vis='{0}', outputvis='{2}{1}.split', field='{1}', spw='{3}', combinespws=True)".format(msfile,field,src_dir,','.join(numpy.array(spws,dtype='str')))
             logger.info('Executing command: '+command)
             exec(command)
-            logger.info('Splitting {0} into separate file: {1}.'.format(field, field+'.split'))
-            command = "split(vis='{0}.tmp', outputvis='{1}{0}'+'.split', field='{0}', datacolumn='data')".format(field,src_dir)
-            logger.info('Executing command: '+command)
-            exec(command)
-            rmdir(field+'.tmp',logger)
         else:
             logger.info('Splitting {0} into separate file: {1}.'.format(field, field+'.split'))
             command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{2}')".format(msfile,src_dir,field)
             logger.info('Executing command: '+command)
             exec(command)
         listobs_file = sum_dir+field+'.listobs.summary'
-        rmfile(listobs_file,logger)
+        rmfile(listobs_file)
         logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
         listobs(vis=src_dir+field+'.split', listfile=listobs_file)
     logger.info('Completed split fields.')
