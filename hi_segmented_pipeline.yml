@@ -1,3 +1,4 @@
 casa: CASA_INSTALLATION_PATH --- CHANGEME
-configfile: PROJECTID_params.cfg --- CHANGME
+scripts: PATH_TO_PIPELINE_PYTHON_SCRIPTS CHANGEME
+configfile: PROJECTID_params.cfg --- CHANGEME
 project: PROJECTID --- CHANGME
