@@ -596,6 +596,7 @@ def calibration(msfile,config,logger):
     spw_names = msmd.namesforspws(spw_IDs)
     nspw = len(spw_IDs)
     msmd.close()
+    phase_cals = calib['phasecal']
     
     if len(calib['targets']) != nspw:
         if len(calib['targets']) < nspw:
