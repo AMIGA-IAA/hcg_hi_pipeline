@@ -397,6 +397,8 @@ def set_fields(msfile,config,config_raw,config_file,logger):
             sys.exit(-1)
         else:
             if len(calib['fluxcal']) == 1:
+                if len(calib['fluxmod']) == 0:
+                    calib['fluxmod'].append('')
                 logger.warning('No valid flux model set. Requesting user input.')
                 while calib['fluxmod'][0] not in std_flux_mods:
                     print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, or 3C286_L.im.\n')
