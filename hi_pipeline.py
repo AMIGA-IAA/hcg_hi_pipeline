@@ -18,7 +18,6 @@ def read_config(configfile):
     configfile = Path to configuration file. (String)
     
     Output:
-    config = The parameters read from the file. (Ordered dictionary)
     config_raw = The instance of the parser.
     '''
     if not os.path.isfile(configfile):
@@ -142,18 +141,30 @@ def import_data(data_files, msfile):
     logger.info('Starting import vla data')
     sum_dir = './summary/'
     makedir(sum_dir)
-    listobs_file = sum_dir+msfile+'.listobs.summary'
     rmdir(msfile)
-    rmfile(listobs_file)
     logger.info('Input files: {}'.format(data_files))
     logger.info('Output msfile: {}'.format(msfile))
     command = "importvla(archivefiles = {0}, vis = '{1}')".format(data_files, msfile)
-    #importvla(archivefiles = data_files, vis = msfile)
     logger.info('Executing command: '+command)
     exec(command)
+    logger.info('Completed import vla data')
+    
+def listobs_sum(msfile):
+    """ 
+    Write the listobs summary to file.
+    
+    Input:
+    msfile = Path where the MS will be created. (String)
+    """
+    logger.info('Starting listobs summary.')
+    sum_dir = './summary/'
+    makedir(sum_dir)
+    listobs_file = sum_dir+msfile+'.listobs.summary'
+    rmdir(msfile)
+    rmfile(listobs_file)
     logger.info('Writing listobs summary of data set to: {}'.format(listobs_file))
     listobs(vis=msfile, listfile=listobs_file)
-    logger.info('Completed import vla data')
+    logger.info('Completed listobs summary.')
 
 
 def get_obsfreq(msfile):
@@ -324,7 +335,6 @@ def base_flags(msfile, config):
     flag = config['flagging']
     tol = flag['shadow_tol'] 
     quack_int = flag['quack_int']
-    #flag_version = 'base_flags'
     logger.info('Flagging antennae with more than {} m of shadowing.'.format(tol))
     command = "flagdata(vis='{0}', mode='shadow', tolerance={1}, flagbackup=False)".format(msfile,tol)
     logger.info('Executing command: '+command)
@@ -337,10 +347,6 @@ def base_flags(msfile, config):
     command = "flagdata(vis='{0}', mode='quack', quackinterval={1}, quackmode='beg', flagbackup=False)".format(msfile,quack_int)
     logger.info('Executing command: '+command)
     exec(command)
-    #logger.info('Saving flag version as: {}.'.format(flag_version))
-    #command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
-    #logger.info('Executing command: '+command)
-    #exec(command)
     logger.info('Completed basic flagging.')
 
 def tfcrop(msfile,config):
@@ -351,16 +357,11 @@ def tfcrop(msfile,config):
     msfile = Path to the MS. (String)
     config = The parameters read from the configuration file. (Ordered dictionary)
     """
-    #flag_version = 'tfcrop'
     flag = config['flagging']
     logger.info('Starting running TFCrop.')
     command = "flagdata(vis='{0}', mode='tfcrop', action='apply', display='', timecutoff={1}, freqcutoff={2}, flagbackup=False)".format(msfile,flag['timecutoff'],flag['freqcutoff'])
     logger.info('Executing command: '+command)
     exec(command)
-    #logger.info('Saving flag version as: {}.'.format(flag_version))
-    #command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
-    #logger.info('Executing command: '+command)
-    #exec(command)
     logger.info('Completed running TFCrop.')
 
 def rflag(msfile,config):
@@ -372,15 +373,11 @@ def rflag(msfile,config):
     config = The parameters read from the configuration file. (Ordered dictionary)
     """
     flag = config['flagging']
-    #flag_version = 'rflag'
     thresh = flag['rthresh']
     logger.info('Starting running rflag with a threshold of {}.'.format(thresh))
     command = "flagdata(vis='{0}', mode='rflag', action='apply', datacolumn='corrected', freqdevscale={1}, timedevscale={1}, display='', flagbackup=False)".format(msfile,thresh)
     logger.info('Executing command: '+command)
     exec(command)
-    #logger.info('Saving flag version as: {}.'.format(flag_version))
-    #command = "flagmanager(vis='{0}', mode='save', versionname='{1}')".format(msfile,flag_version)
-    #logger.info('Executing command: '+command)
     exec(command)
     logger.info('Completed running rflag.')
 
@@ -523,7 +520,10 @@ def set_fields(msfile,config,config_raw,config_file):
     tb.close()
     tb.open('{}/SPECTRAL_WINDOW'.format(msfile))
     spw_names = tb.getcol('NAME')
-    spw_IDs = tb.getcol('DOPPLER_ID')
+    if not config['importdata']['jvla']:
+        spw_IDs = tb.getcol('DOPPLER_ID')
+    else:
+        spw_IDs = tb.getcol('FREQ_GROUP')
     nspw = len(spw_IDs)
     tb.close()
     std_flux_mods = ['3C48_L.im', '3C138_L.im', '3C286_L.im', '3C147_L.im']
@@ -583,6 +583,49 @@ def set_fields(msfile,config,config_raw,config_file):
                         else:
                             break
                 change_made = True
+    
+    
+    if len(calib['target_names']) == 0 or len(calib['target_names']) != len(calib['targets']):
+        if len(calib['target_names']) < len(calib['targets']):
+            logger.warning('There are more target fields than simple target names. Appending blanks.')
+            while len(calib['target_names']) < len(calib['targets']):
+                calib['target_names'].append('')
+        elif len(calib['target_names']) > len(calib['targets']):
+            logger.warning('There are more simple target names than target fields.')
+            logger.info('Current simple target names: {}'.format(calib['target_names']))
+            logger.warning('The simple target name list will now be truncated to match the number of targets.')
+            calib['target_names'] = calib['target_names'][:len(calib['targets'])]
+        change_made = True
+    if interactive:
+        print('Current simple target names set as:')
+        print(calib['target_names'])
+        print('For the targets:')
+        print(calib['targets'])
+        resp = ''
+        while (resp.lower() not in ['yes','ye','y']) and (resp.lower() not in ['no','n']) :
+            resp = str(raw_input('Do you want to revise these names (y/n): '))
+        if resp.lower() in ['yes','ye','y']:
+            print('Note: Target names should NOT include spaces.')
+            for i in range(len(calib['target_names'])):
+                calib['target_names'][i] = uinput('Enter simple name for target {}: '.format(calib['targets'][i]), calib['target_names'][i])
+        else:
+            pass
+    if len(calib['target_names']) != len(calib['targets']):
+        logger.warning('The number of targets ({0}) and simple names ({1}) do not match.'format(len(calib['targets']),len(calib['target_names'])))
+        logger.info('The original field names will be used.')
+        logger.info('Replacing simple name: {}'.format(calib['target_names']))
+        logger.info('With original field names: {}'.format(calib['targets']))
+        calib['target_names'] = calib['targets']
+        change_made = True
+    elif numpy.any(numpy.array(calib['target_names'],dtype='str') == ''):
+        inx = numpy.where(numpy.array(calib['target_names'],dtype='str') == '')[0]
+        logger.warning('The following target have no simple names set: {}'.format(calib['targets'][inx]))
+        logger.info('The original field names will be used.')
+        calib['target_names'][inx] = calib['targets'][inx]
+        change_made = True
+        
+        
+        
                 
     if len(calib['targets']) != nspw:
         msmd.open(msfile)
@@ -693,13 +736,15 @@ def set_fields(msfile,config,config_raw,config_file):
             sys.exit(-1)
         else:
             if len(calib['fluxcal']) == 1:
+                if len(calib['fluxmod']) == 0:
+                    calib['fluxmod'].append('')
                 logger.warning('No valid flux model set. Requesting user input.')
                 while calib['fluxmod'][0] not in std_flux_mods:
                     print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, or 3C286_L.im.\n')
                     calib['fluxmod'][0] = str(raw_input('Please select a flux model name: '))
                     if calib['fluxmod'][0] not in std_flux_mods:
                         resp = str(raw_input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][0])))
-                        if resp.lower() not in ['yes','ye','y']:
+                        if resp.lower() in ['yes','ye','y']:
                             break
                         else:
                             continue
@@ -893,7 +938,7 @@ def calibration(msfile,config):
     nspw = len(spw_IDs)
     msmd.close()
     phase_cals = calib['phasecal']
-
+    
     if len(calib['targets']) != nspw:
         if len(calib['targets']) < nspw:
             logger.info('Some targets were observed in multiple SPWs.')
@@ -901,7 +946,6 @@ def calibration(msfile,config):
             logger.critical('There are more targets than SPWs. The pipeline is not designed for this eventuality.')
             sys.exit(-1)
         logger.info('Matching phase calibrators to the appropriate SPWs.')
-        phase_cals = []
         for i in range(nspw):
             msmd.open(msfile)
             spw_fields = msmd.fieldsforspw(spw_IDs[i], asnames=True)
@@ -1126,24 +1170,26 @@ def split_fields(msfile,config):
     sum_dir = './summary/'
     makedir(sum_dir)
     makedir('./'+src_dir)
-    for field in calib['targets']:
+    for i in range(len(calib['targets'])):
+        field = calib['targets'][i]
+        target_name = calib['target_names'][i]
         msmd.open(msfile)
         spws = msmd.spwsforfield(field)
         msmd.close()
         if len(spws) > 1:
             logger.info('{0} was observed in multiple SPWs. These will now be combined and the field split into a separate MS.'.format(field))
-            command = "mstransform(vis='{0}', outputvis='{2}{1}.split', field='{1}', spw='{3}', combinespws=True)".format(msfile,field,src_dir,','.join(numpy.array(spws,dtype='str')))
+            command = "mstransform(vis='{0}', outputvis='{2}{1}.split', field='{3}', spw='{4}', combinespws=True)".format(msfile,target_name,src_dir,field,','.join(numpy.array(spws,dtype='str')))
             logger.info('Executing command: '+command)
             exec(command)
         else:
             logger.info('Splitting {0} into separate file: {1}.'.format(field, field+'.split'))
-            command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{2}')".format(msfile,src_dir,field)
+            command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{3}')".format(msfile,src_dir,target_name,field)
             logger.info('Executing command: '+command)
             exec(command)
-        listobs_file = sum_dir+field+'.listobs.summary'
+        listobs_file = sum_dir+target_name+'.listobs.summary'
         rmfile(listobs_file)
         logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
-        listobs(vis=src_dir+field+'.split', listfile=listobs_file)
+        listobs(vis=src_dir+target_name+'.split', listfile=listobs_file)
     logger.info('Completed split fields.')
     
 
@@ -1165,21 +1211,21 @@ def contsub(msfile,config,config_raw,config_file):
     src_dir = config['global']['src_dir']+'/'
     logger.info('Checking for line free channel ranges in parameters.')
     reset_ch = False
-    if len(contsub['linefree_ch']) == 0 or len(contsub['linefree_ch']) != len(calib['targets']):
+    if len(contsub['linefree_ch']) == 0 or len(contsub['linefree_ch']) != len(calib['target_names']):
         reset_ch = True
-        if len(contsub['linefree_ch']) < len(calib['targets']):
+        if len(contsub['linefree_ch']) < len(calib['target_names']):
             logger.warning('There are more target fields than channel ranges. Appending blank ranges.')
-            while len(contsub['linefree_ch']) < len(calib['targets']):
+            while len(contsub['linefree_ch']) < len(calib['target_names']):
                 contsub['linefree_ch'].append('')
-        elif len(contsub['linefree_ch']) > len(calib['targets']):
+        elif len(contsub['linefree_ch']) > len(calib['target_names']):
             logger.warning('There are more channel ranges than target fields.')
             logger.info('Current channel ranges: {}'.format(contsub['linefree_ch']))
             logger.warning('The channel range list will now be truncated to match the number of targets.')
-            contsub['linefree_ch'] = contsub['linefree_ch'][:len(calib['targets'])]
+            contsub['linefree_ch'] = contsub['linefree_ch'][:len(calib['target_names'])]
     elif interactive:
         print('Current line free channels set as:')
         for i in range(len(contsub['linefree_ch'])):
-            print('{0}: {1}'.format(calib['targets'][i],contsub['linefree_ch'][i]))
+            print('{0}: {1}'.format(calib['target_names'][i],contsub['linefree_ch'][i]))
         resp = str(raw_input('Do you want revise the line free channels (y/n): '))
         if resp.lower() in ['yes','ye','y']:
             reset_ch = True
@@ -1187,22 +1233,23 @@ def contsub(msfile,config,config_raw,config_file):
         if not interactive:
             logger.critical('The number of line free channel ranges provided does not match the number of targets.')
             logger.info('Line free change ranges: {}'.format(contsub['linefree_ch']))
-            logger.info('Targets: {}'.format(calib['targets']))
+            logger.info('Targets: {}'.format(calib['target_names']))
             sys.exit(-1)
         else:
             print('For each target enter the line free channels in the following format:\nspwID1:min_ch1~max_ch1;min_ch2~max_ch2,spwID2:min_ch3~max_ch3 etc.')
-            for i in range(len(calib['targets'])):
-                contsub['linefree_ch'][i] = uinput('Line free channels for {}: '.format(calib['targets'][i]), contsub['linefree_ch'][i])
-                logger.info('Setting line free channels for {0} as: {1}.'.format(calib['targets'][i], contsub['linefree_ch'][i]))
+            for i in range(len(calib['target_names'])):
+                contsub['linefree_ch'][i] = uinput('Line free channels for {}: '.format(calib['target_names'][i]), contsub['linefree_ch'][i])
+                logger.info('Setting line free channels for {0} as: {1}.'.format(calib['target_names'][i], contsub['linefree_ch'][i]))
             logger.info('Updating config file to set line free channels.')
             config_raw.set('continuum_subtraction','linefree_ch',contsub['linefree_ch'])
             configfile = open(config_file,'w')
             config_raw.write(configfile)
             configfile.close()
     logger.info('Line free channels set as: {}.'.format(contsub['linefree_ch']))
-    logger.info('For the targets: {}.'.format(calib['targets']))
-    for i in range(len(calib['targets'])):
-        target = calib['targets'][i]
+    logger.info('For the targets: {}.'.format(calib['target_names']))
+    for i in range(len(calib['target_names'])):
+        target = calib['target_names'][i]
+        field = calib['targets'][i]
         chans = contsub['linefree_ch'][i]
         spws = chans.split(',')
         for i in range(len(spws)):
@@ -1210,7 +1257,7 @@ def contsub(msfile,config,config_raw,config_file):
             spw = spw[0]
             spws[i] = spw
         logger.info('Subtracting the continuum from field: {}'.format(target))
-        command = "uvcontsub(vis='{0}{1}'+'.split', field='{1}', fitspw='{2}', spw='{3}', excludechans=False,combine='spw',solint='int', fitorder={4}, want_cont={5})".format(src_dir,target,chans,','.join(spws),contsub['fitorder'],contsub['save_cont'])
+        command = "uvcontsub(vis='{0}{1}'+'.split', field='{2}', fitspw='{3}', spw='{4}', excludechans=False,combine='spw',solint='int', fitorder={5}, want_cont={6})".format(src_dir,target,field,chans,','.join(spws),contsub['fitorder'],contsub['save_cont'])
         logger.info('Executing command: '+command)
         exec(command)
     logger.info('Completed continuum subtraction.')
@@ -1228,7 +1275,7 @@ def plot_spec(config):
     plots_obs_dir = './plots/'
     makedir(plots_obs_dir)
     calib = config['calibration']
-    targets = calib['targets']
+    targets = calib['target_names']
     src_dir = config['global']['src_dir']+'/'
     for target in targets:
         msmd.open('{0}{1}.split'.format(src_dir,target))
@@ -1261,7 +1308,7 @@ def dirty_cont_image(config,config_raw,config_file):
     logger.info('Starting making dirty continuum image.')
     calib = config['calibration']
     rest_freq = config['global']['rest_freq']
-    targets = calib['targets']
+    targets = calib['target_names']
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
@@ -1347,8 +1394,9 @@ def dirty_cont_image(config,config_raw,config_file):
     logger.info('For the targets: {}.'.format(targets))
     for i in range(len(targets)):
         target = targets[i]
+        field = calib['targets'][i]
         logger.info('Making dirty image of {} (inc. continuum).'.format(target))
-        command = "tclean(vis='{0}{1}'+'.split', field='{1}', imagename='{2}{1}'+'.cont.dirty', cell='{3}', imsize=[{4},{4}], specmode='cube', outframe='bary', veltype='radio', restfreq='{5}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={6}, niter=0, interactive=False)".format(src_dir,target,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+        command = "tclean(vis='{0}{1}'+'.split', field='{2}', imagename='{3}{1}'+'.cont.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
         logger.info('Executing command: '+command)
         exec(command)  
     logger.info('Completed making dirty continuum image.')
@@ -1367,7 +1415,7 @@ def dirty_image(config,config_raw,config_file):
     calib = config['calibration']
     contsub = config['continuum_subtraction']
     rest_freq = config['global']['rest_freq']
-    targets = calib['targets']
+    targets = calib['target_names']
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
@@ -1491,8 +1539,9 @@ def dirty_image(config,config_raw,config_file):
     logger.info('For the targets: {}.'.format(targets))
     for i in range(len(targets)):
         target = targets[i]
+        field = calib['targets'][i]
         logger.info('Making dirty image of {} (line only).'.format(target))
-        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{1}', imagename='{2}{1}'+'.dirty', cell='{3}', imsize=[{4},{4}], specmode='cube', outframe='bary', veltype='radio', restfreq='{5}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={6}, restoringbeam='common', niter=0, interactive=False)".format(src_dir,target,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', imagename='{3}{1}'+'.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, restoringbeam='common', niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
         logger.info('Executing command: '+command)
         exec(command)
     logger.info('Completed making dirty image.')
@@ -1508,7 +1557,7 @@ def noise_est(config):
     noise = Estimate of the theortical noise in Jy/beam. (List of Floats)
     """
     logger.info('Starting making noise estimation.')
-    targets = config['calibration']['targets']
+    targets = config['calibration']['target_names']
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     noise = []
@@ -1543,7 +1592,7 @@ def image(config,config_raw,config_file):
     calib = config['calibration']
     contsub = config['continuum_subtraction']
     rest_freq = config['global']['rest_freq']
-    targets = calib['targets']
+    targets = calib['target_names']
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
@@ -1648,6 +1697,7 @@ def image(config,config_raw,config_file):
         scales = None
     for i in range(len(targets)):
         target = targets[i]
+        field = calin['targets'][i]
         logger.info('Starting {} image.'.format(target))
         reset_cln = False
         ia.open(img_dir+target+'.dirty.image')
@@ -1733,7 +1783,7 @@ def image(config,config_raw,config_file):
             mask = 'auto-multithresh'
         else:
             mask = 'pb'
-        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{1}', spw='{2}', imagename='{3}{1}', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='{7}', scales={8}, restoringbeam='common', pbcor=True, weighting='briggs', robust={9}, niter=100000, gain=0.1, threshold='{10}Jy', usemask='{11}', sidelobethreshold={12}, noisethreshold={13}, lownoisethreshold={14}, minbeamfrac={15}, negativethreshold={16}, cyclefactor=2.0,interactive=False)".format(src_dir,target,cln_param['line_ch'][i],img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],mask,cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
+        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', spw='{3}', imagename='{4}{1}', cell='{5}', imsize=[{6},{6}], specmode='cube', outframe='bary', veltype='radio', restfreq='{7}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='{8}', scales={9}, restoringbeam='common', pbcor=True, weighting='briggs', robust={10}, niter=100000, gain=0.1, threshold='{11}Jy', usemask='{12}', sidelobethreshold={13}, noisethreshold={14}, lownoisethreshold={15}, minbeamfrac={16}, negativethreshold={17}, cyclefactor=2.0,interactive=False)".format(src_dir,target,field,cln_param['line_ch'][i],img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],mask,cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
         logger.info('Executing command: '+command)
         exec(command)
         logger.info('CLEANing finished. Image cube saved as {}.'.format(target+'.image'))
@@ -1850,11 +1900,16 @@ logger = get_logger(LOG_FILE_INFO  = '{}_log.log'.format(config['global']['proje
 
 # Start processing
 msfile = '{0}.ms'.format(config['global']['project_name'])
+    
 
 # 1. Import data and write listobs to file
-data_path = config['importdata']['data_path']
-data_files = glob.glob(os.path.join(data_path, '*'))
-import_data(sorted(data_files), msfile)
+'''data_path = config['importdata']['data_path']
+if not config['importdata']['jvla']:
+    data_files = glob.glob(os.path.join(data_path, '*'))
+    import_data(sorted(data_files), msfile)
+else:
+    os.symlink(data_path+msfile,msfile)
+listobs_sum(msfile)
 msinfo = get_msinfo(msfile)
 
 # 2. Diagnostic plots
@@ -1894,7 +1949,7 @@ flag_sum(msfile,flag_version)
 #5. Split, continuum subtract and make dirty image
 restore_flags(msfile,'final')
 rmdir(config['global']['src_dir'])
-split_fields(msfile,config)
+split_fields(msfile,config)'''
 dirty_cont_image(config,config_raw,config_file)
 plot_spec(config)
 contsub(msfile,config,config_raw,config_file)
