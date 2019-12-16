@@ -1276,10 +1276,13 @@ def plot_spec(config):
     makedir(plots_obs_dir)
     calib = config['calibration']
     targets = calib['target_names']
+    fields = calib['targets']
     src_dir = config['global']['src_dir']+'/'
-    for target in targets:
+    for i in range(len(targets)):
+        target = targets[i]
+        field = fields[i]
         msmd.open('{0}{1}.split'.format(src_dir,target))
-        spws = msmd.spwsforfield('{}'.format(target))
+        spws = msmd.spwsforfield('{}'.format(field))
         msmd.close()
         for spw in spws:
             plot_file = plots_obs_dir+'{0}_amp_chn_spw{1}.png'.format(target,spw)
