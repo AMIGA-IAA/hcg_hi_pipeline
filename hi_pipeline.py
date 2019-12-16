@@ -611,7 +611,7 @@ def set_fields(msfile,config,config_raw,config_file):
         else:
             pass
     if len(calib['target_names']) != len(calib['targets']):
-        logger.warning('The number of targets ({0}) and simple names ({1}) do not match.'format(len(calib['targets']),len(calib['target_names'])))
+        logger.warning('The number of targets ({0}) and simple names ({1}) do not match.'.format(len(calib['targets']),len(calib['target_names'])))
         logger.info('The original field names will be used.')
         logger.info('Replacing simple name: {}'.format(calib['target_names']))
         logger.info('With original field names: {}'.format(calib['targets']))
@@ -1903,7 +1903,7 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
     
 
 # 1. Import data and write listobs to file
-'''data_path = config['importdata']['data_path']
+data_path = config['importdata']['data_path']
 if not config['importdata']['jvla']:
     data_files = glob.glob(os.path.join(data_path, '*'))
     import_data(sorted(data_files), msfile)
@@ -1949,7 +1949,7 @@ flag_sum(msfile,flag_version)
 #5. Split, continuum subtract and make dirty image
 restore_flags(msfile,'final')
 rmdir(config['global']['src_dir'])
-split_fields(msfile,config)'''
+split_fields(msfile,config)
 dirty_cont_image(config,config_raw,config_file)
 plot_spec(config)
 contsub(msfile,config,config_raw,config_file)
