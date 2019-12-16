@@ -527,10 +527,10 @@ def set_fields(msfile,config,config_raw,config_file):
     nspw = len(spw_IDs)
     tb.close()
     std_flux_mods = ['3C48_L.im', '3C138_L.im', '3C286_L.im', '3C147_L.im']
-    std_flux_names = {'0134+329': '3C48_L.im', '0137+331': '3C48_L.im', '3C48': '3C48_L.im',
-                      '0518+165': '3C138_L.im', '0521+166': '3C138_L.im', '3C138': '3C138_L.im',
-                      '1328+307': '3C286_L.im', '1331+305': '3C286_L.im', '3C286': '3C286_L.im',
-                      '0538+498': '3C147_L.im', '0542+498': '3C147_L.im'}
+    std_flux_names = {'0134+329': '3C48_L.im', '0137+331': '3C48_L.im', '3C48': '3C48_L.im', 'J0137+3309': '3C48_L.im',
+                      '0518+165': '3C138_L.im', '0521+166': '3C138_L.im', '3C138': '3C138_L.im', 'J0521+1638': '3C138_L.im',
+                      '1328+307': '3C286_L.im', '1331+305': '3C286_L.im', '3C286': '3C286_L.im', 'J1331+3030': '3C286_L.im',
+                      '0538+498': '3C147_L.im', '0542+498': '3C147_L.im', '3C147': '3C147_L.im', 'J0542+4951': '3C147_L.im'}
     
     change_made = False
     if len(calib['targets']) == 0:
@@ -730,21 +730,36 @@ def set_fields(msfile,config,config_raw,config_file):
                 
     if flux_mod_names_bad or len(calib['fluxmod']) != len(calib['fluxcal']):
         if not interactive:
-            logger.critical('The number of models does not match the number of flux calibrators.')
-            logger.info('Flux calibrators: {}'.format(calib['fluxcal']))
-            logger.info('Flux calibrator models: {}'.format(calib['fluxmod']))
-            sys.exit(-1)
+            if len(calib['fluxmod']) != len(calib['fluxcal']):
+                logger.critical('The number of models does not match the number of flux calibrators.')
+                logger.info('Flux calibrators: {}'.format(calib['fluxcal']))
+                logger.info('Flux calibrator models: {}'.format(calib['fluxmod']))
+                sys.exit(-1)
+            elif calib['man_mod']:
+                logger.warning('Proceeding with non-standard flux model assumed to be a manual flux scale.')
+            else:
+                logger.critical('Non-standard flux models in parameters and not indicated as manual flux scales.')
+                logger.info('Flux calibrators: {}'.format(calib['fluxcal']))
+                logger.info('Flux calibrator models: {}'.format(calib['fluxmod']))
+                sys.exit(-1)
         else:
             if len(calib['fluxcal']) == 1:
                 if len(calib['fluxmod']) == 0:
                     calib['fluxmod'].append('')
                 logger.warning('No valid flux model set. Requesting user input.')
                 while calib['fluxmod'][0] not in std_flux_mods:
-                    print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, or 3C286_L.im.\n')
+                    print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, 3C286_L.im, or 3C147_L.im.\n')
                     calib['fluxmod'][0] = str(raw_input('Please select a flux model name: '))
                     if calib['fluxmod'][0] not in std_flux_mods:
                         resp = str(raw_input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][0])))
                         if resp.lower() in ['yes','ye','y']:
+                            resp = ''
+                            while resp.lower() not in ['yes','ye','y'] and resp.lower() not in ['no','n']:
+                                resp = str(raw_input('Is this a manually defined flux model? '))
+                                if resp.lower() in ['yes','ye','y']:
+                                    calib['man_mod'] = True
+                                else:
+                                    calib['man_mod'] = False
                             break
                         else:
                             continue
@@ -769,6 +784,13 @@ def set_fields(msfile,config,config_raw,config_file):
                     if calib['fluxmod'][i] not in std_flux_mods:
                         resp = str(raw_input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][i])))
                         if resp.lower() in ['yes','ye','y']:
+                            resp = ''
+                            while resp.lower() not in ['yes','ye','y'] and resp.lower() not in ['no','n']:
+                                resp = str(raw_input('Is this a manually defined flux model? '))
+                                if resp.lower() in ['yes','ye','y']:
+                                    calib['man_mod'] = True
+                                else:
+                                    calib['man_mod'] = False
                             i += 1
                     else:
                         i += 1
@@ -938,6 +960,7 @@ def calibration(msfile,config):
     nspw = len(spw_IDs)
     msmd.close()
     phase_cals = calib['phasecal']
+    std_flux_mods = ['3C48_L.im', '3C138_L.im', '3C286_L.im', '3C147_L.im']
     
     if len(calib['targets']) != nspw:
         if len(calib['targets']) < nspw:
@@ -988,9 +1011,18 @@ def calibration(msfile,config):
         logger.info('Beginning calibration of SPW {}.'.format(spw_IDs[i]))
         
         logger.info('Load model for flux calibrator {0} ({1}).'.format(calib['fluxcal'][i],calib['fluxmod'][i]))
-        command = "setjy(vis='{0}', field='{1}', spw='{2}', scalebychan=True, model='{3}')".format(msfile,calib['fluxcal'][i],spw_IDs[i],calib['fluxmod'][i])
-        logger.info('Executing command: '+command)
-        exec(command)
+        if calib['fluxmod'][i] not in std_flux_mods and calib['man_mod']:
+            command = "setjy(vis='{0}', field='{1}', spw='{2}', scalebychan=True, fluxdensity=[{3},0,0,0], standard='manual')".format(msfile,calib['fluxcal'][i],spw_IDs[i],calib['fluxmod'][i])
+            logger.info('Executing command: '+command)
+            exec(command)
+        elif calib['fluxmod'][i] in std_flux_mods:
+            command = "setjy(vis='{0}', field='{1}', spw='{2}', scalebychan=True, model='{3}')".format(msfile,calib['fluxcal'][i],spw_IDs[i],calib['fluxmod'][i])
+            logger.info('Executing command: '+command)
+            exec(command)
+        else:
+            logger.warning('The flux model cannot be recognised. The setjy task will not be run. Fluxes will be incorrect.')
+        
+        
 
         plot_file = plots_obs_dir+'{0}_bpphaseint_spw{1}.png'.format(msfile,spw_IDs[i])
         logger.info('Plotting bandpass phase vs. time for reference antenna to: {}'.format(plot_file))
@@ -1568,14 +1600,19 @@ def noise_est(config):
         msmd.open(src_dir+target+'.split.contsub')
         N = msmd.nantennas()
         t_int = msmd.effexposuretime()['value']
+        t_unit = msmd.effexposuretime()['unit']
+        if t_unit != 's' or 'sec' not in t_unit:
+            logger.warning('Integration time units are not in seconds. Estimated noise will be incorrect.')
         ch_wid = numpy.mean(msmd.chanwidths(0))
         #Note: The above line may cause issues if different spectral windows
         #have very difference frequency resolutions
-        msmd.close()
         corr_eff = cln_param['corr_eff']
         SEFD = cln_param['sefd']
         N_pol = 2.
         noise.append(SEFD/(corr_eff*numpy.sqrt(N_pol*N*(N-1.)*t_int*ch_wid)))
+        logger.info('Effective integration time for {0}: {1} {2}'.format(target,int(t_int),msmd.effexposuretime()['unit']))
+        logger.info('Expected rms noise for {0}: {1} Jy/beam'.format(target,SEFD/(corr_eff*numpy.sqrt(N_pol*N*(N-1.)*t_int*ch_wid))))
+        msmd.close()
     logger.info('Completed making noise estimation.')
     return noise
 
@@ -1700,7 +1737,7 @@ def image(config,config_raw,config_file):
         scales = None
     for i in range(len(targets)):
         target = targets[i]
-        field = calin['targets'][i]
+        field = calib['targets'][i]
         logger.info('Starting {} image.'.format(target))
         reset_cln = False
         ia.open(img_dir+target+'.dirty.image')
@@ -1763,7 +1800,7 @@ def image(config,config_raw,config_file):
             scales = list(numpy.array(numpy.array(scales)*pix_per_beam,dtype='int'))
             B_min = au.getBaselineLengths('{0}{1}.split.contsub'.format(src_dir,target), sort=True)[0][1]
             msmd.open('{0}{1}.split.contsub'.format(src_dir,target))
-            spws = msmd.spwsforfield(target)
+            spws = msmd.spwsforfield(field)
             f_min = None
             for spw in spws:
                 if f_min == None or f_min > min(msmd.chanfreqs(spw=spw,unit='Hz')):
