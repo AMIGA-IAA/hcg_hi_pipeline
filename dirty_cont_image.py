@@ -15,11 +15,11 @@ def dirty_cont_image(config,config_raw,config_file,logger):
     logger.info('Starting making dirty continuum image.')
     calib = config['calibration']
     rest_freq = config['global']['rest_freq']
-    targets = calib['targets']
+    targets = calib['target_names']
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
-    makedir('/.'+img_dir,logger)
+    makedir('/.'+img_dir)
     logger.info('Removing any existing dirty continuum images.')
     del_list = glob.glob(img_dir+'*cont.dirty*')
     for file_path in del_list:
@@ -101,8 +101,9 @@ def dirty_cont_image(config,config_raw,config_file,logger):
     logger.info('For the targets: {}.'.format(targets))
     for i in range(len(targets)):
         target = targets[i]
+        field = calib['targets'][i]
         logger.info('Making dirty image of {} (inc. continuum).'.format(target))
-        command = "tclean(vis='{0}{1}'+'.split', field='{1}', imagename='{2}{1}'+'.cont.dirty', cell='{3}', imsize=[{4},{4}], specmode='cube', outframe='bary', veltype='radio', restfreq='{5}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={6}, niter=0, interactive=False)".format(src_dir,target,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+        command = "tclean(vis='{0}{1}'+'.split', field='{2}', imagename='{3}{1}'+'.cont.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
         logger.info('Executing command: '+command)
         exec(command)  
     logger.info('Completed making dirty continuum image.')

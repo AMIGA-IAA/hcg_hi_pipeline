@@ -227,14 +227,17 @@ def set_fields(msfile,config,config_raw,config_file,logger):
     tb.close()
     tb.open('{}/SPECTRAL_WINDOW'.format(msfile))
     spw_names = tb.getcol('NAME')
-    spw_IDs = tb.getcol('DOPPLER_ID')
+    if not config['importdata']['jvla']:
+        spw_IDs = tb.getcol('DOPPLER_ID')
+    else:
+        spw_IDs = tb.getcol('FREQ_GROUP')
     nspw = len(spw_IDs)
     tb.close()
     std_flux_mods = ['3C48_L.im', '3C138_L.im', '3C286_L.im', '3C147_L.im']
-    std_flux_names = {'0134+329': '3C48_L.im', '0137+331': '3C48_L.im', '3C48': '3C48_L.im',
-                      '0518+165': '3C138_L.im', '0521+166': '3C138_L.im', '3C138': '3C138_L.im',
-                      '1328+307': '3C286_L.im', '1331+305': '3C286_L.im', '3C286': '3C286_L.im',
-                      '0538+498': '3C147_L.im', '0542+498': '3C147_L.im'}
+    std_flux_names = {'0134+329': '3C48_L.im', '0137+331': '3C48_L.im', '3C48': '3C48_L.im', 'J0137+3309': '3C48_L.im',
+                      '0518+165': '3C138_L.im', '0521+166': '3C138_L.im', '3C138': '3C138_L.im', 'J0521+1638': '3C138_L.im',
+                      '1328+307': '3C286_L.im', '1331+305': '3C286_L.im', '3C286': '3C286_L.im', 'J1331+3030': '3C286_L.im',
+                      '0538+498': '3C147_L.im', '0542+498': '3C147_L.im', '3C147': '3C147_L.im', 'J0542+4951': '3C147_L.im'}
     
     change_made = False
     if len(calib['targets']) == 0:
@@ -287,6 +290,47 @@ def set_fields(msfile,config,config_raw,config_file,logger):
                         else:
                             break
                 change_made = True
+                
+                
+    if len(calib['target_names']) == 0 or len(calib['target_names']) != len(calib['targets']):
+        if len(calib['target_names']) < len(calib['targets']):
+            logger.warning('There are more target fields than simple target names. Appending blanks.')
+            while len(calib['target_names']) < len(calib['targets']):
+                calib['target_names'].append('')
+        elif len(calib['target_names']) > len(calib['targets']):
+            logger.warning('There are more simple target names than target fields.')
+            logger.info('Current simple target names: {}'.format(calib['target_names']))
+            logger.warning('The simple target name list will now be truncated to match the number of targets.')
+            calib['target_names'] = calib['target_names'][:len(calib['targets'])]
+        change_made = True
+    if interactive:
+        print('Current simple target names set as:')
+        print(calib['target_names'])
+        print('For the targets:')
+        print(calib['targets'])
+        resp = ''
+        while (resp.lower() not in ['yes','ye','y']) and (resp.lower() not in ['no','n']) :
+            resp = str(raw_input('Do you want to revise these names (y/n): '))
+        if resp.lower() in ['yes','ye','y']:
+            print('Note: Target names should NOT include spaces.')
+            for i in range(len(calib['target_names'])):
+                calib['target_names'][i] = uinput('Enter simple name for target {}: '.format(calib['targets'][i]), calib['target_names'][i])
+        else:
+            pass
+    if len(calib['target_names']) != len(calib['targets']):
+        logger.warning('The number of targets ({0}) and simple names ({1}) do not match.'.format(len(calib['targets']),len(calib['target_names'])))
+        logger.info('The original field names will be used.')
+        logger.info('Replacing simple name: {}'.format(calib['target_names']))
+        logger.info('With original field names: {}'.format(calib['targets']))
+        calib['target_names'] = calib['targets']
+        change_made = True
+    elif numpy.any(numpy.array(calib['target_names'],dtype='str') == ''):
+        inx = numpy.where(numpy.array(calib['target_names'],dtype='str') == '')[0]
+        logger.warning('The following target have no simple names set: {}'.format(calib['targets'][inx]))
+        logger.info('The original field names will be used.')
+        calib['target_names'][inx] = calib['targets'][inx]
+        change_made = True 
+    
                 
     if len(calib['targets']) != nspw:
         msmd.open(msfile)
@@ -391,21 +435,36 @@ def set_fields(msfile,config,config_raw,config_file,logger):
                 
     if flux_mod_names_bad or len(calib['fluxmod']) != len(calib['fluxcal']):
         if not interactive:
-            logger.critical('The number of models does not match the number of flux calibrators.')
-            logger.info('Flux calibrators: {}'.format(calib['fluxcal']))
-            logger.info('Flux calibrator models: {}'.format(calib['fluxmod']))
-            sys.exit(-1)
+            if len(calib['fluxmod']) != len(calib['fluxcal']):
+                logger.critical('The number of models does not match the number of flux calibrators.')
+                logger.info('Flux calibrators: {}'.format(calib['fluxcal']))
+                logger.info('Flux calibrator models: {}'.format(calib['fluxmod']))
+                sys.exit(-1)
+            elif calib['man_mod']:
+                logger.warning('Proceeding with non-standard flux model assumed to be a manual flux scale.')
+            else:
+                logger.critical('Non-standard flux models in parameters and not indicated as manual flux scales.')
+                logger.info('Flux calibrators: {}'.format(calib['fluxcal']))
+                logger.info('Flux calibrator models: {}'.format(calib['fluxmod']))
+                sys.exit(-1)
         else:
             if len(calib['fluxcal']) == 1:
                 if len(calib['fluxmod']) == 0:
                     calib['fluxmod'].append('')
                 logger.warning('No valid flux model set. Requesting user input.')
                 while calib['fluxmod'][0] not in std_flux_mods:
-                    print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, or 3C286_L.im.\n')
+                    print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, 3C286_L.im, or 3C147_L.im.\n')
                     calib['fluxmod'][0] = str(raw_input('Please select a flux model name: '))
                     if calib['fluxmod'][0] not in std_flux_mods:
                         resp = str(raw_input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][0])))
-                        if resp.lower() not in ['yes','ye','y']:
+                        if resp.lower() in ['yes','ye','y']:
+                            resp = ''
+                            while resp.lower() not in ['yes','ye','y'] and resp.lower() not in ['no','n']:
+                                resp = str(raw_input('Is this a manually defined flux model? '))
+                                if resp.lower() in ['yes','ye','y']:
+                                    calib['man_mod'] = True
+                                else:
+                                    calib['man_mod'] = False
                             break
                         else:
                             continue
@@ -430,6 +489,13 @@ def set_fields(msfile,config,config_raw,config_file,logger):
                     if calib['fluxmod'][i] not in std_flux_mods:
                         resp = str(raw_input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][i])))
                         if resp.lower() in ['yes','ye','y']:
+                            resp = ''
+                            while resp.lower() not in ['yes','ye','y'] and resp.lower() not in ['no','n']:
+                                resp = str(raw_input('Is this a manually defined flux model? '))
+                                if resp.lower() in ['yes','ye','y']:
+                                    calib['man_mod'] = True
+                                else:
+                                    calib['man_mod'] = False
                             i += 1
                     else:
                         i += 1
@@ -589,6 +655,7 @@ def calibration(msfile,config,logger):
     cal_tabs = './cal_tabs/'
     makedir(cal_tabs,logger)
     calib = config['calibration']
+    std_flux_mods = ['3C48_L.im', '3C138_L.im', '3C286_L.im', '3C147_L.im']
     
     msmd.open(msfile)
     spw_IDs = []
@@ -650,9 +717,16 @@ def calibration(msfile,config,logger):
         logger.info('Beginning calibration of SPW {}.'.format(spw_IDs[i]))
         
         logger.info('Load model for flux calibrator {0} ({1}).'.format(calib['fluxcal'][i],calib['fluxmod'][i]))
-        command = "setjy(vis='{0}', field='{1}', spw='{2}', scalebychan=True, model='{3}')".format(msfile,calib['fluxcal'][i],spw_IDs[i],calib['fluxmod'][i])
-        logger.info('Executing command: '+command)
-        exec(command)
+        if calib['fluxmod'][i] not in std_flux_mods and calib['man_mod']:
+            command = "setjy(vis='{0}', field='{1}', spw='{2}', scalebychan=True, fluxdensity=[{3},0,0,0], standard='manual')".format(msfile,calib['fluxcal'][i],spw_IDs[i],calib['fluxmod'][i])
+            logger.info('Executing command: '+command)
+            exec(command)
+        elif calib['fluxmod'][i] in std_flux_mods:
+            command = "setjy(vis='{0}', field='{1}', spw='{2}', scalebychan=True, model='{3}')".format(msfile,calib['fluxcal'][i],spw_IDs[i],calib['fluxmod'][i])
+            logger.info('Executing command: '+command)
+            exec(command)
+        else:
+            logger.warning('The flux model cannot be recognised. The setjy task will not be run. Fluxes will be incorrect.')
 
         plot_file = plots_obs_dir+'{0}_bpphaseint_spw{1}.png'.format(msfile,spw_IDs[i])
         logger.info('Plotting bandpass phase vs. time for reference antenna to: {}'.format(plot_file))
@@ -830,26 +904,28 @@ def split_fields(msfile,config,logger):
     calib = config['calibration']
     src_dir = config['global']['src_dir']+'/'
     sum_dir = './summary/'
-    makedir(sum_dir,logger)
-    makedir('./'+src_dir,logger)
-    for field in calib['targets']:
+    makedir(sum_dir)
+    makedir('./'+src_dir)
+    for i in range(len(calib['targets'])):
+        field = calib['targets'][i]
+        target_name = calib['target_names'][i]
         msmd.open(msfile)
         spws = msmd.spwsforfield(field)
         msmd.close()
         if len(spws) > 1:
             logger.info('{0} was observed in multiple SPWs. These will now be combined and the field split into a separate MS.'.format(field))
-            command = "mstransform(vis='{0}', outputvis='{2}{1}.split', field='{1}', spw='{3}', combinespws=True)".format(msfile,field,src_dir,','.join(numpy.array(spws,dtype='str')))
+            command = "mstransform(vis='{0}', outputvis='{2}{1}.split', field='{3}', spw='{4}', combinespws=True)".format(msfile,target_name,src_dir,field,','.join(numpy.array(spws,dtype='str')))
             logger.info('Executing command: '+command)
             exec(command)
         else:
             logger.info('Splitting {0} into separate file: {1}.'.format(field, field+'.split'))
-            command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{2}')".format(msfile,src_dir,field)
+            command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{3}')".format(msfile,src_dir,target_name,field)
             logger.info('Executing command: '+command)
             exec(command)
-        listobs_file = sum_dir+field+'.listobs.summary'
+        listobs_file = sum_dir+target_name+'.listobs.summary'
         rmfile(listobs_file)
         logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
-        listobs(vis=src_dir+field+'.split', listfile=listobs_file)
+        listobs(vis=src_dir+target_name+'.split', listfile=listobs_file)
     logger.info('Completed split fields.')
 
 

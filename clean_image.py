@@ -13,7 +13,7 @@ def noise_est(config,logger):
     noise = Estimate of the theortical noise in Jy/beam. (List of Floats)
     """
     logger.info('Starting making noise estimation.')
-    targets = config['calibration']['targets']
+    targets = config['calibration']['target_names']
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     noise = []
@@ -21,14 +21,19 @@ def noise_est(config,logger):
         msmd.open(src_dir+target+'.split.contsub')
         N = msmd.nantennas()
         t_int = msmd.effexposuretime()['value']
+        t_unit = msmd.effexposuretime()['unit']
+        if t_unit != 's' or 'sec' not in t_unit:
+            logger.warning('Integration time units are not in seconds. Estimated noise will be incorrect.')
         ch_wid = numpy.mean(msmd.chanwidths(0))
         #Note: The above line may cause issues if different spectral windows
         #have very difference frequency resolutions
-        msmd.close()
         corr_eff = cln_param['corr_eff']
         SEFD = cln_param['sefd']
         N_pol = 2.
         noise.append(SEFD/(corr_eff*numpy.sqrt(N_pol*N*(N-1.)*t_int*ch_wid)))
+        logger.info('Effective integration time for {0}: {1} {2}'.format(target,int(t_int),msmd.effexposuretime()['unit']))
+        logger.info('Expected rms noise for {0}: {1} Jy/beam'.format(target,SEFD/(corr_eff*numpy.sqrt(N_pol*N*(N-1.)*t_int*ch_wid))))
+        msmd.close()
     logger.info('Completed making noise estimation.')
     return noise
 
@@ -44,15 +49,15 @@ def image(config,config_raw,config_file,logger):
     config_raw = The instance of the parser.
     config_file = Path to configuration file. (String)
     """
-    noises = noise_est(config,logger)
+    noises = noise_est(config)
     calib = config['calibration']
     contsub = config['continuum_subtraction']
     rest_freq = config['global']['rest_freq']
-    targets = calib['targets']
+    targets = calib['target_names']
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
-    makedir('./'+img_dir,logger)
+    makedir('./'+img_dir)
     logger.info('Removing any existing images.')
     for target in targets:
         del_list = glob.glob(img_dir+'{}.image'.format(target))
@@ -153,6 +158,7 @@ def image(config,config_raw,config_file,logger):
         scales = None
     for i in range(len(targets)):
         target = targets[i]
+        field = calib['targets'][i]
         logger.info('Starting {} image.'.format(target))
         reset_cln = False
         ia.open(img_dir+target+'.dirty.image')
@@ -215,7 +221,7 @@ def image(config,config_raw,config_file,logger):
             scales = list(numpy.array(numpy.array(scales)*pix_per_beam,dtype='int'))
             B_min = au.getBaselineLengths('{0}{1}.split.contsub'.format(src_dir,target), sort=True)[0][1]
             msmd.open('{0}{1}.split.contsub'.format(src_dir,target))
-            spws = msmd.spwsforfield(target)
+            spws = msmd.spwsforfield(field)
             f_min = None
             for spw in spws:
                 if f_min == None or f_min > min(msmd.chanfreqs(spw=spw,unit='Hz')):
@@ -233,13 +239,12 @@ def image(config,config_raw,config_file,logger):
                     logger.info('Removing offending scales.')
                     scales = list(set(numpy.where(numpy.array(scales)*pix_size <= max_scale,scales,0)))
             logger.info('CLEANing with scales of {} pixels.'.format(scales))
+        logger.info('CLEANing {0} to a threshold of {1} Jy.'.format(target,noises[i]*cln_param['thresh']))
         if cln_param['automask']:
             mask = 'auto-multithresh'
-            logger.info('Using automatic masking'.)
         else:
             mask = 'pb'
-            logger.info('Using a standard primary beam mask.')
-        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{1}', spw='{2}', imagename='{3}{1}', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='{7}', scales={8}, restoringbeam='common', pbcor=True, weighting='briggs', robust={9}, niter=100000, gain=0.1, threshold='{10}Jy', usemask='{11}', sidelobethreshold={12}, noisethreshold={13}, lownoisethreshold={14}, minbeamfrac={15}, negativethreshold={16}, cyclefactor=2.0,interactive=False)".format(src_dir,target,cln_param['line_ch'][i],img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],mask,cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
+        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', spw='{3}', imagename='{4}{1}', cell='{5}', imsize=[{6},{6}], specmode='cube', outframe='bary', veltype='radio', restfreq='{7}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='{8}', scales={9}, restoringbeam='common', pbcor=True, weighting='briggs', robust={10}, niter=100000, gain=0.1, threshold='{11}Jy', usemask='{12}', sidelobethreshold={13}, noisethreshold={14}, lownoisethreshold={15}, minbeamfrac={16}, negativethreshold={17}, cyclefactor=2.0,interactive=False)".format(src_dir,target,field,cln_param['line_ch'][i],img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],mask,cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
         logger.info('Executing command: '+command)
         exec(command)
         logger.info('CLEANing finished. Image cube saved as {}.'.format(target+'.image'))

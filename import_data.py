@@ -14,7 +14,6 @@ def import_data(data_files, msfile, logger):
     logger.info('Starting import vla data')
     sum_dir = './summary/'
     makedir(sum_dir,logger)
-    listobs_file = sum_dir+msfile+'.listobs.summary'
     rmdir(msfile,logger)
     rmfile(listobs_file,logger)
     logger.info('Input files: {}'.format(data_files))
@@ -23,7 +22,6 @@ def import_data(data_files, msfile, logger):
     logger.info('Executing command: '+command)
     exec(command)
     logger.info('Writing listobs summary of data set to: {}'.format(listobs_file))
-    listobs(vis=msfile, listfile=listobs_file)
     logger.info('Completed import vla data')
 
 
@@ -171,8 +169,12 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
 
 # Import data, write listobs to file, and plot positions and elevation
 data_path = config['importdata']['data_path']
-data_files = glob.glob(os.path.join(data_path, '*'))
-import_data(sorted(data_files), msfile,logger)
+if not config['importdata']['jvla']:
+    data_files = glob.glob(os.path.join(data_path, '*'))
+    import_data(sorted(data_files), msfile)
+else:
+    os.symlink(data_path+msfile,msfile)
+listobs_sum(msfile,logger)
 msinfo = get_msinfo(msfile,logger)
 plot_elevation(msfile,config,logger)
 plot_ants(msfile,logger)

@@ -102,6 +102,23 @@ def uinput(prompt, default=''):
         return raw_input(prompt)
     finally:
         readline.set_startup_hook()
+        
+def listobs_sum(msfile, logger):
+    """ 
+    Write the listobs summary to file.
+    
+    Input:
+    msfile = Path where the MS will be created. (String)
+    """
+    logger.info('Starting listobs summary.')
+    sum_dir = './summary/'
+    makedir(sum_dir)
+    listobs_file = sum_dir+msfile+'.listobs.summary'
+    rmdir(msfile)
+    rmfile(listobs_file)
+    logger.info('Writing listobs summary of data set to: {}'.format(listobs_file))
+    listobs(vis=msfile, listfile=listobs_file)
+    logger.info('Completed listobs summary.')
 
 
 # Set up the logger
@@ -135,3 +152,4 @@ def get_logger(
     
     logger.setLevel(logging.INFO)
     return logger
+
