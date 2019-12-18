@@ -15,15 +15,28 @@ def import_data(data_files, msfile, logger):
     sum_dir = './summary/'
     makedir(sum_dir,logger)
     rmdir(msfile,logger)
-    rmfile(listobs_file,logger)
     logger.info('Input files: {}'.format(data_files))
     logger.info('Output msfile: {}'.format(msfile))
     command = "importvla(archivefiles = {0}, vis = '{1}')".format(data_files, msfile)
     logger.info('Executing command: '+command)
     exec(command)
-    logger.info('Writing listobs summary of data set to: {}'.format(listobs_file))
     logger.info('Completed import vla data')
-
+    
+def listobs_sum(msfile, logger):
+    """ 
+    Write the listobs summary to file.
+    
+    Input:
+    msfile = Path where the MS will be created. (String)
+    """
+    logger.info('Starting listobs summary.')
+    sum_dir = './summary/'
+    makedir(sum_dir,logger)
+    listobs_file = sum_dir+msfile+'.listobs.summary'
+    rmfile(listobs_file,logger)
+    logger.info('Writing listobs summary of data set to: {}'.format(listobs_file))
+    listobs(vis=msfile, listfile=listobs_file)
+    logger.info('Completed listobs summary.')
 
 def get_obsfreq(msfile):
     """ 
@@ -171,7 +184,7 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
 data_path = config['importdata']['data_path']
 if not config['importdata']['jvla']:
     data_files = glob.glob(os.path.join(data_path, '*'))
-    import_data(sorted(data_files), msfile)
+    import_data(sorted(data_files), msfile, logger)
 else:
     os.symlink(data_path+msfile,msfile)
 listobs_sum(msfile,logger)

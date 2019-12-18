@@ -49,7 +49,7 @@ def image(config,config_raw,config_file,logger):
     config_raw = The instance of the parser.
     config_file = Path to configuration file. (String)
     """
-    noises = noise_est(config)
+    noises = noise_est(config,logger)
     calib = config['calibration']
     contsub = config['continuum_subtraction']
     rest_freq = config['global']['rest_freq']
@@ -57,7 +57,7 @@ def image(config,config_raw,config_file,logger):
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
-    makedir('./'+img_dir)
+    makedir('./'+img_dir,logger)
     logger.info('Removing any existing images.')
     for target in targets:
         del_list = glob.glob(img_dir+'{}.image'.format(target))

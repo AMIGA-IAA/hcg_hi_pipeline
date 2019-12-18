@@ -81,7 +81,7 @@ def plot_spec(config,logger):
     """
     logger.info('Starting plotting amplitude spectrum.')
     plots_obs_dir = './plots/'
-    makedir(plots_obs_dir)
+    makedir(plots_obs_dir,logger)
     calib = config['calibration']
     targets = calib['target_names']
     fields = calib['targets']
@@ -124,7 +124,7 @@ def dirty_image(config,config_raw,config_file,logger):
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
-    makedir('./'+img_dir)
+    makedir('./'+img_dir,logger)
     logger.info('Removing any existing dirty images.')
     for target in targets:
         del_list = glob.glob(img_dir+'{}.dirty*'.format(target))
@@ -267,9 +267,11 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
 #Contsub and make dity image
 plot_spec(config,logger)
 contsub(msfile,config,config_raw,config_file,logger)
-del_list = glob.glob(config['global']['img_dir']+'/'+'*.dirty.*')
-if len(del_list) > 0:
-    logger.info('Deleting existing dirty image(s): {}'.format(del_list))
-    for file_path in del_list:
-        shutil.rmtree(file_path)
+#This also removes dirty continuum images
+#Needs a better solution
+#del_list = glob.glob(config['global']['img_dir']+'/'+'*.dirty.*')
+#if len(del_list) > 0:
+#    logger.info('Deleting existing dirty image(s): {}'.format(del_list))
+#    for file_path in del_list:
+#        shutil.rmtree(file_path)
 dirty_image(config,config_raw,config_file,logger)

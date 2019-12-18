@@ -27,8 +27,7 @@ def manual_flags(logger):
             logger.info('Completed manual flagging.')
         flag_file.close()
     except IOError:
-        logger.warning("'manual_flags.py' does not exist. Continuing without manual flagging.")
-        
+        logger.warning("'manual_flags.py' does not exist. Continuing without manual flagging.")        
 
 def base_flags(msfile, config,logger):
     """ 
@@ -904,8 +903,8 @@ def split_fields(msfile,config,logger):
     calib = config['calibration']
     src_dir = config['global']['src_dir']+'/'
     sum_dir = './summary/'
-    makedir(sum_dir)
-    makedir('./'+src_dir)
+    makedir(sum_dir,logger)
+    makedir('./'+src_dir,logger)
     for i in range(len(calib['targets'])):
         field = calib['targets'][i]
         target_name = calib['target_names'][i]
@@ -923,7 +922,7 @@ def split_fields(msfile,config,logger):
             logger.info('Executing command: '+command)
             exec(command)
         listobs_file = sum_dir+target_name+'.listobs.summary'
-        rmfile(listobs_file)
+        rmfile(listobs_file,logger)
         logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
         listobs(vis=src_dir+target_name+'.split', listfile=listobs_file)
     logger.info('Completed split fields.')

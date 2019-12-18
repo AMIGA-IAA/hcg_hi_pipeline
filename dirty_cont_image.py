@@ -19,7 +19,7 @@ def dirty_cont_image(config,config_raw,config_file,logger):
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
-    makedir('/.'+img_dir)
+    makedir('/.'+img_dir,logger)
     logger.info('Removing any existing dirty continuum images.')
     del_list = glob.glob(img_dir+'*cont.dirty*')
     for file_path in del_list:
