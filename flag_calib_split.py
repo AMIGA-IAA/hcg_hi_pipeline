@@ -5,29 +5,29 @@ from common_functions import *
 
 def manual_flags(logger):
     """
-    Apply manual flags from the file 'manual_flags.py'.
+    Apply manual flags from the file 'manual_flags.list'.
     """
     logger.info('Starting manual flagging.')
     if interactive:
-        print("\nManual flags from 'manual_flags.py' are about to be applied.")
-        print("It is strongly recommended that you inspect the data and modify (and save) 'manual_flags.py' appropriately before proceeding.\n")
+        print("\nManual flags from 'manual_flags.list' are about to be applied.")
+        print("It is strongly recommended that you inspect the data and modify (and save) 'manual_flags.list' appropriately before proceeding.\n")
         resp = str(raw_input('Do you want to proceed (y/n): '))
         while resp.lower() not in ['yes','ye','y']:
             resp = str(raw_input('Do you want to proceed (y/n): '))
-    logger.info('Applying flags from manual_flags.py')
+    logger.info('Applying flags from manual_flags.list')
     try:
-        flag_file = open('manual_flags.py', 'r')
+        flag_file = open('manual_flags.list', 'r')
         lines = flag_file.readlines()
         if lines == []:
             logger.warning("The file is empty. Continuing without manual flagging.")
         else:
-            for command in lines:
-                logger.info('Executing command: '+command)
-                exec(command)
+            command = "flagdata(vis='{}', mode='list', action='apply', inpfile={})".format(msfile,lines)
+            logger.info('Executing command: '+command)
+            exec(command)
             logger.info('Completed manual flagging.')
         flag_file.close()
     except IOError:
-        logger.warning("'manual_flags.py' does not exist. Continuing without manual flagging.")        
+        logger.warning("'manual_flags.list' does not exist. Continuing without manual flagging.")        
 
 def base_flags(msfile, config,logger):
     """ 
