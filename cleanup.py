@@ -1,6 +1,6 @@
 import imp
 imp.load_source('common_functions','common_functions.py')
-from common_functions import *
+import common_functions as cf
 
 def cleanup(config,logger):
     """
@@ -67,11 +67,11 @@ def cleanup(config,logger):
 
 # Read configuration file with parameters
 config_file = sys.argv[-1]
-config,config_raw = read_config(config_file)
+config,config_raw = cf.read_config(config_file)
 interactive = config['global']['interactive']
 
 # Set up your logger
-logger = get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['project_name']),
+logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['project_name']),
                     LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name'])) # Set up your logger
 
 # Define MS file name

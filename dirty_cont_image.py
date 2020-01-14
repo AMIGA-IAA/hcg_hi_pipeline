@@ -1,6 +1,6 @@
 import imp
 imp.load_source('common_functions','common_functions.py')
-from common_functions import *
+import common_functions as cf
 
 def dirty_cont_image(config,config_raw,config_file,logger):
     """
@@ -19,7 +19,7 @@ def dirty_cont_image(config,config_raw,config_file,logger):
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
-    makedir('/.'+img_dir,logger)
+    cf.makedir('/.'+img_dir,logger)
     logger.info('Removing any existing dirty continuum images.')
     del_list = glob.glob(img_dir+'*cont.dirty*')
     for file_path in del_list:
@@ -53,7 +53,7 @@ def dirty_cont_image(config,config_raw,config_file,logger):
     if reset_cln and interactive:
         print('For each target enter the desired pixel size:')
         for i in range(len(targets)):
-            cln_param['pix_size'][i] = uinput('Pixel size for {}: '.format(targets[i]), cln_param['pix_size'][i])
+            cln_param['pix_size'][i] = cf.uinput('Pixel size for {}: '.format(targets[i]), cln_param['pix_size'][i])
             logger.info('Setting pixel size for {0} as: {1}.'.format(targets[i], cln_param['pix_size'][i]))
         logger.info('Updating config file to set pixel sizes.')
         config_raw.set('clean','pix_size',cln_param['pix_size'])
@@ -90,7 +90,7 @@ def dirty_cont_image(config,config_raw,config_file,logger):
         print('For each target enter the desired image size:')
         for i in range(len(targets)):
             print('Note: The pixel size for this target was set to: {}'.format(cln_param['pix_size'][i]))
-            cln_param['im_size'][i] = uinput('Image size for {}: '.format(targets[i]), cln_param['im_size'][i])
+            cln_param['im_size'][i] = cf.uinput('Image size for {}: '.format(targets[i]), cln_param['im_size'][i])
             logger.info('Setting image size for {0} as: {1} x {2}.'.format(targets[i], cln_param['im_size'][i],cln_param['pix_size'][i]))
         logger.info('Updating config file to set image sizes.')
         config_raw.set('clean','im_size',cln_param['im_size'])
@@ -111,16 +111,16 @@ def dirty_cont_image(config,config_raw,config_file,logger):
     
 # Read configuration file with parameters
 config_file = sys.argv[-1]
-config,config_raw = read_config(config_file)
+config,config_raw = cf.read_config(config_file)
 interactive = config['global']['interactive']
 
 # Set up your logger
-logger = get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['project_name']),
+logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['project_name']),
                     LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name'])) # Set up your logger
 
 # Define MS file name
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 #Make dirty continuum image
-rmdir(config['global']['img_dir'],logger)
+cf.rmdir(config['global']['img_dir'],logger)
 dirty_cont_image(config,config_raw,config_file,logger)

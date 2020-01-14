@@ -1,6 +1,6 @@
 import imp
 imp.load_source('common_functions','common_functions.py')
-from common_functions import *
+import common_functions as cf
 
 
 def import_data(data_files, msfile, logger):
@@ -13,8 +13,8 @@ def import_data(data_files, msfile, logger):
     """
     logger.info('Starting import vla data')
     sum_dir = './summary/'
-    makedir(sum_dir,logger)
-    rmdir(msfile,logger)
+    cf.makedir(sum_dir,logger)
+    cf.rmdir(msfile,logger)
     logger.info('Input files: {}'.format(data_files))
     logger.info('Output msfile: {}'.format(msfile))
     command = "importvla(archivefiles = {0}, vis = '{1}')".format(data_files, msfile)
@@ -31,9 +31,9 @@ def listobs_sum(msfile, logger):
     """
     logger.info('Starting listobs summary.')
     sum_dir = './summary/'
-    makedir(sum_dir,logger)
+    cf.makedir(sum_dir,logger)
     listobs_file = sum_dir+msfile+'.listobs.summary'
-    rmfile(listobs_file,logger)
+    cf.rmfile(listobs_file,logger)
     logger.info('Writing listobs summary of data set to: {}'.format(listobs_file))
     listobs(vis=msfile, listfile=listobs_file)
     logger.info('Completed listobs summary.')
@@ -132,7 +132,7 @@ def plot_elevation(msfile,config,logger):
     """
     logger.info('Starting plotting elevation.')
     plots_obs_dir = './plots/'
-    makedir(plots_obs_dir,logger)
+    cf.makedir(plots_obs_dir,logger)
     plot_file = plots_obs_dir+'{0}_elevation.png'.format(msfile)
     logger.info('Plotting elevation to: {}'.format(plot_file))
     elev = config['plot_elevation']
@@ -160,7 +160,7 @@ def plot_ants(msfile,logger):
     """
     logger.info('Starting plotting antenna positions.')
     plots_obs_dir = './plots/'
-    makedir(plots_obs_dir,logger)
+    cf.makedir(plots_obs_dir,logger)
     plot_file = plots_obs_dir+'{0}_antpos.png'.format(msfile)
     logger.info('Plotting antenna positions to: {}'.format(plot_file))
     plotants(vis=msfile,figfile=plot_file)
@@ -169,11 +169,11 @@ def plot_ants(msfile,logger):
 
 # Read configuration file with parameters
 config_file = sys.argv[-1]
-config,config_raw = read_config(config_file)
+config,config_raw = cf.read_config(config_file)
 interactive = config['global']['interactive']
 
 # Set up your logger
-logger = get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['project_name']),
+logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['project_name']),
                     LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name']),
                     new_log = True) # Set up your logger
 

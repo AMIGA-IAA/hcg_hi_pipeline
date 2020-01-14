@@ -1,6 +1,6 @@
 import imp
 imp.load_source('common_functions','common_functions.py')
-from common_functions import *
+import common_functions as cf
 
 
 def manual_flags(logger):
@@ -113,7 +113,7 @@ def flag_sum(msfile,name,logger):
     name = Root of filename where flags summary will be saved. (String) 
     """
     sum_dir = './summary/'
-    makedir(sum_dir,logger)
+    cf.makedir(sum_dir,logger)
     out_file = sum_dir+'{0}.{1}flags.summary'.format(msfile,name)
     logger.info('Starting writing flag summary to: {}.'.format(out_file))
     flag_info = flagdata(vis=msfile, mode='summary')
@@ -313,7 +313,7 @@ def set_fields(msfile,config,config_raw,config_file,logger):
         if resp.lower() in ['yes','ye','y']:
             print('Note: Target names should NOT include spaces.')
             for i in range(len(calib['target_names'])):
-                calib['target_names'][i] = uinput('Enter simple name for target {}: '.format(calib['targets'][i]), calib['target_names'][i])
+                calib['target_names'][i] = cf.uinput('Enter simple name for target {}: '.format(calib['targets'][i]), calib['target_names'][i])
         else:
             pass
     if len(calib['target_names']) != len(calib['targets']):
@@ -390,7 +390,7 @@ def set_fields(msfile,config,config_raw,config_file,logger):
                 while i in range(len(calib['fluxcal'])):
                     if first:
                         print('SPW {0}: {1}'.format(spw_IDs[i],spw_names[i]))
-                    calib['fluxcal'][i] = uinput('Enter flux calibrator for SPW {}: '.format(spw_IDs[i], default=calib['fluxcal'][i]))
+                    calib['fluxcal'][i] = cf.uinput('Enter flux calibrator for SPW {}: '.format(spw_IDs[i], default=calib['fluxcal'][i]))
                     if calib['fluxcal'][i] not in field_names:
                         print('\n\nString entered is not a valid field name.')
                         print('Valid field names:\n{}\n'.format(field_names))
@@ -484,7 +484,7 @@ def set_fields(msfile,config,config_raw,config_file,logger):
                 i = 0
                 while i in range(len(calib['fluxmod'])):
                     print('Usual flux calibrator models will be 3C48_L.im, 3C138_L.im, or 3C286_L.im.\n')
-                    calib['fluxmod'][i] = uinput('Enter flux model for calibrator {}: '.format(calib['fluxcal'][i], default=calib['fluxmod'][i]))
+                    calib['fluxmod'][i] = cf.uinput('Enter flux model for calibrator {}: '.format(calib['fluxcal'][i], default=calib['fluxmod'][i]))
                     if calib['fluxmod'][i] not in std_flux_mods:
                         resp = str(raw_input('The model name provided is not one of the 3 expected options.\nDo you want to proceed with the model {} ?'.format(calib['fluxmod'][i])))
                         if resp.lower() in ['yes','ye','y']:
@@ -551,7 +551,7 @@ def set_fields(msfile,config,config_raw,config_file,logger):
                 while i in range(len(calib['bandcal'])):
                     if first:
                         print('SPW {0}: {1}'.format(spw_IDs[i],spw_names[i]))
-                    calib['bandcal'][i] = uinput('Enter bandpass calibrator for SPW {}: '.format(spw_IDs[i], default=calib['bandcal'][i]))
+                    calib['bandcal'][i] = cf.uinput('Enter bandpass calibrator for SPW {}: '.format(spw_IDs[i], default=calib['bandcal'][i]))
                     if calib['bandcal'][i] not in field_names:
                         print('\n\nString entered is not a valid field name.')
                         print('Valid field names:\n{}\n'.format(field_names))
@@ -612,7 +612,7 @@ def set_fields(msfile,config,config_raw,config_file,logger):
                 i = 0
                 print('Valid field names:\n{}\n'.format(field_names))
                 while i in range(len(calib['phasecal'])):
-                    calib['phasecal'][i] = uinput('Enter phase calibrator for {}: '.format(calib['targets'][i]), default=calib['phasecal'][i])
+                    calib['phasecal'][i] = cf.uinput('Enter phase calibrator for {}: '.format(calib['targets'][i]), default=calib['phasecal'][i])
                     if calib['phasecal'][i] not in field_names:
                         print('\n\nString entered is not a valid field name.')
                         print('Valid field names:\n{}\n'.format(field_names))
@@ -648,11 +648,11 @@ def calibration(msfile,config,logger):
     """
     logger.info('Starting calibration.')
     plots_obs_dir = './plots/'
-    makedir(plots_obs_dir,logger)
+    cf.makedir(plots_obs_dir,logger)
     sum_dir = './summary/'
-    makedir(sum_dir,logger)
+    cf.makedir(sum_dir,logger)
     cal_tabs = './cal_tabs/'
-    makedir(cal_tabs,logger)
+    cf.makedir(cal_tabs,logger)
     calib = config['calibration']
     std_flux_mods = ['3C48_L.im', '3C138_L.im', '3C286_L.im', '3C147_L.im']
     
@@ -864,8 +864,8 @@ def split_fields(msfile,config,logger):
     calib = config['calibration']
     src_dir = config['global']['src_dir']+'/'
     sum_dir = './summary/'
-    makedir(sum_dir,logger)
-    makedir('./'+src_dir,logger)
+    cf.makedir(sum_dir,logger)
+    cf.makedir('./'+src_dir,logger)
     for i in range(len(calib['targets'])):
         field = calib['targets'][i]
         target_name = calib['target_names'][i]
@@ -883,7 +883,7 @@ def split_fields(msfile,config,logger):
             logger.info('Executing command: '+command)
             exec(command)
         listobs_file = sum_dir+target_name+'.listobs.summary'
-        rmfile(listobs_file,logger)
+        cf.rmfile(listobs_file,logger)
         logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
         listobs(vis=src_dir+target_name+'.split', listfile=listobs_file)
     logger.info('Completed split fields.')
@@ -891,11 +891,11 @@ def split_fields(msfile,config,logger):
 
 # Read configuration file with parameters
 config_file = sys.argv[-1]
-config,config_raw = read_config(config_file)
+config,config_raw = cf.read_config(config_file)
 interactive = config['global']['interactive']
 
 # Set up your logger
-logger = get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['project_name']),
+logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['project_name']),
                     LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name'])) # Set up your logger
 
 # Define MS file name
@@ -928,5 +928,5 @@ flag_version = 'final'
 rm_flags(msfile,flag_version,logger)
 save_flags(msfile,flag_version,logger)
 flag_sum(msfile,flag_version,logger)
-rmdir(config['global']['src_dir'],logger)
+cf.rmdir(config['global']['src_dir'],logger)
 split_fields(msfile,config,logger)

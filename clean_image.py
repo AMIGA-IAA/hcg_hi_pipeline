@@ -1,6 +1,6 @@
 import imp
 imp.load_source('common_functions','common_functions.py')
-from common_functions import *
+import common_functions as cf
 
 def noise_est(config,logger):
     """
@@ -57,7 +57,7 @@ def image(config,config_raw,config_file,logger):
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
-    makedir('./'+img_dir,logger)
+    cf.makedir('./'+img_dir,logger)
     logger.info('Removing any existing images.')
     for target in targets:
         del_list = glob.glob(img_dir+'{}.image'.format(target))
@@ -114,7 +114,7 @@ def image(config,config_raw,config_file,logger):
         print('For each target enter the channels you want to image in the following format:\nspwID:min_ch~max_ch')
         for i in range(len(targets)):
             print('Note: The continuum channels for this target were set to: {}'.format(contsub['linefree_ch'][i]))
-            cln_param['line_ch'][i] = uinput('Channels to image for {}: '.format(targets[i]), cln_param['line_ch'][i])
+            cln_param['line_ch'][i] = cf.uinput('Channels to image for {}: '.format(targets[i]), cln_param['line_ch'][i])
             logger.info('Setting image channels for {0} as: {1}.'.format(targets[i], cln_param['line_ch'][i]))
         logger.info('Updating config file to set channels to be imaged.')
         config_raw.set('clean','line_ch',cln_param['line_ch'])
@@ -143,7 +143,7 @@ def image(config,config_raw,config_file,logger):
         if reset_cln:
             if interactive:
                 print('Current scales set to: {} beam diameters.'.format(cln_param['scales']))
-                cln_param['scales'] = uinput('Enter new scales: ', cln_param['scales'])
+                cln_param['scales'] = cf.uinput('Enter new scales: ', cln_param['scales'])
             logger.info('Setting MS-CLEAN scales as {} beams.'.format(cln_param['scales']))
             logger.info('Updating config file to set MS-CLEAN scales.')
             config_raw.set('clean','scales',cln_param['scales'])
@@ -184,7 +184,7 @@ def image(config,config_raw,config_file,logger):
                     reset_cln = True
         if reset_cln and interactive:
             print('Enter the desired pixel size:')
-            cln_param['pix_size'][i] = uinput('Pixel size for {}: '.format(target), cln_param['pix_size'][i])
+            cln_param['pix_size'][i] = cf.uinput('Pixel size for {}: '.format(target), cln_param['pix_size'][i])
             logger.info('Setting pixel size for {0} as: {1}.'.format(target, cln_param['pix_size'][i]))
             logger.info('Updating config file to set pixel size.')
             config_raw.set('clean','pix_size',cln_param['pix_size'])
@@ -289,11 +289,11 @@ def image(config,config_raw,config_file,logger):
     
 # Read configuration file with parameters
 config_file = sys.argv[-1]
-config,config_raw = read_config(config_file)
+config,config_raw = cf.read_config(config_file)
 interactive = config['global']['interactive']
 
 # Set up your logger
-logger = get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['project_name']),
+logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['project_name']),
                     LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name'])) # Set up your logger
 
 # Define MS file name
