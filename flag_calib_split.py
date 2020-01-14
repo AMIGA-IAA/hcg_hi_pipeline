@@ -664,43 +664,19 @@ def calibration(msfile,config,logger):
     spw_names = msmd.namesforspws(spw_IDs)
     nspw = len(spw_IDs)
     msmd.close()
-    phase_cals = calib['phasecal']
     
-    if len(calib['targets']) != nspw:
-        if len(calib['targets']) < nspw:
-            logger.info('Some targets were observed in multiple SPWs.')
-        else:
-            logger.critical('There are more targets than SPWs. The pipeline is not designed for this eventuality.')
-            sys.exit(-1)
-        logger.info('Matching phase calibrators to the appropriate SPWs.')
-        phase_cals = []
-        for i in range(nspw):
-            msmd.open(msfile)
-            spw_fields = msmd.fieldsforspw(spw_IDs[i], asnames=True)
-            msmd.close()
-            cals_in_spw = list(set(spw_fields).intersection(calib['phasecal']))
-            targets_in_spw = list(set(spw_fields).intersection(calib['targets']))
-            if len(cals_in_spw) == 0:
-                logger.critical('No phase calibrator for SPW {}.'.format(spw_IDs[i]))
-                sys.exit(-1)
-            if len(targets_in_spw) == 0:
-                logger.critical('No targets in SPW {}.'.format(spw_IDs[i]))
-                sys.exit(-1)
-            if len(targets_in_spw) > 1:
-                logger.warning('More than one target in SPW {}.'.format(spw_IDs[i]))
-                inx1 = list(calib['targets']).index(targets_in_spw[0])
-                inx2 = list(calib['targets']).index(targets_in_spw[1])
-                if calib['phasecal'][inx1] == calib['phasecal'][inx2]:
-                    logger.info('Both used the same phase calibrator, which should not cause problems.')
-                else:
-                    logger.warning('Multiple targets with different phase calibrators in SPW {}.'.format(spw_IDs[i]))
-                    sys.exit(-1)
-            inx = list(calib['targets']).index(targets_in_spw[0])
-            if calib['phasecal'][inx] in cals_in_spw:
-                phase_cals.append(calib['phasecal'][inx])
-            else:
-                logger.critical('The expected phase calibrator for {0} was not observed in SPW {1}.'.format(targets_in_spw[0],spw_IDs[i]))
-                sys.exit(-1)
+    
+    
+    for i in range(nspw):
+        msmd.open(msfile)
+        spw_fields = msmd.fieldsforspw(spw_IDs[i], asnames=True)
+        msmd.close()
+        cals_in_spw = list(set(spw_fields).intersection(calib['phasecal']))
+        targets_in_spw = list(set(spw_fields).intersection(calib['targets']))
+        if len(cals_in_spw) == 0:
+            logger.warning('No phase calibrator for SPW {}.'.format(spw_IDs[i]))
+        if len(targets_in_spw) == 0:
+            logger.warning('No targets in SPW {}.'.format(spw_IDs[i]))
     
     gctab = cal_tabs+'gaincurve.cal'
     logger.info('Calibrating gain vs elevation({}).'.format(gctab))
@@ -708,112 +684,113 @@ def calibration(msfile,config,logger):
     logger.info('Executing command: '+command)
     exec(command)
     
-    for i in range(nspw):
-        msmd.open(msfile)
-        spw_fields = msmd.fieldsforspw(spw_IDs[i], asnames=True)
-        msmd.close()
-        
-        logger.info('Beginning calibration of SPW {}.'.format(spw_IDs[i]))
-        
-        logger.info('Load model for flux calibrator {0} ({1}).'.format(calib['fluxcal'][i],calib['fluxmod'][i]))
-        if calib['fluxmod'][i] not in std_flux_mods and calib['man_mod']:
-            command = "setjy(vis='{0}', field='{1}', spw='{2}', scalebychan=True, fluxdensity=[{3},0,0,0], standard='manual')".format(msfile,calib['fluxcal'][i],spw_IDs[i],calib['fluxmod'][i])
-            logger.info('Executing command: '+command)
-            exec(command)
-        elif calib['fluxmod'][i] in std_flux_mods:
-            command = "setjy(vis='{0}', field='{1}', spw='{2}', scalebychan=True, model='{3}')".format(msfile,calib['fluxcal'][i],spw_IDs[i],calib['fluxmod'][i])
-            logger.info('Executing command: '+command)
-            exec(command)
-        else:
-            logger.warning('The flux model cannot be recognised. The setjy task will not be run. Fluxes will be incorrect.')
-
-        plot_file = plots_obs_dir+'{0}_bpphaseint_spw{1}.png'.format(msfile,spw_IDs[i])
-        logger.info('Plotting bandpass phase vs. time for reference antenna to: {}'.format(plot_file))
-        plotms(vis=msfile, plotfile=plot_file, xaxis='channel', yaxis='phase', field=calib['bandcal'][i], spw = str(spw_IDs[i]), correlation='RR,LL', avgtime='1E10', antenna=calib['refant'], coloraxis='antenna2', expformat='png', overwrite=True, showlegend=False, showgui=False)
-
-        dltab = cal_tabs+'delays_spw{}.cal'.format(spw_IDs[i])
-        logger.info('Calibrating delays for bandpass calibrator {0} ({1}).'.format(calib['bandcal'][i],dltab))
-        command = "gaincal(vis='{0}', field='{1}', spw='{2}', caltable='{3}', refant='{4}', gaintype='K', gaintable=['{5}'])".format(msfile,calib['bandcal'][i],spw_IDs[i],dltab,calib['refant'],gctab)
-        logger.info('Executing command: '+command)
-        exec(command)
-
-        bptab = cal_tabs+'bpphase_spw{}.gcal'.format(spw_IDs[i])
-        logger.info('Make bandpass calibrator phase solutions for {0} ({1}).'.format(calib['bandcal'][i],bptab))
-        command = "gaincal(vis='{0}', field='{1}',  spw='{2}', caltable='{3}', refant='{4}', calmode='p', solint='int', combine='', minsnr=2.0, gaintable=['{5}','{6}'])".format(msfile,calib['bandcal'][i],spw_IDs[i],bptab,calib['refant'],gctab,dltab)
-        logger.info('Executing command: '+command)
-        exec(command)
-
-        plot_file = plots_obs_dir+'{0}_bpphasesol_spw{1}.png'.format(msfile,spw_IDs[i])
-        logger.info('Plotting bandpass phase solutions to: {}'.format(plot_file))
-        plotms(vis=bptab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='phase',
-               plotrange=[0,0,-180,180], expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
-               iteraxis='antenna', spw=str(spw_IDs[i]))
-
-        bstab = cal_tabs+'bandpass_spw{}.bcal'.format(spw_IDs[i])
-        logger.info('Determining bandpass solution ({}).'.format(bstab))
-        command = "bandpass(vis='{0}', caltable='{1}', field='{2}', spw='{3}', refant='{4}', solint='inf', solnorm=True, gaintable=['{5}', '{6}', '{7}'])".format(msfile,bstab,calib['bandcal'][i],spw_IDs[i],calib['refant'],gctab, dltab, bptab)
-        logger.info('Executing command: '+command)
-        exec(command)
-
-        plot_file = plots_obs_dir+'{0}_bandpasssol_spw{1}.png'.format(msfile,spw_IDs[i])
-        logger.info('Plotting bandpass amplitude solutions to: {}'.format(plot_file))
-        plotms(vis=bstab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='chan', yaxis='amp',
-               expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
-               iteraxis='antenna', coloraxis='corr', spw=str(spw_IDs[i]))
-        
-        calfields = []
-        for field in calib['fluxcal']:
-            if field in spw_fields:
-                calfields.append(field)
-        for field in calib['bandcal']:
-            if field in spw_fields:
-                calfields.append(field)
-        for field in calib['phasecal']:
-            if field in spw_fields:
-                calfields.append(field)
-        calfields = list(set(calfields))
-        calfields = ','.join(calfields)
+    prev_set = {}
+    for i in range(len(calib['fluxcal'])):
+        if calib['fluxcal'][i] not in prev_set.keys():
+            prev_set[calib['fluxcal'][i]] = i
+                
+            logger.info('Load model for flux calibrator {0} ({1}).'.format(calib['fluxcal'][i],calib['fluxmod'][i]))
+            if calib['fluxmod'][i] not in std_flux_mods and calib['man_mod']:
+                #Add loop to go over every SPW the flux calibrator is used for.
+                #This way a different flux can be specified in each if necessary.
+                #In practice for the HI line this is unlikely to be an issue.
+                command = "setjy(vis='{0}', field='{1}', scalebychan=True, fluxdensity=[{2},0,0,0], standard='manual')".format(msfile,calib['fluxcal'][i],calib['fluxmod'][i])
+                logger.info('Executing command: '+command)
+                exec(command)
+            elif calib['fluxmod'][i] in std_flux_mods:
+                command = "setjy(vis='{0}', field='{1}', scalebychan=True, model='{2}')".format(msfile,calib['fluxcal'][i],calib['fluxmod'][i])
+                logger.info('Executing command: '+command)
+                exec(command)
+            else:
+                logger.warning('The flux model cannot be recognised. The setjy task will not be run. Fluxes will be incorrect.')
+        elif calib['fluxmod'][i] != calib['fluxmod'][prev_set[calib['fluxcal'][i]]]:
+            logger.warning('The flux model for {0} has already been set as {1}, but it does not match the current model ({2}).'.format(calib['fluxcal'][i],calib['fluxmod'][prev_set[calib['fluxcal'][i]]],calib['fluxmod'][i]))
+            logger.warning('The former will not be replaced. Check the flux model assignments in the parameters file.')
+            
+    plot_file = plots_obs_dir+'{0}_bpphaseint.png'.format(msfile)
+    logger.info('Plotting bandpass phase vs. time for reference antenna to: {}'.format(plot_file))
+    plotms(vis=msfile, plotfile=plot_file, xaxis='channel', yaxis='phase', field=calib['bandcal'][i], spw = ','.join(numpy.array(spw_IDs,dtype='str')),
+           correlation='RR,LL', avgtime='1E10', antenna=calib['refant'], coloraxis='antenna2', expformat='png', 
+           overwrite=True, showlegend=False, showgui=False, iteraxis='spw')
     
-        iptab = cal_tabs+'intphase_spw{}.gcal'.format(spw_IDs[i])
-        logger.info('Determining integration phase solutions ({}).'.format(iptab))
-        command = "gaincal(vis='{0}', field='{1}', spw='{2}', caltable='{3}', refant='{4}', calmode='p', solint='int', minsnr=2.0, gaintable=['{5}', '{6}', '{7}'])".format(msfile,calfields,spw_IDs[i],iptab,calib['refant'],gctab, dltab, bstab)
-        logger.info('Executing command: '+command)
-        exec(command)
-        
-        sptab = cal_tabs+'scanphase_spw{}.gcal'.format(spw_IDs[i])
-        logger.info('Determining scan phase solutions ({}).'.format(sptab))
-        command = "gaincal(vis='{0}', field='{1}', spw='{2}', caltable='{3}', refant='{4}', calmode='p', solint='inf', minsnr=2.0, gaintable=['{5}', '{6}', '{7}'])".format(msfile,calfields,spw_IDs[i],sptab,calib['refant'],gctab, dltab, bstab)
-        logger.info('Executing command: '+command)
-        exec(command)
-        
-        amtab = cal_tabs+'amp_spw{}.gcal'.format(spw_IDs[i])
-        logger.info('Determining amplitude solutions ({}).'.format(amtab))
-        command = "gaincal(vis='{0}', field='{1}', spw='{2}', caltable='{3}', refant='{4}', calmode='ap', solint='inf', minsnr=2.0, gaintable=['{5}', '{6}', '{7}', '{8}'])".format(msfile,calfields,spw_IDs[i],amtab,calib['refant'],gctab, dltab, bstab, iptab)
-        logger.info('Executing command: '+command)
-        exec(command)
-        
-        plot_file = plots_obs_dir+'phasesol_spw{0}.png'.format(spw_IDs[i])
-        logger.info('Plotting phase solutions to: {}'.format(plot_file))
-        plotms(vis=amtab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='phase',
-               expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
-               iteraxis='antenna', coloraxis='corr', plotrange=[-1,-1,-20,20])
+    dltab = cal_tabs+'delays.cal'
+    logger.info('Calibrating delays for bandpass calibrators {0} ({1}).'.format(calib['bandcal'],dltab))
+    command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', gaintype='K', gaintable=['{4}'], spw='{5}')".format(msfile,','.join(calib['bandcal']),dltab,calib['refant'],gctab,','.join(numpy.array(spw_IDs,dtype='str')))
+    logger.info('Executing command: '+command)
+    exec(command)
+    
+    bptab = cal_tabs+'bpphase.gcal'
+    logger.info('Make bandpass calibrator phase solutions for {0} ({1}).'.format(calib['bandcal'],bptab))
+    command = "gaincal(vis='{0}', field='{1}',  caltable='{2}', refant='{3}', calmode='p', solint='int', combine='', minsnr=2.0, gaintable=['{4}','{5}'], spw='{6}')".format(msfile,','.join(calib['bandcal']),bptab,calib['refant'],gctab,dltab,','.join(numpy.array(spw_IDs,dtype='str')))
+    logger.info('Executing command: '+command)
+    exec(command)
+    
+    plot_file = plots_obs_dir+'{0}_bpphasesol.png'.format(msfile)
+    logger.info('Plotting bandpass phase solutions to: {}'.format(plot_file))
+    plotms(vis=bptab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='phase',
+           plotrange=[0,0,-180,180], expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
+           iteraxis='antenna', coloraxis='spw', spw=','.join(numpy.array(spw_IDs,dtype='str')))
+    
+    bstab = cal_tabs+'bandpass.bcal'
+    logger.info('Determining bandpass solution(s) ({}).'.format(bstab))
+    command = "bandpass(vis='{0}', caltable='{1}', field='{2}', refant='{3}', solint='inf', solnorm=True, gaintable=['{4}', '{5}', '{6}'], spw='{7}')".format(msfile,bstab,','.join(calib['bandcal']),calib['refant'],gctab, dltab, bptab,','.join(numpy.array(spw_IDs,dtype='str')))
+    logger.info('Executing command: '+command)
+    exec(command)
+    
+    plot_file = plots_obs_dir+'{0}_bandpasssol_.png'.format(msfile)
+    logger.info('Plotting bandpass amplitude solutions to: {}'.format(plot_file))
+    plotms(vis=bstab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='chan', yaxis='amp',
+           expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
+           iteraxis='antenna', coloraxis='spw', spw=','.join(numpy.array(spw_IDs,dtype='str')))
+    
+    calfields = []
+    calfields.extend(calib['fluxcal'])
+    calfields.extend(calib['bandcal'])
+    calfields.extend(calib['phasecal'])
+    calfields = list(set(calfields))
+    calfields = ','.join(calfields)
+    
+    iptab = cal_tabs+'intphase.gcal'
+    logger.info('Determining integration phase solutions ({}).'.format(iptab))
+    command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='p', solint='int', minsnr=2.0, gaintable=['{4}', '{5}', '{6}'],spw='{7}')".format(msfile,calfields,iptab,calib['refant'],gctab, dltab, bstab,','.join(numpy.array(spw_IDs,dtype='str')))
+    logger.info('Executing command: '+command)
+    exec(command)
+    
+    sptab = cal_tabs+'scanphase.gcal'
+    logger.info('Determining scan phase solutions ({}).'.format(sptab))
+    command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='p', solint='inf', minsnr=2.0, gaintable=['{4}', '{5}', '{6}'],spw='{7}')".format(msfile,calfields,sptab,calib['refant'],gctab, dltab, bstab,','.join(numpy.array(spw_IDs,dtype='str')))
+    logger.info('Executing command: '+command)
+    exec(command)
+    
+    amtab = cal_tabs+'amp.gcal'
+    logger.info('Determining amplitude solutions ({}).'.format(amtab))
+    command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='ap', solint='inf', minsnr=2.0, gaintable=['{4}', '{5}', '{6}', '{7}'],spw='{8}')".format(msfile,calfields,amtab,calib['refant'],gctab, dltab, bstab, iptab,','.join(numpy.array(spw_IDs,dtype='str')))
+    logger.info('Executing command: '+command)
+    exec(command)
+    
+    plot_file = plots_obs_dir+'phasesol.png'
+    logger.info('Plotting phase solutions to: {}'.format(plot_file))
+    plotms(vis=amtab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='phase',
+           expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
+           iteraxis='antenna', coloraxis='spw', plotrange=[-1,-1,-20,20], spw=','.join(numpy.array(spw_IDs,dtype='str')))
 
-        plot_file = plots_obs_dir+'ampsol_spw{0}.png'.format(spw_IDs[i])
-        logger.info('Plotting amplitude solutions to: {}'.format(plot_file))
-        plotms(vis=amtab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='amp',
-               expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
-               iteraxis='antenna', coloraxis='corr', plotrange=[-1,-1,0,1])
-        
-        if not (calib['bandcal'][i] == calib['fluxcal'][i] and calib['bandcal'][i] == phase_cals[i]):
-            fxtab = cal_tabs+'fluxsol_spw{}.cal'.format(spw_IDs[i])
-            logger.info('Applying flux scale to calibrators ({}).'.format(fxtab))
-            command = "fluxscale(vis='{0}', caltable='{1}', fluxtable='{2}', reference='{3}', incremental=True)".format(msfile,amtab,fxtab,calib['fluxcal'][i])
-            logger.info('Executing command: flux_info = '+command)
-            exec('flux_info = '+command)
+    plot_file = plots_obs_dir+'ampsol.png'
+    logger.info('Plotting amplitude solutions to: {}'.format(plot_file))
+    plotms(vis=amtab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='amp',
+           expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
+           iteraxis='antenna', coloraxis='spw', plotrange=[-1,-1,0,1], spw=','.join(numpy.array(spw_IDs,dtype='str')))
+    
+    if len(calfields.split(',')) > len(list(set(calib['fluxcal']))):
+        fxtab = cal_tabs+'fluxsol.cal'
+        logger.info('Applying flux scale to calibrators ({}).'.format(fxtab))
+        command = "fluxscale(vis='{0}', caltable='{1}', fluxtable='{2}', reference='{3}', incremental=True)".format(msfile,amtab,fxtab,','.join(calib['fluxcal']))
+        logger.info('Executing command: flux_info = '+command)
+        exec('flux_info = '+command)
 
-            out_file = sum_dir+'{0}.flux.summary'.format(msfile)
-            logger.info('Writing calibrator fluxes summary to: {}.'.format(out_file))
-            out_file = open(out_file, 'a+')
+        out_filename = sum_dir+'{0}.flux.summary'.format(msfile)
+        logger.info('Writing calibrator fluxes summary to: {}.'.format(out_filename))
+        for i in range(nspw):
+            out_file = open(out_filename, 'a+')
             out_file.write('Spectral window: {}\n'.format(spw_IDs[i]))
             for k in range(len(flux_info.keys())):
                 if 'spw' in flux_info.keys()[k] or 'freq' in flux_info.keys()[k]:
@@ -823,70 +800,54 @@ def calibration(msfile,config,logger):
                     out_file.write('Flux density for {0}: {1} +/- {2} Jy\n'.format(flux_info[fieldID]['fieldName'], flux_info[fieldID][str(spw_IDs[i])]['fluxd'][0], flux_info[fieldID][str(spw_IDs[i])]['fluxdErr'][0]))
                     out_file.write('\n')
             out_file.close()
-        else:
-            logger.info('Only one calibrator for bandpass, flux, and phase in SPW {}. No calibrator fluxes added to summary.'.format(spw_IDs[i]))
-        
-        logger.info('Apply all calibrations to bandpass and flux calibrators in SPW {}.'.format(spw_IDs[i]))
+    
+    logger.info('Apply all calibrations to bandpass and flux calibrators.')
+    for i in range(len(calib['bandcal'])):
         logger.info('Applying clibration to: {}'.format(calib['bandcal'][i]))
-        if not (calib['bandcal'][i] == calib['fluxcal'][i] and calib['bandcal'][i] == phase_cals[i]):
-            command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{1}', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'][i],gctab, dltab, bstab, iptab, amtab, fxtab)
-            logger.info('Executing command: '+command)
-            exec(command)
-            if calib['fluxcal'][i] != calib['bandcal'][i]:
-                logger.info('Applying clibration to: {}'.format(calib['fluxcal'][i]))
-                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['fluxcal'][i],gctab, dltab, bstab, iptab, amtab, fxtab,calib['bandcal'][i])
-                logger.info('Executing command: '+command)
-                exec(command)
-        else:
+        if calib['bandcal'][i] == calib['fluxcal'][i]:
             command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'][i],gctab, dltab, bstab, iptab, amtab)
             logger.info('Executing command: '+command)
             exec(command)
+        else:
+            command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{1}', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'][i],gctab, dltab, bstab, iptab, amtab, fxtab)
+            logger.info('Executing command: '+command)
+            exec(command)
             
-        plot_file = plots_obs_dir+'corr_phase_spw{}.png'.format(spw_IDs[i])
-        logger.info('Plotting corrected phases for {0} to: {1}'.format(calib['bandcal'][i],plot_file))
-        plotms(vis=msfile, plotfile=plot_file, field=calib['bandcal'][i], xaxis='channel', yaxis='phase', ydatacolumn='corrected', correlation='RR,LL', avgtime='1E10', antenna=calib['refant'], spw=spw_IDs[i], coloraxis='antenna2', expformat='png', overwrite=True, showlegend=False, showgui=False)
+            logger.info('Applying clibration to: {}'.format(calib['fluxcal'][i]))
+            command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['fluxcal'][i],gctab, dltab, bstab, iptab, amtab, fxtab, calib['bandcal'][i])
+            logger.info('Executing command: '+command)
+            exec(command)
+            
+    plot_file = plots_obs_dir+'corr_phase.png'
+    logger.info('Plotting corrected phases for {0} to: {1}'.format(calib['bandcal'],plot_file))
+    plotms(vis=msfile, plotfile=plot_file, field=','.join(calib['bandcal']), xaxis='channel', yaxis='phase', ydatacolumn='corrected', correlation='RR,LL', 
+           avgtime='1E10', antenna=calib['refant'], spw=','.join(numpy.array(spw_IDs,dtype='str')), coloraxis='antenna2', iteraxis='spw', expformat='png', 
+           overwrite=True, showlegend=False, showgui=False)
 
-        plot_file = plots_obs_dir+'corr_amp_spw{}.png'.format(spw_IDs[i])
-        logger.info('Plotting corrected amplitudes for {0} to: {1}'.format(calib['bandcal'][i],plot_file))
-        plotms(vis=msfile, plotfile=plot_file, field=calib['bandcal'][i], xaxis='channel', yaxis='amp', ydatacolumn='corrected', correlation='RR,LL', avgtime='1E10', antenna=calib['refant'], spw=spw_IDs[i], coloraxis='antenna2', expformat='png', overwrite=True, showlegend=False, showgui=False)
+    plot_file = plots_obs_dir+'corr_amp.png'
+    logger.info('Plotting corrected amplitudes for {0} to: {1}'.format(calib['bandcal'],plot_file))
+    plotms(vis=msfile, plotfile=plot_file, field=','.join(calib['bandcal']), xaxis='channel', yaxis='amp', ydatacolumn='corrected', correlation='RR,LL', 
+           avgtime='1E10', antenna=calib['refant'], spw=','.join(numpy.array(spw_IDs,dtype='str')), coloraxis='antenna2', iteraxis='spw', expformat='png', 
+           overwrite=True, showlegend=False, showgui=False)
+    
+    logger.info('Apply all calibrations to phase calibrators and targets.')
+    for i in range(len(calib['targets'])):
+        if not calib['phasecal'][i] in calib['fluxcal']:
+            logger.info('Applying clibration to: {}'.format(calib['phasecal'][i]))
+            command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'][i],gctab, dltab, bstab, iptab, amtab, fxtab,calib['bandcal'][i])
+            logger.info('Executing command: '+command)
+            exec(command)
             
-            
-    for target in calib['targets']:
-        inx = calib['targets'].index(target)
-        phasecal = calib['phasecal'][inx]
-        fluxcal = calib['fluxcal'][inx]
-        logger.info('Applying clibration to: {0} and {1}'.format(target,phasecal))
-        msmd.open(msfile)
-        spws = msmd.spwsforfield(target)
-        msmd.close()
-        logger.info('{0} was observed in SPW(s): {1}'.format(target,spws))
-        
-        for spw in spws:
-            i = spw_IDs.index(spw)
-            dltab = cal_tabs+'delays_spw{}.cal'.format(spw_IDs[i])
-            bptab = cal_tabs+'bpphase_spw{}.gcal'.format(spw_IDs[i])
-            bstab = cal_tabs+'bandpass_spw{}.bcal'.format(spw_IDs[i])
-            iptab = cal_tabs+'intphase_spw{}.gcal'.format(spw_IDs[i])
-            sptab = cal_tabs+'scanphase_spw{}.gcal'.format(spw_IDs[i])
-            amtab = cal_tabs+'amp_spw{}.gcal'.format(spw_IDs[i])
-            fxtab = cal_tabs+'fluxsol_spw{}.cal'.format(spw_IDs[i])
-            
-            logger.info('Apply applying calibrations in SPW: {}'.format(spw))
-            if phasecal != fluxcal:
-                logger.info('Applying clibration to: {}'.format(phasecal))
-                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,phasecal,gctab, dltab, bstab, iptab, amtab, fxtab,calib['bandcal'][i])
-                logger.info('Executing command: '+command)
-                exec(command)
-            
-                logger.info('Applying clibration to: {}'.format(target))
-                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], calwt=False)".format(msfile,target,gctab, dltab, bstab, iptab, amtab, fxtab,calib['bandcal'][i],phasecal)
-                logger.info('Executing command: '+command)
-                exec(command)
-            else:
-                logger.info('Applying clibration to: {}'.format(target))
-                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{7}', '{7}', '{8}', '{8}'], calwt=False)".format(msfile,target,gctab, dltab, bstab, iptab, amtab,calib['bandcal'][i],phasecal)
-                logger.info('Executing command: '+command)
-                exec(command)
+            logger.info('Applying clibration to: {}'.format(calib['targets'][i]))
+            command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, fxtab,calib['bandcal'][i],calib['phasecal'][i])
+            logger.info('Executing command: '+command)
+            exec(command)
+        else:
+            logger.info('Applying clibration to: {}'.format(calib['targets'][i]))
+            command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{7}', '{7}', '{8}', '{8}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab,calib['bandcal'][i],calib['phasecal'][i])
+            logger.info('Executing command: '+command)
+            exec(command)
+    
     logger.info('Completed calibration.')
 
 

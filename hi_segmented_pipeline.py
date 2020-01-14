@@ -89,43 +89,31 @@ def dependency_check(outfile):
 def import_data(infile,outfile):
     statement = 'casa -c import_data.py {} && touch import_data.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
-    #print('stdout: {}'.format(stdout.decode("utf-8")))
-    #print('stderr: {}'.format(stderr.decode("utf-8")))
     
 @transform(import_data, suffix('import_data.done'.format(cgatcore_params['project'])), 'flag_calib_split.done'.format(cgatcore_params['project']))
 def flag_calib_split(infile,outfile):
     statement = 'casa -c flag_calib_split.py {} && touch flag_calib_split.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
-    #print('stdout: {}'.format(stdout.decode("utf-8")))
-    #print('stderr: {}'.format(stderr.decode("utf-8")))
     
 @transform(flag_calib_split, suffix('flag_calib_split.done'.format(cgatcore_params['project'])), 'dirty_cont_image.done'.format(cgatcore_params['project']))
 def dirty_cont_image(infile,outfile):
     statement = 'casa -c dirty_cont_image.py {} && touch dirty_cont_image.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
-    #print('stdout: {}'.format(stdout.decode("utf-8")))
-    #print('stderr: {}'.format(stderr.decode("utf-8")))
     
 @transform(dirty_cont_image, suffix('dirty_cont_image.done'.format(cgatcore_params['project'])), 'contsub_dirty_image.done'.format(cgatcore_params['project']))
 def contsub_dirty_image(infile,outfile):
     statement = 'casa -c contsub_dirty_image.py {} && touch contsub_dirty_image.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
-    #print('stdout: {}'.format(stdout.decode("utf-8")))
-    #print('stderr: {}'.format(stderr.decode("utf-8")))
     
 @transform(contsub_dirty_image, suffix('contsub_dirty_image.done'.format(cgatcore_params['project'])), 'clean_image.done'.format(cgatcore_params['project']))
 def clean_image(infile,outfile):
     statement = 'casa -c clean_image.py {} && touch clean_image.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
-    #print('stdout: {}'.format(stdout.decode("utf-8")))
-    #print('stderr: {}'.format(stderr.decode("utf-8")))
     
 @transform(clean_image, suffix('clean_image.done'.format(cgatcore_params['project'])), 'cleanup.done'.format(cgatcore_params['project']))
 def cleanup(infile,outfile):
     statement = 'casa -c cleanup.py {} && touch cleanup.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
-    #print('stdout: {}'.format(stdout.decode("utf-8")))
-    #print('stderr: {}'.format(stderr.decode("utf-8")))
     
 
 def main(argv=None):
