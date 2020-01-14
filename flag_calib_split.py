@@ -1,4 +1,4 @@
-import imp
+import imp, numpy
 imp.load_source('common_functions','common_functions.py')
 import common_functions as cf
 
@@ -174,6 +174,46 @@ def rm_flags(msfile,name,logger):
     exec(command)
     logger.info('Completed removing flag version.')
     
+def plot_flags(msfile,name,logger):
+    """
+    Make a plot with flagged and unflagged points coloured differently.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    name = Root of filename for the flag version. (String)
+    """
+    logger.info('Making flags plots for flag version: {}'.format(name))
+    plots_obs_dir = './plots/'
+    cf.makedir(plots_obs_dir,logger)
+    plot_name = plots_obs_dir+'flag_plot_'+name
+    
+    calib = config['calibration']
+    fields = calib['targets'][:]
+    fields.extend(calib['bandcal'])
+    fields.extend(calib['fluxcal'])
+    fields.extend(calib['phasecal'])
+    fields = list(set(fields))
+    
+    msmd.open(msfile)
+    spw_IDs = []
+    for field in fields:
+        spw_IDs.extend(list(msmd.spwsforfield(field)))
+    spw_IDs = list(set(list(spw_IDs)))
+    nspw = len(spw_IDs)
+    msmd.close()
+    
+    for field in fields:
+        logger.info('Making flags plots for {}.'.format(field))
+        plot_file = plot_name+'_'+field
+        logger.info('Plotting amplitude vs frequency to {}'.format(plot_file+'_freq.png'))
+        plotms(vis=msfile, xaxis='freq', yaxis='amp', field=field, plotfile=plot_file+'_freq.png',
+               customflaggedsymbol=True, spw=','.join(numpy.array(spw_IDs,dtype='str')),
+               expformat='png', overwrite=True, showgui=False)
+        logger.info('Plotting amplitude vs time to {}'.format(plot_file+'_time.png'))
+        plotms(vis=msfile, xaxis='time', yaxis='amp', field=field, plotfile=plot_file+'_time.png',
+               customflaggedsymbol=True, spw=','.join(numpy.array(spw_IDs,dtype='str')),
+               expformat='png', overwrite=True, showgui=False)
+    logger.info('Completed flags plots ')
 
 def select_refant(msfile,config,config_raw,config_file,logger):
     """
@@ -665,8 +705,6 @@ def calibration(msfile,config,logger):
     nspw = len(spw_IDs)
     msmd.close()
     
-    
-    
     for i in range(nspw):
         msmd.open(msfile)
         spw_fields = msmd.fieldsforspw(spw_IDs[i], asnames=True)
@@ -912,6 +950,7 @@ save_flags(msfile,flag_version,logger)
 flag_sum(msfile,flag_version,logger)
 select_refant(msfile,config,config_raw,config_file,logger)
 set_fields(msfile,config,config_raw,config_file,logger)
+plot_flags(msfile,flag_version,logger)
 calibration(msfile,config,logger)
 rflag(msfile,config,logger)
 flag_version = 'rflag'
@@ -928,5 +967,6 @@ flag_version = 'final'
 rm_flags(msfile,flag_version,logger)
 save_flags(msfile,flag_version,logger)
 flag_sum(msfile,flag_version,logger)
+plot_flags(msfile,flag_version,logger)
 cf.rmdir(config['global']['src_dir'],logger)
 split_fields(msfile,config,logger)
