@@ -1,5 +1,6 @@
 import time
 import os
+import filecmp
 import numpy
 import shutil
 import readline
@@ -136,3 +137,19 @@ def get_logger(
     logger.setLevel(logging.INFO)
     return logger
 
+def diff_pipeline_params(configfile,logger):
+    """
+    Prints a diff of the final and backed up versions of the pipeline parameters.
+    """
+    backup_file = 'backup.'+configfile
+    if not filecmp.cmp(backup_file,configfile):
+        logger.info('The parameters in {} have been modified during this pipeline step.'.format(configfile))
+        bash_command = 'diff {0} {1} > diff_params.txt'.format(backup_file,configfile)
+        os.system(bash_command)
+        f = open('diff_params.txt','r')
+        diff_lines = f.readlines()
+        f.close()
+        rmfile(backup_file,logger)
+        logger.info('The changes are as follows:')
+        for line in diff_lines:
+            logger.info(line)

@@ -275,3 +275,4 @@ contsub(msfile,config,config_raw,config_file,logger)
 #    for file_path in del_list:
 #        shutil.rmtree(file_path)
 dirty_image(config,config_raw,config_file,logger)
+cf.diff_pipeline_params(config_file,logger)

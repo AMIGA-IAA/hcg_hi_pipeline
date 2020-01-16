@@ -124,3 +124,4 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
 #Make dirty continuum image
 cf.rmdir(config['global']['img_dir'],logger)
 dirty_cont_image(config,config_raw,config_file,logger)
+cf.diff_pipeline_params(config_file,logger)

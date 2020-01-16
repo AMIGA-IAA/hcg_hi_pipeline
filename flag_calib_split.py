@@ -351,6 +351,7 @@ def set_fields(msfile,config,config_raw,config_file,logger):
         while (resp.lower() not in ['yes','ye','y']) and (resp.lower() not in ['no','n']) :
             resp = str(raw_input('Do you want to revise these names (y/n): '))
         if resp.lower() in ['yes','ye','y']:
+            change_made = True
             print('Note: Target names should NOT include spaces.')
             for i in range(len(calib['target_names'])):
                 calib['target_names'][i] = cf.uinput('Enter simple name for target {}: '.format(calib['targets'][i]), calib['target_names'][i])
@@ -970,3 +971,4 @@ flag_sum(msfile,flag_version,logger)
 plot_flags(msfile,flag_version,logger)
 cf.rmdir(config['global']['src_dir'],logger)
 split_fields(msfile,config,logger)
+cf.diff_pipeline_params(config_file,logger)

@@ -2,6 +2,7 @@
 
 import sys
 import os
+import filecmp
 import logging
 import time
 import numpy
@@ -40,6 +41,12 @@ def input_validation():
         raise ValueError(' Project ID is required but not found.')
         
     
+def backup_pipeline_params():
+    """
+    Creates (overwrites) a copy of the pipeline parameters file.
+    """
+    backup_file = 'backup.'+cgatcore_params['configfile']
+    shutil.copyfile(cgatcore_params['configfile'],backup_file)
         
 
 
@@ -50,6 +57,9 @@ cgatcore_params = P.get_parameters("hi_segmented_pipeline.yml")
 # Sanity checks on input parameters
 input_validation()
 
+#Review and backup pipeline parameters
+backup_pipeline_params()
+
 # Add CASA to the PATH
 os.environ["PATH"] += os.pathsep + cgatcore_params['casa']
 
@@ -58,8 +68,6 @@ os.environ["PATH"] += os.pathsep + cgatcore_params['casa']
 # to-do: we want to have it enable only for pipeline.log
 logging.getLogger("cgatcore.pipeline").disabled = False
 logging.getLogger("cgatcore").disabled = False
-
-
 
 
 # start of the cgat-core pipeline
