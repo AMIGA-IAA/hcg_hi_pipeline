@@ -22,8 +22,8 @@ def noise_est(config,logger):
         N = msmd.nantennas()
         t_int = msmd.effexposuretime()['value']
         t_unit = msmd.effexposuretime()['unit']
-        if t_unit != 's' or 'sec' not in t_unit:
-            logger.warning('Integration time units are not in seconds. Estimated noise will be incorrect.')
+        if t_unit != 's' and 'sec' not in t_unit:
+            logger.warning('Integration time units are not in seconds. Estimated noise may be incorrect.')
         ch_wid = numpy.mean(msmd.chanwidths(0))
         #Note: The above line may cause issues if different spectral windows
         #have very difference frequency resolutions
