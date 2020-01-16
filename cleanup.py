@@ -32,9 +32,9 @@ def cleanup(config,logger):
             shutil.rmtree('./{}.flagversions'.format(msfile))
         except OSError:
             pass
-    if cln_lvl >= 2:
         logger.info('Deleting full measurement set.')
-        shutil.rmtree('./{}'.format(msfile))        
+        shutil.rmtree('./{}'.format(msfile)) 
+    if cln_lvl >= 2:       
         logger.info('Deleting dirty images.')
         del_list = glob.glob(img_dir+'*.dirty.*')
         for file_path in del_list:
