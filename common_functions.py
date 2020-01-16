@@ -149,7 +149,15 @@ def diff_pipeline_params(configfile,logger):
         f = open('diff_params.txt','r')
         diff_lines = f.readlines()
         f.close()
-        rmfile(backup_file,logger)
+        rmfile('diff_params.txt',logger)
         logger.info('The changes are as follows:')
         for line in diff_lines:
             logger.info(line)
+            
+def backup_pipeline_params(configfile,logger):
+    """
+    Creates (overwrites) a copy of the pipeline parameters file.
+    """
+    backup_file = 'backup.'+configfile
+    logger.info('Backing up {0} to {1}.'.format(configfile,backup_file))
+    shutil.copyfile(configfile,backup_file)

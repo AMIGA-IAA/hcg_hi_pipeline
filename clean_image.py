@@ -303,3 +303,4 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
 ########Need to remove any existing CLEAN images
 image(config,config_raw,config_file,logger)
 cf.diff_pipeline_params(config_file,logger)
+cf.backup_pipeline_params(config_file,logger)
