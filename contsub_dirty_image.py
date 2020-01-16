@@ -264,16 +264,22 @@ logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['projec
 # Define MS file name
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
-#Contsub and make dity image
+#Contsub
 plot_spec(config,logger)
 contsub(msfile,config,config_raw,config_file,logger)
-#This also removes dirty continuum images
-#Needs a better solution
-#del_list = glob.glob(config['global']['img_dir']+'/'+'*.dirty.*')
-#if len(del_list) > 0:
-#    logger.info('Deleting existing dirty image(s): {}'.format(del_list))
-#    for file_path in del_list:
-#        shutil.rmtree(file_path)
+
+#Remove previous dirty images
+targets = config['calibration']['target_names']
+for target in targets:
+    del_list = glob.glob(config['global']['img_dir']+'/'+'{}.dirty.*'.format(target))
+    if len(del_list) > 0:
+        logger.info('Deleting existing dirty image(s): {}'.format(del_list))
+        for file_path in del_list:
+            shutil.rmtree(file_path)
+    
+#Make dirty image
 dirty_image(config,config_raw,config_file,logger)
+
+#Review and backup parameters file
 cf.diff_pipeline_params(config_file,logger)
 cf.backup_pipeline_params(config_file,logger)

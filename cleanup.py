@@ -1,4 +1,4 @@
-import imp, os, shutil
+import imp, os, glob, shutil
 imp.load_source('common_functions','common_functions.py')
 import common_functions as cf
 
@@ -23,9 +23,15 @@ def cleanup(config,logger):
         for file_path in del_list:
             os.remove(file_path)
         logger.info('Deleting calibration tables.')
-        shutil.rmtree('./cal_tabs')
+        try:
+            shutil.rmtree('./cal_tabs')
+        except OSError:
+            pass
         logger.info('Deleting flag tables.')
-        shutil.rmtree('./{}.flagversions'.format(msfile))
+        try:
+            shutil.rmtree('./{}.flagversions'.format(msfile))
+        except OSError:
+            pass
     if cln_lvl >= 2:
         logger.info('Deleting full measurement set.')
         shutil.rmtree('./{}'.format(msfile))        

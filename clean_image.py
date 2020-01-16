@@ -299,8 +299,29 @@ logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['projec
 # Define MS file name
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
+#Remove previous image files
+targets = config['calibration']['target_names']
+img_path = config['global']['img_dir']+'/'
+for target in targets:
+    logger.info('Deleting any existing clean image(s).')
+    del_list = [img_path+target+'.mask',img_path+target+'.model',img_path+target+'.pb',img_path+target+'.psf',img_path+target+'.residual',img_path+target+'.sumwt']
+    del_list.extend(glob.glob(img_path+'{}.image.*'.format(target)))
+    if len(del_list) > 0:
+        for file_path in del_list:
+            try:
+                shutil.rmtree(file_path)
+            except OSError:
+                pass
+    del_list = [img_path+target+'_HI.fits',img_path+target+'_HI.pbcor.fits']
+    for file_path in del_list:
+        try:
+            os.remove(file_path)
+        except FileNotFoundError:
+            pass
+            
 #Make clean image
-########Need to remove any existing CLEAN images
 image(config,config_raw,config_file,logger)
+
+#Review and backup parameters file
 cf.diff_pipeline_params(config_file,logger)
 cf.backup_pipeline_params(config_file,logger)

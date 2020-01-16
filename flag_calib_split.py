@@ -971,5 +971,7 @@ flag_sum(msfile,flag_version,logger)
 plot_flags(msfile,flag_version,logger)
 cf.rmdir(config['global']['src_dir'],logger)
 split_fields(msfile,config,logger)
+
+#Review and backup parameters file
 cf.diff_pipeline_params(config_file,logger)
 cf.backup_pipeline_params(config_file,logger)
