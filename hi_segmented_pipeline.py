@@ -49,7 +49,71 @@ def backup_pipeline_params():
     shutil.copyfile(cgatcore_params['configfile'],backup_file)
         
 
-
+        
+def check_pipeline_params():
+    """
+    Checks if any pipeline parameters have been modified since the previous run.
+    """
+    configfile = cgatcore_params['configfile']
+    backup_file = 'backup.'+configfile
+    if os.access(backup_file, os.R_OK):
+        if not filecmp.cmp(backup_file,configfile):
+            print('Parameters in {} have been modified since the last execution.'.format(configfile))
+            bash_command = 'diff {0} {1} > diff_params.txt'.format(backup_file,configfile)
+            os.system(bash_command)
+            f = open('diff_params.txt','r')
+            diff = f.read()
+            f.close()
+            os.remove('diff_params.txt')
+            
+            import_data_kwds = ['project_name','data_path','jvla']
+            flag_calib_split_kwds = ['src_dir','shadow_tol','quack_int','timecutoff','freqcutoff','rthresh','refant',
+                                     'fluxcal','fluxmod','man_mod','bandcal','phasecal','targets','target_names']
+            dirty_cont_image_kwds = ['rest_freq','img_dir','pix_size','im_size','robust']
+            contsub_dirty_image_kwds = ['linefree_ch','fitorder','save_cont']
+            clean_image_kwds = ['automask','multiscale','beam_scales','sefd','corr_eff','thresh']
+            cleanup_kwds = ['cleanup_level']
+            
+            if any(keyword in diff for keyword in import_data_kwds):
+                print('Steps from {} onwards will be marked as incomplete.'.format('import_data'))
+                try:
+                    os.remove('import_data.done')
+                except FileNotFoundError:
+                    pass
+            elif any(keyword in diff for keyword in flag_calib_split_kwds):
+                print('Steps from {} onwards will be marked as incomplete.'.format('flag_calib_split'))
+                try:
+                    os.remove('flag_calib_split.done')
+                except FileNotFoundError:
+                    pass
+            elif any(keyword in diff for keyword in dirty_cont_image_kwds):
+                print('Steps from {} onwards will be marked as incomplete.'.format('dirty_cont_image'))
+                try:
+                    os.remove('dirty_cont_image.done')
+                except FileNotFoundError:
+                    pass
+            elif any(keyword in diff for keyword in contsub_dirty_image_kwds):
+                print('Steps from {} onwards will be marked as incomplete.'.format('contsub_dirty_image'))
+                try:
+                    os.remove('contsub_dirty_image.done')
+                except FileNotFoundError:
+                    pass
+            elif any(keyword in diff for keyword in clean_image_kwds):
+                print('Steps from {} onwards will be marked as incomplete.'.format('clean_image'))
+                try:
+                    os.remove('clean_image.done')
+                except FileNotFoundError:
+                    pass
+            elif any(keyword in diff for keyword in cleanup_kwds):
+                print('Steps from {} onwards will be marked as incomplete.'.format('cleanup'))
+                try:
+                    os.remove('cleanup.done')
+                except FileNotFoundError:
+                    pass
+    else:
+        print('No parameters backup file found.')
+        print('Skipping parameters change check.')
+        
 
 # Read cgat-core configuration
 cgatcore_params = P.get_parameters("hi_segmented_pipeline.yml")
@@ -58,6 +122,7 @@ cgatcore_params = P.get_parameters("hi_segmented_pipeline.yml")
 input_validation()
 
 #Review and backup pipeline parameters
+check_pipeline_params()
 backup_pipeline_params()
 
 # Add CASA to the PATH

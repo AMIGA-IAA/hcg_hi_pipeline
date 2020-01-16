@@ -127,10 +127,10 @@ def image(config,config_raw,config_file,logger):
         algorithm = 'multiscale'
         logger.info('Setting CLEAN algorithm to MS-CLEAN.')
         reset_cln = False
-        if cln_param['scales'] == []:
+        if cln_param['beam_scales'] == []:
             reset_cln = True
             logger.warning('MS-CLEAN scales not set.')
-        elif 0 not in cln_param['scales']:
+        elif 0 not in cln_param['beam_scales']:
             logger.warning('MS-CLEAN scales do not include point sources. This is highly recommended.')
             if interactive:
                 resp = str(raw_input('Do you want revise MS-CLEAN scales (y/n): '))
@@ -138,20 +138,20 @@ def image(config,config_raw,config_file,logger):
                     reset_cln = True
             else:
                 logger.info('Adding point source to MS-CLEAN scales.')
-                cln_param['scales'].append(0)
+                cln_param['beam_scales'].append(0)
                 reset_cln = True
         if reset_cln:
             if interactive:
-                print('Current scales set to: {} beam diameters.'.format(cln_param['scales']))
-                cln_param['scales'] = cf.uinput('Enter new scales: ', cln_param['scales'])
-            logger.info('Setting MS-CLEAN scales as {} beams.'.format(cln_param['scales']))
+                print('Current scales set to: {} beam diameters.'.format(cln_param['beam_scales']))
+                cln_param['beam_scales'] = cf.uinput('Enter new scales: ', cln_param['beam_scales'])
+            logger.info('Setting MS-CLEAN scales as {} beams.'.format(cln_param['beam_scales']))
             logger.info('Updating config file to set MS-CLEAN scales.')
-            config_raw.set('clean','scales',cln_param['scales'])
+            config_raw.set('clean','scales',cln_param['beam_scales'])
             configfile = open(config_file,'w')
             config_raw.write(configfile)
             configfile.close()
             reset_cln = False
-        scales = cln_param['scales']
+        scales = cln_param['beam_scales']
     else:
         algorithm = 'hogbom'
         logger.info('Setting CLEAN algorithm to Hogbom.')
@@ -217,7 +217,7 @@ def image(config,config_raw,config_file,logger):
             pix_size = cln_param['pix_size'][i]
             pix_size = float(pix_size[:pix_size.find(rest_beam['minor']['unit'])])
             pix_per_beam = rest_beam['major']['value']/pix_size
-            scales = cln_param['scales']
+            scales = cln_param['beam_scales']
             scales = list(numpy.array(numpy.array(scales)*pix_per_beam,dtype='int'))
             B_min = au.getBaselineLengths('{0}{1}.split.contsub'.format(src_dir,target), sort=True)[0][1]
             msmd.open('{0}{1}.split.contsub'.format(src_dir,target))
