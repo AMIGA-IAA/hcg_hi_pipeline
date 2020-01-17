@@ -1,4 +1,4 @@
-import imp, glob, os
+import imp, glob
 imp.load_source('common_functions','common_functions.py')
 import common_functions as cf
 
@@ -102,23 +102,10 @@ def dirty_cont_image(config,config_raw,config_file,logger):
     for i in range(len(targets)):
         target = targets[i]
         field = calib['targets'][i]
-        if os.access('{0}{1}.split'.format(src_dir,target), os.R_OK):
-            logger.info('Making dirty image of {} (inc. continuum).'.format(target))
-            command = "tclean(vis='{0}{1}'+'.split', field='{2}', imagename='{3}{1}'+'.cont.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
-            logger.info('Executing command: '+command)
-            exec(command)
-        else:
-            target_MSs = os.listdir(src_dir)
-            target_MSs = [dirpath for dirpath in target_MSs if target in dirpath]
-            target_MSs = [dirpath for dirpath in target_MSs if 'cont' not in dirpath]
-            if len(target_MSs) > 0:
-                for target in target_MSs:
-                    logger.info('Making dirty image of {} (inc. continuum).'.format(target))
-                    command = "tclean(vis='{0}{1}', field='{2}', imagename='{3}{1}'+'.cont.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
-                    logger.info('Executing command: '+command)
-                    exec(command)
-            else:
-                logger.warning('Not split MS for {} was found.'.format(target))
+        logger.info('Making dirty image of {} (inc. continuum).'.format(target))
+        command = "tclean(vis='{0}{1}'+'.split', field='{2}', imagename='{3}{1}'+'.cont.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+        logger.info('Executing command: '+command)
+        exec(command)  
     logger.info('Completed making dirty continuum image.')
 
     

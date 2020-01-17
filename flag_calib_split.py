@@ -208,11 +208,11 @@ def plot_flags(msfile,name,logger):
         logger.info('Plotting amplitude vs frequency to {}'.format(plot_file+'_freq.png'))
         plotms(vis=msfile, xaxis='freq', yaxis='amp', field=field, plotfile=plot_file+'_freq.png',
                customflaggedsymbol=True, spw=','.join(numpy.array(spw_IDs,dtype='str')),
-               averagedata=True, avgtime='60', expformat='png', overwrite=True, showgui=False)
+               expformat='png', overwrite=True, showgui=False)
         logger.info('Plotting amplitude vs time to {}'.format(plot_file+'_time.png'))
         plotms(vis=msfile, xaxis='time', yaxis='amp', field=field, plotfile=plot_file+'_time.png',
                customflaggedsymbol=True, spw=','.join(numpy.array(spw_IDs,dtype='str')),
-               averagedata=True, avgchannel='5', expformat='png', overwrite=True, showgui=False)
+               expformat='png', overwrite=True, showgui=False)
     logger.info('Completed flags plots ')
 
 def select_refant(msfile,config,config_raw,config_file,logger):
@@ -910,27 +910,17 @@ def split_fields(msfile,config,logger):
         target_name = calib['target_names'][i]
         msmd.open(msfile)
         spws = msmd.spwsforfield(field)
+        msmd.close()
         if len(spws) > 1:
-            logger.info('{0} was observed in multiple SPWs. These will now be combined (if possible) and the field split into a separate MS.'.format(field))
-            spws_nchan = numpy.array(numpy.zeros(len(spws)),dtype='int')
-            for j in range(len(spws)):
-                spws_nchan[j] = msmd.nchan(spws[j])
-            if len(set(spws_nchan)) == 1:
-                command = "mstransform(vis='{0}', outputvis='{2}{1}.split', field='{3}', spw='{4}', combinespws=True)".format(msfile,target_name,src_dir,field,','.join(numpy.array(spws,dtype='str')))
-                logger.info('Executing command: '+command)
-                exec(command)
-            else:
-                logger.info('SPWs {} cannot be combined and will be split into separate MSs.'.format(spws))
-                for spw in spws:
-                    command = "split(vis='{0}', outputvis='{1}{2}'+'.spw{3}.split', field='{4}', spw='{3}')".format(msfile,src_dir,target_name,spw,field)
-                    logger.info('Executing command: '+command)
-                    exec(command)
+            logger.info('{0} was observed in multiple SPWs. These will now be combined and the field split into a separate MS.'.format(field))
+            command = "mstransform(vis='{0}', outputvis='{2}{1}.split', field='{3}', spw='{4}', combinespws=True)".format(msfile,target_name,src_dir,field,','.join(numpy.array(spws,dtype='str')))
+            logger.info('Executing command: '+command)
+            exec(command)
         else:
-            logger.info('Splitting {0} into separate file: {1}.'.format(field, target_name+'.split'))
+            logger.info('Splitting {0} into separate file: {1}.'.format(field, field+'.split'))
             command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{3}')".format(msfile,src_dir,target_name,field)
             logger.info('Executing command: '+command)
             exec(command)
-        msmd.close()
         listobs_file = sum_dir+target_name+'.listobs.summary'
         cf.rmfile(listobs_file,logger)
         logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
@@ -945,7 +935,7 @@ interactive = config['global']['interactive']
 
 # Set up your logger
 logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['project_name']),
-                       LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name'])) # Set up your logger
+                    LOG_FILE_ERROR = '{}_errors.log'.format(config['global']['project_name'])) # Set up your logger
 
 # Define MS file name
 msfile = '{0}.ms'.format(config['global']['project_name'])
