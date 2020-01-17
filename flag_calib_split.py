@@ -208,11 +208,11 @@ def plot_flags(msfile,name,logger):
         logger.info('Plotting amplitude vs frequency to {}'.format(plot_file+'_freq.png'))
         plotms(vis=msfile, xaxis='freq', yaxis='amp', field=field, plotfile=plot_file+'_freq.png',
                customflaggedsymbol=True, spw=','.join(numpy.array(spw_IDs,dtype='str')),
-               expformat='png', overwrite=True, showgui=False)
+               averagedata=True, avgtime='60', expformat='png', overwrite=True, showgui=False)
         logger.info('Plotting amplitude vs time to {}'.format(plot_file+'_time.png'))
         plotms(vis=msfile, xaxis='time', yaxis='amp', field=field, plotfile=plot_file+'_time.png',
                customflaggedsymbol=True, spw=','.join(numpy.array(spw_IDs,dtype='str')),
-               expformat='png', overwrite=True, showgui=False)
+               averagedata=True, avgchan='5', expformat='png', overwrite=True, showgui=False)
     logger.info('Completed flags plots ')
 
 def select_refant(msfile,config,config_raw,config_file,logger):
@@ -917,7 +917,7 @@ def split_fields(msfile,config,logger):
             logger.info('Executing command: '+command)
             exec(command)
         else:
-            logger.info('Splitting {0} into separate file: {1}.'.format(field, field+'.split'))
+            logger.info('Splitting {0} into separate file: {1}.'.format(field, target+'.split'))
             command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{3}')".format(msfile,src_dir,target_name,field)
             logger.info('Executing command: '+command)
             exec(command)
