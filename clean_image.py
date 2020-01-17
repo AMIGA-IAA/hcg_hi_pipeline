@@ -316,7 +316,7 @@ for target in targets:
     for file_path in del_list:
         try:
             os.remove(file_path)
-        except FileNotFoundError:
+        except OSError:
             pass
             
 #Make clean image
