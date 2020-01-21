@@ -12,7 +12,7 @@ In order to run the pipeline you will first need to modify 2 files: PROJECTID_pa
   3. In the pipeline yaml file specify the new name of the parameters file under the variable "configfile".
   4. In the pipeline yaml file specify the path to your installation of CASA.
 
-Each of these points in the files are highlighted with a "CHANGEME" comment next to them.
+Each of these points in the files are highlighted with a "CHANGEME" comment next to them. You will also need to (manually) make a symbolic link to the the 'hi_segmented_pipeline.py' script. If the files 'hi_segmented_pipeline.py', 'hi_segmented_pipeline.yml', and 'PROJECTID_params.cfg' are all present in the execution directory, then the pipeline will construct the remaining necessary links and copy the raw data (if a historical VLA data set, data from JVLA observations is not duplicated, merely linked to).
 
 ## Running the pipeline
 
