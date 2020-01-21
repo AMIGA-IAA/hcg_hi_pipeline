@@ -72,6 +72,7 @@ def check_pipeline_params():
             dirty_cont_image_kwds = ['rest_freq','img_dir','pix_size','im_size','robust']
             contsub_dirty_image_kwds = ['linefree_ch','fitorder','save_cont']
             clean_image_kwds = ['automask','multiscale','beam_scales','sefd','corr_eff','thresh']
+            moment_kwds = ['mom_thresh','mom_chans']
             cleanup_kwds = ['cleanup_level']
             
             if any(keyword in diff for keyword in import_data_kwds):
@@ -102,6 +103,12 @@ def check_pipeline_params():
                 print('Steps from {} onwards will be marked as incomplete.'.format('clean_image'))
                 try:
                     os.remove('clean_image.done')
+                except FileNotFoundError:
+                    pass
+            elif any(keyword in diff for keyword in moment_kwds):
+                print('Steps from {} onwards will be marked as incomplete.'.format('moment_zero'))
+                try:
+                    os.remove('moment_zero.done')
                 except FileNotFoundError:
                     pass
             elif any(keyword in diff for keyword in cleanup_kwds):
@@ -182,8 +189,13 @@ def contsub_dirty_image(infile,outfile):
 def clean_image(infile,outfile):
     statement = 'casa -c clean_image.py {} && touch clean_image.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
+
+@transform(clean_image, suffix('clean_image.done'.format(cgatcore_params['project'])), 'moment_zero.done'.format(cgatcore_params['project']))
+def moment_zero(infile,outfile):
+    statement = 'casa -c moment_zero.py {} && touch moment_zero.done'.format(cgatcore_params['configfile'])
+    stdout, stderr = P.execute(statement)
     
-@transform(clean_image, suffix('clean_image.done'.format(cgatcore_params['project'])), 'cleanup.done'.format(cgatcore_params['project']))
+@transform(moment_zero, suffix('moment_zero.done'.format(cgatcore_params['project'])), 'cleanup.done'.format(cgatcore_params['project']))
 def cleanup(infile,outfile):
     statement = 'casa -c cleanup.py {} && touch cleanup.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)

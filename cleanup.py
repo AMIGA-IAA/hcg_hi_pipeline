@@ -15,6 +15,7 @@ def cleanup(config,logger):
     """
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
+    mom_dir = config['global']['mom_dir']+'/'
     cln_lvl = config['global']['cleanup_level']
     logger.info('Starting level {} cleanup.'.format(cln_lvl))
     if cln_lvl >= 1:
@@ -56,6 +57,10 @@ def cleanup(config,logger):
             shutil.rmtree(file_path)
         logger.info('Deleting weighting.')
         del_list = glob.glob(img_dir+'*.sumwt')
+        for file_path in del_list:
+            shutil.rmtree(file_path)
+        logger.info('Deleting raw moments.')
+        del_list = glob.glob(mom_dir+'*.mom0')
         for file_path in del_list:
             shutil.rmtree(file_path)
     if cln_lvl >= 3:

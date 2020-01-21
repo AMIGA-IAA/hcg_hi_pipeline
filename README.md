@@ -12,19 +12,20 @@ In order to run the pipeline you will first need to modify 2 files: PROJECTID_pa
   3. In the pipeline yaml file specify the new name of the parameters file under the variable "configfile".
   4. In the pipeline yaml file specify the path to your installation of CASA.
 
-Each of these points in the files are highlighted with a "CHANGME" comment next to them.
+Each of these points in the files are highlighted with a "CHANGEME" comment next to them.
 
 ## Running the pipeline
 
-The pipeline has 6 steps which are chained together using the [CGAT-core](https://github.com/cgat-developers/cgat-core) workflow management system such that each step is aware that it depends on previous steps.
+The pipeline has 7 steps which are chained together using the [CGAT-core](https://github.com/cgat-developers/cgat-core) workflow management system such that each step is aware that it depends on previous steps.
 
-The 6 steps are:
+The 7 steps are:
   1. 'import_data': Converts the raw data into CASA measurement set format (unless already the case).
   2. 'flag_calib_split': This step flags, calibrates and splits off the individual targets from the full data set. Flagging is done through the automated algorithms available in CASA. However, the user may create a manual list of flags in a file named 'manual_flags.list' in the execution directory and the pipeline will include these as well (such flags must be in CASA's [list format](https://casa.nrao.edu/casadocs/casa-5.4.1/global-task-list/task_flagdata/about)). If the pipeline is run in interactive mode the user is the queries to specify which sources are calibrators and targets in order for the data to be correctly calibrated. Further automatic flagging is performed on the (first round) calibrated data and then the calibration is re-run a second time. Finally the target objects are split off into separate measurement sets.
   3. 'dirty_cont_image': A dirty image (without the continuum emission removed) is produced for each target.
   4. 'contsub_dirty_image': The user is queried to specify the emission line-free channels for each target. The continuum is then removed from the uv data. Another dirty image of each target is produced, but now with the continuum removed.
   5. 'clean_image': The expected noise level based on the integration time and the amount of flagging is estimated and a clean image is generated using the CASA task tclean. Generates fits cubes for each target with and without a primary beam correction.
-  6. 'cleanup': This step deleted various files created by the workflow to save space. However, note that running this step effectively finalises the products of the pipeline and it may be necessary to begin again from step 1 if any changes need to be made. There are 3 cumulative levels of this function (set in the PROJECTID_params.cfg file): 1) deletes files connected to the uncalibrated data (steps before splitting must be repeated), 2) deletes excess files produce when generating images (all imaging must be repeated), 3) deletes all files produced in imaging except the final fits cubes (cubes in CASA format and the residuals cubes are lost).
+  6. 'moment_zero': This creates a simple moment zero map of the emission, including all pixels above a given S/N threshold (set in the parameters file). 
+  7. 'cleanup': This step deleted various files created by the workflow to save space. However, note that running this step effectively finalises the products of the pipeline and it may be necessary to begin again from step 1 if any changes need to be made. There are 3 cumulative levels of this function (set in the PROJECTID_params.cfg file): 1) deletes files connected to the uncalibrated data (steps before splitting must be repeated), 2) deletes excess files produce when generating images (all imaging must be repeated), 3) deletes all files produced in imaging except the final fits cubes (cubes in CASA format and the residuals cubes are lost).
   
 To execute a particular step of the pipeline use a command equivalent to the following:
 

@@ -58,32 +58,6 @@ def image(config,config_raw,config_file,logger):
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
     cf.makedir('./'+img_dir,logger)
-    logger.info('Removing any existing images.')
-    for target in targets:
-        del_list = glob.glob(img_dir+'{}.image'.format(target))
-        for file_path in del_list:
-            logger.info('Deleting: '+file_path)
-            shutil.rmtree(file_path)
-        del_list = glob.glob(img_dir+'{}.model'.format(target))
-        for file_path in del_list:
-            logger.info('Deleting: '+file_path)
-            shutil.rmtree(file_path)
-        del_list = glob.glob(img_dir+'{}.pb'.format(target))
-        for file_path in del_list:
-            logger.info('Deleting: '+file_path)
-            shutil.rmtree(file_path)
-        del_list = glob.glob(img_dir+'{}.psf'.format(target))
-        for file_path in del_list:
-            logger.info('Deleting: '+file_path)
-            shutil.rmtree(file_path)
-        del_list = glob.glob(img_dir+'{}.residual'.format(target))
-        for file_path in del_list:
-            logger.info('Deleting: '+file_path)
-            shutil.rmtree(file_path)
-        del_list = glob.glob(img_dir+'{}.sumwt'.format(target))
-        for file_path in del_list:
-            logger.info('Deleting: '+file_path)
-            shutil.rmtree(file_path)
     logger.info('Starting generation of clean image(s).')
     reset_cln = False
     reset_cln = False
@@ -286,7 +260,6 @@ def image(config,config_raw,config_file,logger):
     logger.info('Completed generation of clean image(s).')
     
     
-    
 # Read configuration file with parameters
 config_file = sys.argv[-1]
 config,config_raw = cf.read_config(config_file)
@@ -302,8 +275,8 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
 #Remove previous image files
 targets = config['calibration']['target_names']
 img_path = config['global']['img_dir']+'/'
+logger.info('Deleting any existing clean image(s).')
 for target in targets:
-    logger.info('Deleting any existing clean image(s).')
     del_list = [img_path+target+'.mask',img_path+target+'.model',img_path+target+'.pb',img_path+target+'.psf',img_path+target+'.residual',img_path+target+'.sumwt']
     del_list.extend(glob.glob(img_path+'{}.image.*'.format(target)))
     if len(del_list) > 0:
