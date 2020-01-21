@@ -917,7 +917,7 @@ def split_fields(msfile,config,logger):
             logger.info('Executing command: '+command)
             exec(command)
         else:
-            logger.info('Splitting {0} into separate file: {1}.'.format(field, target+'.split'))
+            logger.info('Splitting {0} into separate file: {1}.'.format(field, target_name+'.split'))
             command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{3}')".format(msfile,src_dir,target_name,field)
             logger.info('Executing command: '+command)
             exec(command)
