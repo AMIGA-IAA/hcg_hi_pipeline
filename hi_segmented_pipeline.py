@@ -153,7 +153,7 @@ def dependency_check(outfile):
         if shutil.which(cmd) is None:
             raise EnvironmentError("Required dependency \"{}\" not found".format(cmd))
     
-    scripts = ['import_data','flag_calib_split','dirty_cont_image','contsub_dirty_image','clean_image','cleanup','common_functions']
+    scripts = ['import_data','flag_calib_split','dirty_cont_image','contsub_dirty_image','clean_image','cleanup','common_functions','moment_zero']
     for script in scripts:
         if not os.access(script+'.py', os.R_OK):
             os.symlink(cgatcore_params['scripts']+script+'.py',script+'.py')
