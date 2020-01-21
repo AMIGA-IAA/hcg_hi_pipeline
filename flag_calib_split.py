@@ -212,7 +212,7 @@ def plot_flags(msfile,name,logger):
         logger.info('Plotting amplitude vs time to {}'.format(plot_file+'_time.png'))
         plotms(vis=msfile, xaxis='time', yaxis='amp', field=field, plotfile=plot_file+'_time.png',
                customflaggedsymbol=True, spw=','.join(numpy.array(spw_IDs,dtype='str')),
-               averagedata=True, avgchan='5', expformat='png', overwrite=True, showgui=False)
+               averagedata=True, avgchannel='5', expformat='png', overwrite=True, showgui=False)
     logger.info('Completed flags plots ')
 
 def select_refant(msfile,config,config_raw,config_file,logger):
