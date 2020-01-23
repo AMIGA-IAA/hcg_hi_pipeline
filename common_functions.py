@@ -65,7 +65,7 @@ def rmdir(pathdir,logger):
     if os.path.exists(pathdir):
         try:
             shutil.rmtree(pathdir)
-            logger.info('Deleted: {0}'.format(message, pathdir))
+            logger.info('Deleted: {0}'.format(pathdir))
         except:
             logger.debug('Could not delete: {0}'.format(pathdir))
             pass
