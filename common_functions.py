@@ -69,6 +69,21 @@ def rmdir(pathdir,logger):
         except:
             logger.debug('Could not delete: {0}'.format(pathdir))
             pass
+        
+def mvdir(pathdir, newdir, logger):
+    '''
+    Moves an entire directory.
+    
+    Input:
+    pathdir = Path of the directory to be moved. (String)
+    '''
+    if os.path.exists(pathdir):
+        try:
+            shutil.move(pathdir,newdir)
+            logger.info('Moved {0} to {1}'.format(pathdir,newdir))
+        except:
+            logger.debug('Could not move: {0}'.format(pathdir))
+            pass
 
 
 def rmfile(pathdir,logger):

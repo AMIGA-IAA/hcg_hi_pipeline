@@ -165,6 +165,52 @@ def plot_ants(msfile,logger):
     logger.info('Plotting antenna positions to: {}'.format(plot_file))
     plotants(vis=msfile,figfile=plot_file)
     logger.info('Completed plotting antenna positions.')
+    
+def transform_data(msfile,config,config_raw,config_file,logger):
+    """
+    Allows the user to alter the data set by selection only specific observations, fields, and SPWs.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    config_raw = The instance of the parser.
+    config_file = Path to configuration file. (String)
+    """
+    logger.info('Starting data transform.')
+    importdata = config['importdata']
+    if not importdata['mstransform']:
+        if interactive:
+            print('You may want to review the listobs summary of the imported data to decide if certain observations, SPWs, or fields should be removed.')
+            resp = ''
+            while (resp.lower() not in ['yes','ye','y']) and (resp.lower() not in ['no','n']) :
+                resp = str(raw_input('Do you want to transform the data set (y/n): '))
+            if resp.lower() in ['yes','ye','y']:
+                importdata['mstransform'] = True
+    if importdata['mstransform']:
+        if interactive:
+            print('Select which observations, SPWs, and fields to keep in the MS.')
+            print('Blank strings mean all.')
+            importdata['keep_obs'] = cf.uinput('The following observations will be kept: ', importdata['keep_obs'])
+            importdata['keep_spws'] = cf.uinput('The following SPWs will be kept: ', importdata['keep_spws'])
+            importdata['keep_fields'] = cf.uinput('The following fields will be kept: ', importdata['keep_fields'])
+        command = "mstransform(vis='{0}', outputvis='{0}_1', field='{1}', spw='{2}', observation='{3}')".format(msfile,importdata['keep_fields'],importdata['keep_spws'],importdata['keep_obs'])
+        logger.info('Executing command: '+command)
+        exec(command)            
+        logger.info('Updating config file ({0}) to set mstransform values.'.format(config_file))
+        config_raw.set('importdata','keep_obs',importdata['keep_obs'])
+        config_raw.set('importdata','keep_spws',importdata['keep_spws'])
+        config_raw.set('importdata','keep_fields',importdata['keep_fields'])
+        configfile = open(config_file,'w')
+        config_raw.write(configfile)
+        configfile.close()
+        cf.rmdir(msfile+.'flagversions',logger)
+        cf.makedir(msfile+.'flagversions',logger)
+        cf.rmdir(msfile,logger)
+        cf.mvdir(msfile+'_1',msfile,logger)
+        logger.info('Completed data transformation.')
+        listobs_sum(msfile,logger)
+    else:
+        logger.info('No transformation made.')
 
 
 # Read configuration file with parameters
@@ -188,6 +234,11 @@ if not config['importdata']['jvla']:
 else:
     os.symlink(data_path+msfile,msfile)
 listobs_sum(msfile,logger)
+transform_data(msfile,config,config_raw,config_file,logger)
 msinfo = get_msinfo(msfile,logger)
 plot_elevation(msfile,config,logger)
 plot_ants(msfile,logger)
+
+#Review and backup parameters file
+cf.diff_pipeline_params(config_file,logger)
+cf.backup_pipeline_params(config_file,logger)
