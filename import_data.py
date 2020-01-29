@@ -227,6 +227,8 @@ logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['projec
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 # Import data, write listobs to file, and plot positions and elevation
+cf.rmdir('summary',logger)
+cf.rmdir('plots',logger)
 data_path = config['importdata']['data_path']
 if not config['importdata']['jvla']:
     data_files = glob.glob(os.path.join(data_path, '*'))

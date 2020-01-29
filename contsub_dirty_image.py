@@ -48,12 +48,38 @@ def contsub(msfile,config,config_raw,config_file,logger):
             for i in range(len(calib['target_names'])):
                 contsub['linefree_ch'][i] = cf.uinput('Line free channels for {}: '.format(calib['target_names'][i]), contsub['linefree_ch'][i])
                 logger.info('Setting line free channels for {0} as: {1}.'.format(calib['target_names'][i], contsub['linefree_ch'][i]))
-            logger.info('Updating config file to set line free channels.')
+                if type(contsub['fitorder']) == type(1):
+                    order_set = False
+                    while not order_set:
+                        try:
+                            order = int(cf.uinput('Set the fit order for {}: '.format(calib['target_names'][i]), contsub['fitorder']))
+                            if order >= 0:
+                                order_set = True
+                        except ValueError:
+                            print 'Fit order must be an integer.'
+                    if order != contsub['fitorder'] and len(calib['target_names']) > 1:
+                        order_list = list(numpy.zeros(len(calib['target_names']),dtype='int')+contsub['fitorder'])
+                        order_list[i] = order
+                        order = order_list
+                    contsub['fitorder'] = order
+                else:
+                    order_set = False
+                    while not order_set:
+                        try:
+                            order = int(cf.uinput('Set the fit order for {}: '.format(calib['target_names'][i]), contsub['fitorder'][i]))
+                            if order >= 0:
+                                order_set = True
+                                contsub['fitorder'] = order
+                        except ValueError:
+                            print 'Fit order must be an integer.'
+            logger.info('Updating config file to set line free channels and fit orders.')
             config_raw.set('continuum_subtraction','linefree_ch',contsub['linefree_ch'])
+            config_raw.set('continuum_subtraction','fitorder',contsub['fitorder'])
             configfile = open(config_file,'w')
             config_raw.write(configfile)
             configfile.close()
     logger.info('Line free channels set as: {}.'.format(contsub['linefree_ch']))
+    logger.info('Fit order(s) set as: {}.'.format(contsub['fitorder']))
     logger.info('For the targets: {}.'.format(calib['target_names']))
     for i in range(len(calib['target_names'])):
         target = calib['target_names'][i]
@@ -65,7 +91,11 @@ def contsub(msfile,config,config_raw,config_file,logger):
             spw = spw[0]
             spws[i] = spw
         logger.info('Subtracting the continuum from field: {}'.format(target))
-        command = "uvcontsub(vis='{0}{1}'+'.split', field='{2}', fitspw='{3}', spw='{4}', excludechans=False,combine='spw',solint='int', fitorder={5}, want_cont={6})".format(src_dir,target,field,chans,','.join(spws),contsub['fitorder'],contsub['save_cont'])
+        if type(contsub['fitorder']) == type(1):
+            order = contsub['fitorder']
+        else:
+            order = contsub['fitorder'][i]
+        command = "uvcontsub(vis='{0}{1}'+'.split', field='{2}', fitspw='{3}', spw='{4}', excludechans=False,combine='spw',solint='int', fitorder={5}, want_cont={6})".format(src_dir,target,field,chans,','.join(spws),order,contsub['save_cont'])
         logger.info('Executing command: '+command)
         exec(command)
     logger.info('Completed continuum subtraction.')
