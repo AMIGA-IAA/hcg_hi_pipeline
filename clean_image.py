@@ -283,7 +283,7 @@ img_path = config['global']['img_dir']+'/'
 logger.info('Deleting any existing clean image(s).')
 for target in targets:
     del_list = [img_path+target+'.mask',img_path+target+'.model',img_path+target+'.pb',img_path+target+'.psf',img_path+target+'.residual',img_path+target+'.sumwt']
-    del_list.extend(glob.glob(img_path+'{}.image.*'.format(target)))
+    del_list.extend(glob.glob(img_path+'{}.image*'.format(target)))
     if len(del_list) > 0:
         for file_path in del_list:
             try:

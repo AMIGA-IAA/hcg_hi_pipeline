@@ -69,9 +69,9 @@ def check_pipeline_params():
             import_data_kwds = ['project_name','data_path','jvla','mstransform','keep_']
             flag_calib_split_kwds = ['src_dir','shadow_tol','quack_int','timecutoff','freqcutoff','rthresh','refant',
                                      'fluxcal','fluxmod','man_mod','bandcal','phasecal','targets','target_names']
-            dirty_cont_image_kwds = ['rest_freq','img_dir','pix_size','im_size','robust']
+            dirty_cont_image_kwds = ['rest_freq','img_dir']
             contsub_dirty_image_kwds = ['linefree_ch','fitorder','save_cont']
-            clean_image_kwds = ['automask','multiscale','beam_scales','sefd','corr_eff','thresh']
+            clean_image_kwds = ['automask','multiscale','beam_scales','sefd','corr_eff','thresh','line_ch','pix_size','im_size','robust']
             moment_kwds = ['mom_thresh','mom_chans']
             cleanup_kwds = ['cleanup_level']
             

@@ -1,4 +1,4 @@
-import imp, glob, shutil
+import imp, glob, shutil, numpy
 imp.load_source('common_functions','common_functions.py')
 import common_functions as cf
 
