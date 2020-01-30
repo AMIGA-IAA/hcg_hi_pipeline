@@ -8,7 +8,6 @@ import time
 import numpy
 import shutil
 import readline
-import logging
 import configparser
 from ast import literal_eval
 import glob

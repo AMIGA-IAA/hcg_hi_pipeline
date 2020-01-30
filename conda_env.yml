@@ -1,7 +1,12 @@
-name: cgatcore
+name: hcg_hi_pipeline
 channels:
     - conda-forge
     - bioconda
+    - astropy
 dependencies:
     - python=3.7
-    - cgatcore=0.6
+    - cgatcore=0.6.5
+    - ruffus=2.8
+    - numpy=1.16
+    - readline=7.0
+    - aplpy=2.0
