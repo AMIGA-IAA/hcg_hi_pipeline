@@ -102,7 +102,7 @@ def contsub(msfile,config,config_raw,config_file,logger):
     
 
 
-def plot_spec(config,logger):
+def plot_spec(config,logger,contsub=False):
     """
     For each SPW and each science target amplitude vs channel and amplitude vs velocity are plotted.
     
@@ -119,21 +119,28 @@ def plot_spec(config,logger):
     for i in range(len(targets)):
         target = targets[i]
         field = fields[i]
-        msmd.open('{0}{1}.split'.format(src_dir,target))
+        if contsub:
+            msmd.open('{0}{1}.split.contsub'.format(src_dir,target))
+        else:
+            msmd.open('{0}{1}.split'.format(src_dir,target))
         spws = msmd.spwsforfield('{}'.format(field))
         msmd.close()
         for spw in spws:
-            plot_file = plots_obs_dir+'{0}_amp_chn_spw{1}.png'.format(target,spw)
+            if contsub:
+                plot_file = plots_obs_dir+'{0}_contsub_amp_chn_spw{1}.png'.format(target,spw)
+            else:
+                plot_file = plots_obs_dir+'{0}_amp_chn_spw{1}.png'.format(target,spw)
             logger.info('Plotting amplitude vs channel to {}'.format(plot_file))
             plotms(vis=src_dir+target+'.split', xaxis='chan', yaxis='amp',
                    ydatacolumn='corrected', spw=str(spw), plotfile=plot_file,
                    expformat='png', overwrite=True, showgui=False)
-            plot_file = plots_obs_dir+'{0}_amp_vel_spw{1}.png'.format(target,spw)
-            logger.info('Plotting amplitude vs velocity to {}'.format(plot_file))
-            plotms(vis=src_dir+target+'.split', xaxis='velocity', yaxis='amp',
-                   ydatacolumn='corrected', spw=str(spw), plotfile=plot_file,
-                   expformat='png', overwrite=True, showgui=False,
-                   freqframe='BARY', restfreq=str(config['global']['rest_freq']), veldef='OPTICAL')
+            if not contsub:
+                plot_file = plots_obs_dir+'{0}_amp_vel_spw{1}.png'.format(target,spw)
+                logger.info('Plotting amplitude vs velocity to {}'.format(plot_file))
+                plotms(vis=src_dir+target+'.split', xaxis='velocity', yaxis='amp',
+                       ydatacolumn='corrected', spw=str(spw), plotfile=plot_file,
+                       expformat='png', overwrite=True, showgui=False,
+                       freqframe='BARY', restfreq=str(config['global']['rest_freq']), veldef='OPTICAL')
     logger.info('Completed plotting amplitude spectrum.')
             
 def dirty_image(config,config_raw,config_file,logger):
@@ -297,6 +304,7 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
 #Contsub
 plot_spec(config,logger)
 contsub(msfile,config,config_raw,config_file,logger)
+plot_spec(config,logger,contsub=True)
 
 #Remove previous dirty images
 targets = config['calibration']['target_names']
