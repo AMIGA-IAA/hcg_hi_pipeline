@@ -340,17 +340,28 @@ def set_fields(msfile,config,config_raw,config_file,logger):
                 
     if len(calib['target_names']) == 0 or len(calib['target_names']) != len(calib['targets']):
         if len(calib['target_names']) < len(calib['targets']):
-            logger.warning('There are more target fields than simple target names. Appending blanks.')
+            logger.warning('There are more target fields than target names. Appending blanks.')
             while len(calib['target_names']) < len(calib['targets']):
                 calib['target_names'].append('')
         elif len(calib['target_names']) > len(calib['targets']):
-            logger.warning('There are more simple target names than target fields.')
-            logger.info('Current simple target names: {}'.format(calib['target_names']))
-            logger.warning('The simple target name list will now be truncated to match the number of targets.')
-            calib['target_names'] = calib['target_names'][:len(calib['targets'])]
+            logger.warning('There are more target names than target fields.')
+            logger.info('Current target names: {}'.format(calib['target_names']))
+            new_target_names = calib['target_names'][:]
+            for i in range(len(new_target_names)):
+                if 'spw' in new_target_names[i]:
+                    inx = new_target_names[i].index('.spw')
+                    new_target_names[i] = new_target_names[i][:inx]
+            if len(set(new_target_names)) < len(calib['target_names']):
+                res = []
+                tmp = [res.append(x) for x in new_target_names if x not in res]
+                logger.warning('The target names will now be set to: {}'.format(res))
+                calib['target_names'] = res[:]
+            if len(calib['target_names']) > len(calib['targets']):
+                logger.warning('The target name list will now be truncated to match the number of targets.')
+                calib['target_names'] = calib['target_names'][:len(calib['targets'])]
         change_made = True
     if interactive:
-        print('Current simple target names set as:')
+        print('Current target names set as:')
         print(calib['target_names'])
         print('For the targets:')
         print(calib['targets'])
@@ -913,13 +924,15 @@ def calibration(msfile,config,logger):
 
 
 
-def split_fields(msfile,config,logger):
+def split_fields(msfile,config,config_raw,config_file,logger):
     """
     Splits the MS into separate MS for each science target.
     
     Input:
     msfile = Path to the MS. (String)
     config = The parameters read from the configuration file. (Ordered dictionary)
+    config_raw = The instance of the parser.
+    config_file = Path to configuration file. (String)
     """
     logger.info('Starting split fields.')
     calib = config['calibration']
@@ -927,6 +940,7 @@ def split_fields(msfile,config,logger):
     sum_dir = './summary/'
     cf.makedir(sum_dir,logger)
     cf.makedir('./'+src_dir,logger)
+    new_target_names = calib['target_names'][:]
     for i in range(len(calib['targets'])):
         field = calib['targets'][i]
         target_name = calib['target_names'][i]
@@ -949,7 +963,9 @@ def split_fields(msfile,config,logger):
                 listobs(vis=src_dir+target_name+'.split', listfile=listobs_file)
             else:
                 logger.info('{0} was observed in multiple SPWs. These have different numbers of channels and will be split into separate MSs.'.format(field))
-                for spw in spws:
+                new_target_names.remove(target_name)
+                for j in range(len(spws)):
+                    spw = spws[j]
                     command = "mstransform(vis='{0}', outputvis='{2}{1}.spw{4}.split', field='{3}', spw='{4}', combinespws=True)".format(msfile,target_name,src_dir,field,spw)
                     logger.info('Executing command: '+command)
                     exec(command)
@@ -958,6 +974,7 @@ def split_fields(msfile,config,logger):
                     cf.rmfile(listobs_file,logger)
                     logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
                     listobs(vis=src_dir+target_name+'.spw{}.split'.format(spw), listfile=listobs_file)
+                    new_target_names.insert(i+j,target_name+'.spw{}'.format(spw))
         else:
             logger.info('Splitting {0} into separate file: {1}.'.format(field, target_name+'.split'))
             command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{3}')".format(msfile,src_dir,target_name,field)
@@ -968,6 +985,14 @@ def split_fields(msfile,config,logger):
             cf.rmfile(listobs_file,logger)
             logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
             listobs(vis=src_dir+target_name+'.split', listfile=listobs_file)
+    if new_target_names != calib['target_names']:
+        logger.info('Updating config file to set target names with separate SPWs.')
+        logger.info('Replacing old target names ({})'.format(calib['target_names']))
+        logger.info('With new target names: {}'.format(new_target_names))
+        config_raw.set('calibration','target_names',new_target_names)
+        configfile = open(config_file,'w')
+        config_raw.write(configfile)
+        configfile.close()
     logger.info('Completed split fields.')
 
 
@@ -984,6 +1009,7 @@ logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['projec
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 #Flag, set intents, calibrate, flag more, calibrate again, then split fields
+cf.check_casaversion(logger)
 restore_flags(msfile,'Original',logger)
 manual_flags(logger)
 base_flags(msfile,config,logger)
@@ -1013,7 +1039,7 @@ save_flags(msfile,flag_version,logger)
 flag_sum(msfile,flag_version,logger)
 plot_flags(msfile,flag_version,logger)
 cf.rmdir(config['global']['src_dir'],logger)
-split_fields(msfile,config,logger)
+split_fields(msfile,config,config_raw,config_file,logger)
 
 #Review and backup parameters file
 cf.diff_pipeline_params(config_file,logger)

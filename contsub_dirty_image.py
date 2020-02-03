@@ -18,22 +18,31 @@ def contsub(msfile,config,config_raw,config_file,logger):
     calib = config['calibration']
     src_dir = config['global']['src_dir']+'/'
     logger.info('Checking for line free channel ranges in parameters.')
+    targets = calib['target_names'][:]
+    fields = calib['targets'][:]
+    for i in range(len(targets)):
+        target = targets[i]
+        if 'spw' in target:
+            inx = target.index('.spw')
+            target_name = target[:inx]
+            if target_name in calib['target_names'][i-1]:
+                fields.insert(i,fields[i-1])
     reset_ch = False
-    if len(contsub['linefree_ch']) == 0 or len(contsub['linefree_ch']) != len(calib['target_names']):
+    if len(contsub['linefree_ch']) == 0 or len(contsub['linefree_ch']) != len(targets):
         reset_ch = True
-        if len(contsub['linefree_ch']) < len(calib['target_names']):
+        if len(contsub['linefree_ch']) < len(targets):
             logger.warning('There are more target fields than channel ranges. Appending blank ranges.')
-            while len(contsub['linefree_ch']) < len(calib['target_names']):
+            while len(contsub['linefree_ch']) < len(targets):
                 contsub['linefree_ch'].append('')
-        elif len(contsub['linefree_ch']) > len(calib['target_names']):
+        elif len(contsub['linefree_ch']) > len(targets):
             logger.warning('There are more channel ranges than target fields.')
             logger.info('Current channel ranges: {}'.format(contsub['linefree_ch']))
             logger.warning('The channel range list will now be truncated to match the number of targets.')
-            contsub['linefree_ch'] = contsub['linefree_ch'][:len(calib['target_names'])]
+            contsub['linefree_ch'] = contsub['linefree_ch'][:len(targets)]
     elif interactive:
         print('Current line free channels set as:')
         for i in range(len(contsub['linefree_ch'])):
-            print('{0}: {1}'.format(calib['target_names'][i],contsub['linefree_ch'][i]))
+            print('{0}: {1}'.format(targets[i],contsub['linefree_ch'][i]))
         resp = str(raw_input('Do you want revise the line free channels (y/n): '))
         if resp.lower() in ['yes','ye','y']:
             reset_ch = True
@@ -41,24 +50,24 @@ def contsub(msfile,config,config_raw,config_file,logger):
         if not interactive:
             logger.critical('The number of line free channel ranges provided does not match the number of targets.')
             logger.info('Line free change ranges: {}'.format(contsub['linefree_ch']))
-            logger.info('Targets: {}'.format(calib['target_names']))
+            logger.info('Targets: {}'.format(targets))
             sys.exit(-1)
         else:
             print('For each target enter the line free channels in the following format:\nspwID1:min_ch1~max_ch1;min_ch2~max_ch2,spwID2:min_ch3~max_ch3;min_ch4~max_ch4')
-            for i in range(len(calib['target_names'])):
-                contsub['linefree_ch'][i] = cf.uinput('Line free channels for {}: '.format(calib['target_names'][i]), contsub['linefree_ch'][i])
-                logger.info('Setting line free channels for {0} as: {1}.'.format(calib['target_names'][i], contsub['linefree_ch'][i]))
+            for i in range(len(targets)):
+                contsub['linefree_ch'][i] = cf.uinput('Line free channels for {}: '.format(targets[i]), contsub['linefree_ch'][i])
+                logger.info('Setting line free channels for {0} as: {1}.'.format(targets[i], contsub['linefree_ch'][i]))
                 if type(contsub['fitorder']) == type(1):
                     order_set = False
                     while not order_set:
                         try:
-                            order = int(cf.uinput('Set the fit order for {}: '.format(calib['target_names'][i]), contsub['fitorder']))
+                            order = int(cf.uinput('Set the fit order for {}: '.format(targets[i]), contsub['fitorder']))
                             if order >= 0:
                                 order_set = True
                         except ValueError:
                             print 'Fit order must be an integer.'
-                    if order != contsub['fitorder'] and len(calib['target_names']) > 1:
-                        order_list = list(numpy.zeros(len(calib['target_names']),dtype='int')+contsub['fitorder'])
+                    if order != contsub['fitorder'] and len(targets) > 1:
+                        order_list = list(numpy.zeros(len(targets),dtype='int')+contsub['fitorder'])
                         order_list[i] = order
                         order = order_list
                     contsub['fitorder'] = order
@@ -66,7 +75,7 @@ def contsub(msfile,config,config_raw,config_file,logger):
                     order_set = False
                     while not order_set:
                         try:
-                            order = int(cf.uinput('Set the fit order for {}: '.format(calib['target_names'][i]), contsub['fitorder'][i]))
+                            order = int(cf.uinput('Set the fit order for {}: '.format(targets[i]), contsub['fitorder'][i]))
                             if order >= 0:
                                 order_set = True
                                 contsub['fitorder'] = order
@@ -80,32 +89,21 @@ def contsub(msfile,config,config_raw,config_file,logger):
             configfile.close()
     logger.info('Line free channels set as: {}.'.format(contsub['linefree_ch']))
     logger.info('Fit order(s) set as: {}.'.format(contsub['fitorder']))
-    logger.info('For the targets: {}.'.format(calib['target_names']))
-    for i in range(len(calib['target_names'])):
-        target = calib['target_names'][i]
-        field = calib['targets'][i]
+    logger.info('For the targets: {}.'.format(targets))
+    extra_splits = 0
+    for i in range(len(targets)):
+        target = targets[i]
+        field = fields[i]
         chans = contsub['linefree_ch'][i]
-        spws = chans.split(',')
-        for i in range(len(spws)):
-            spw = spws[i].strip()
-            spw = spw[0]
-            spws[i] = spw
         logger.info('Subtracting the continuum from field: {}'.format(target))
         if type(contsub['fitorder']) == type(1):
             order = contsub['fitorder']
         else:
             order = contsub['fitorder'][i]
-        if len(spws) > 1:
-            for spw in spws:
-                command = "uvcontsub(vis='{0}{1}.spw{4}.split', field='{2}', fitspw='{3}', spw='{4}', excludechans=False,combine='spw',solint='int', fitorder={5}, want_cont={6})".format(src_dir,target,field,chans,spw,order,contsub['save_cont'])
-                logger.info('Executing command: '+command)
-                exec(command)
-                cf.check_casalog(logger)
-        else:
-            command = "uvcontsub(vis='{0}{1}'+'.split', field='{2}', fitspw='{3}', spw='{4}', excludechans=False,combine='spw',solint='int', fitorder={5}, want_cont={6})".format(src_dir,target,field,chans,','.join(spws),order,contsub['save_cont'])
-            logger.info('Executing command: '+command)
-            exec(command)
-            cf.check_casalog(logger)
+        command = "uvcontsub(vis='{0}{1}'+'.split', field='{2}', fitspw='{3}', excludechans=False,solint='int', fitorder={5}, want_cont={6})".format(src_dir,target,field,chans,order,contsub['save_cont'])
+        logger.info('Executing command: '+command)
+        exec(command)
+        cf.check_casalog(logger)
     logger.info('Completed continuum subtraction.')
     
 
@@ -121,8 +119,15 @@ def plot_spec(config,logger,contsub=False):
     plots_obs_dir = './plots/'
     cf.makedir(plots_obs_dir,logger)
     calib = config['calibration']
-    targets = calib['target_names']
-    fields = calib['targets']
+    targets = calib['target_names'][:]
+    fields = calib['targets'][:]
+    for i in range(len(targets)):
+        target = targets[i]
+        if 'spw' in target:
+            inx = target.index('.spw')
+            target_name = target[:inx]
+            if target_name in calib['target_names'][i-1]:
+                fields.insert(i,fields[i-1])
     src_dir = config['global']['src_dir']+'/'
     for i in range(len(targets)):
         target = targets[i]
@@ -132,25 +137,18 @@ def plot_spec(config,logger,contsub=False):
         else:
             MS_list = glob.glob('{0}{1}*split'.format(src_dir,target))
         for MS in MS_list:
-            msmd.open(MS)
-            spws = msmd.spwsforfield('{}'.format(field))
-            msmd.close()
-            for spw in spws:
-                if contsub:
-                    plot_file = plots_obs_dir+'{0}_contsub_amp_chn_spw{1}.png'.format(target,spw)
-                else:
-                    plot_file = plots_obs_dir+'{0}_amp_chn_spw{1}.png'.format(target,spw)
-                logger.info('Plotting amplitude vs channel to {}'.format(plot_file))
-                plotms(vis=MS, xaxis='chan', yaxis='amp',
-                       ydatacolumn='corrected', spw=str(spw), plotfile=plot_file,
-                       expformat='png', overwrite=True, showgui=False)
-                if not contsub:
-                    plot_file = plots_obs_dir+'{0}_amp_vel_spw{1}.png'.format(target,spw)
-                    logger.info('Plotting amplitude vs velocity to {}'.format(plot_file))
-                    plotms(vis=MS, xaxis='velocity', yaxis='amp',
-                           ydatacolumn='corrected', spw=str(spw), plotfile=plot_file,
-                           expformat='png', overwrite=True, showgui=False,
-                           freqframe='BARY', restfreq=str(config['global']['rest_freq']), veldef='OPTICAL')
+            plot_file = plots_obs_dir+'{0}_amp_chn.png'.format(target)
+            logger.info('Plotting amplitude vs channel to {}'.format(plot_file))
+            plotms(vis=MS, xaxis='chan', yaxis='amp',
+                   ydatacolumn='corrected', plotfile=plot_file,
+                   expformat='png', overwrite=True, showgui=False)
+            if not contsub:
+                plot_file = plots_obs_dir+'{0}_amp_vel.png'.format(target)
+                logger.info('Plotting amplitude vs velocity to {}'.format(plot_file))
+                plotms(vis=MS, xaxis='velocity', yaxis='amp',
+                       ydatacolumn='corrected', plotfile=plot_file,
+                       expformat='png', overwrite=True, showgui=False,
+                       freqframe='BARY', restfreq=str(config['global']['rest_freq']), veldef='OPTICAL')
     logger.info('Completed plotting amplitude spectrum.')
             
 def dirty_image(config,config_raw,config_file,logger):
@@ -167,7 +165,15 @@ def dirty_image(config,config_raw,config_file,logger):
     calib = config['calibration']
     contsub = config['continuum_subtraction']
     rest_freq = config['global']['rest_freq']
-    targets = calib['target_names']
+    targets = calib['target_names'][:]
+    fields = calib['targets'][:]
+    for i in range(len(targets)):
+        target = targets[i]
+        if 'spw' in target:
+            inx = target.index('.spw')
+            target_name = target[:inx]
+            if target_name in calib['target_names'][i-1]:
+                fields.insert(i,fields[i-1])
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
@@ -291,16 +297,12 @@ def dirty_image(config,config_raw,config_file,logger):
     logger.info('For the targets: {}.'.format(targets))
     for i in range(len(targets)):
         target = targets[i]
-        field = calib['targets'][i]
-        MS_list = glob.glob('{0}{1}*split.contsub'.format(src_dir,target))
-        if len(MS_list) == 1:
-            logger.info('Making dirty image of {} (line only).'.format(target))
-            command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', imagename='{3}{1}'+'.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, restoringbeam='common', niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
-            logger.info('Executing command: '+command)
-            exec(command)
-            cf.check_casalog(logger)
-        else:
-            for MS in MS_list:
+        field = fields[i]
+        logger.info('Making dirty image of {} (line only).'.format(target))
+        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', imagename='{3}{1}'+'.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, restoringbeam='common', niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+        logger.info('Executing command: '+command)
+        exec(command)
+        cf.check_casalog(logger)
                 
     logger.info('Completed making dirty image.')
     
@@ -318,6 +320,7 @@ logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['projec
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 #Contsub
+cf.check_casaversion(logger)
 plot_spec(config,logger)
 contsub(msfile,config,config_raw,config_file,logger)
 plot_spec(config,logger,contsub=True)

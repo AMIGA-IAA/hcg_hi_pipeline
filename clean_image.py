@@ -13,7 +13,7 @@ def noise_est(config,logger):
     noise = Estimate of the theortical noise in Jy/beam. (List of Floats)
     """
     logger.info('Starting making noise estimation.')
-    targets = config['calibration']['target_names']
+    targets = config['calibration']['target_names'][:]
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     noise = []
@@ -53,7 +53,15 @@ def image(config,config_raw,config_file,logger):
     calib = config['calibration']
     contsub = config['continuum_subtraction']
     rest_freq = config['global']['rest_freq']
-    targets = calib['target_names']
+    targets = calib['target_names'][:]
+    fields = calib['targets'][:]
+    for i in range(len(targets)):
+        target = targets[i]
+        if 'spw' in target:
+            inx = target.index('.spw')
+            target_name = target[:inx]
+            if target_name in calib['target_names'][i-1]:
+                fields.insert(i,fields[i-1])
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
@@ -132,7 +140,7 @@ def image(config,config_raw,config_file,logger):
         scales = None
     for i in range(len(targets)):
         target = targets[i]
-        field = calib['targets'][i]
+        field = fields[i]
         logger.info('Starting {} image.'.format(target))
         reset_cln = False
         ia.open(img_dir+target+'.dirty.image')
@@ -285,6 +293,7 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
 #Remove previous image files
 targets = config['calibration']['target_names']
 img_path = config['global']['img_dir']+'/'
+cf.check_casaversion(logger)
 logger.info('Deleting any existing clean image(s).')
 for target in targets:
     del_list = [img_path+target+'.mask',img_path+target+'.model',img_path+target+'.pb',img_path+target+'.psf',img_path+target+'.residual',img_path+target+'.sumwt']

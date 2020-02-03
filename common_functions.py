@@ -1,5 +1,6 @@
 import time
 import os
+import sys
 import filecmp
 import numpy
 import shutil
@@ -195,3 +196,18 @@ def check_casalog(logger):
             logger.critical(line)
     if sev_err:
         sys.exit(-1)
+        
+def check_casaversion(logger):
+    """
+    Checks the casa log for the version number.
+    """
+    casalogs = glob.glob('./casa*.log')
+    casalogs.sort(key=os.path.getmtime)
+    latest_log = open(casalogs[-1],'r')
+    casalog_lines = latest_log.readlines()
+    latest_log.close()
+    for line in casalog_lines:
+        if 'CASA Version' in line:
+            inx = line.index('CASA Version')
+            logger.info(line[inx:].rstrip())
+            break

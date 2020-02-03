@@ -229,6 +229,7 @@ logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['projec
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 # Import data, write listobs to file, and plot positions and elevation
+cf.check_casaversion(logger)
 cf.rmdir('summary',logger)
 cf.rmdir('plots',logger)
 data_path = config['importdata']['data_path']

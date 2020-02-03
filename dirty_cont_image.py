@@ -15,7 +15,15 @@ def dirty_cont_image(config,config_raw,config_file,logger):
     logger.info('Starting making dirty continuum image.')
     calib = config['calibration']
     rest_freq = config['global']['rest_freq']
-    targets = calib['target_names']
+    targets = calib['target_names'][:]
+    fields = calib['targets'][:]
+    for i in range(len(targets)):
+        target = targets[i]
+        if 'spw' in target:
+            inx = target.index('.spw')
+            target_name = target[:inx]
+            if target_name in calib['target_names'][i-1]:
+                fields.insert(i,fields[i-1])
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
@@ -101,9 +109,9 @@ def dirty_cont_image(config,config_raw,config_file,logger):
     logger.info('For the targets: {}.'.format(targets))
     for i in range(len(targets)):
         target = targets[i]
-        field = calib['targets'][i]
+        field = fields[i]
         logger.info('Making dirty image of {} (inc. continuum).'.format(target))
-        command = "tclean(vis='{0}{1}'+'.split', field='{2}', imagename='{3}{1}'+'.cont.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+        command = "tclean(vis='{0}{1}.split', field='{2}', imagename='{3}{1}.cont.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
         logger.info('Executing command: '+command)
         exec(command)  
         cf.check_casalog(logger)
@@ -123,6 +131,7 @@ logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['projec
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 #Make dirty continuum image
+cf.check_casaversion(logger)
 cf.rmdir(config['global']['img_dir'],logger)
 dirty_cont_image(config,config_raw,config_file,logger)
 

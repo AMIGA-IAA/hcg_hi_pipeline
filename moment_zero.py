@@ -128,6 +128,7 @@ logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['projec
 msfile = '{0}.ms'.format(config['global']['project_name'])    
     
 #Remove previous moment files
+cf.check_casaversion(logger)
 targets = config['calibration']['target_names']
 mom_path = config['global']['mom_dir']+'/'
 logger.info('Deleting any existing moment(s).')
