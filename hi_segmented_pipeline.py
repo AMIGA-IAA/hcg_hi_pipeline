@@ -46,7 +46,6 @@ def backup_pipeline_params():
     """
     backup_file = 'backup.'+cgatcore_params['configfile']
     shutil.copyfile(cgatcore_params['configfile'],backup_file)
-        
 
         
 def check_pipeline_params():

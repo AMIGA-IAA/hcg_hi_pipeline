@@ -176,3 +176,22 @@ def backup_pipeline_params(configfile,logger):
     backup_file = 'backup.'+configfile
     logger.info('Backing up {0} to {1}.'.format(configfile,backup_file))
     shutil.copyfile(configfile,backup_file)
+    
+def check_casalog(logger):
+    """
+    Checks the casa log for severe errors.
+    """
+    casalogs = glob.glob('./casa*.log')
+    casalogs.sort(key=os.path.getmtime)
+    latest_log = open(casalogs[-1],'r')
+    casalog_lines = latest_log.readlines()
+    latest_log.close()
+    sev_err = False
+    for line in casalog_lines:
+        if 'SEVERE' in line:
+            if not sev_err:
+                sev_err = True
+                logger.critical('There were severe errors in the CASA log:')
+            logger.critical(line)
+    if sev_err:
+        sys.exit(-1)

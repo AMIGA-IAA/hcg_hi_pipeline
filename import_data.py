@@ -20,6 +20,7 @@ def import_data(data_files, msfile, logger):
     command = "importvla(archivefiles = {0}, vis = '{1}')".format(data_files, msfile)
     logger.info('Executing command: '+command)
     exec(command)
+    cf.check_casalog(logger)
     logger.info('Completed import vla data')
     
 def listobs_sum(msfile, logger):
@@ -195,7 +196,8 @@ def transform_data(msfile,config,config_raw,config_file,logger):
             importdata['keep_fields'] = cf.uinput('The following fields will be kept: ', importdata['keep_fields'])
         command = "mstransform(vis='{0}', outputvis='{0}_1', field='{1}', spw='{2}', observation='{3}')".format(msfile,importdata['keep_fields'],importdata['keep_spws'],importdata['keep_obs'])
         logger.info('Executing command: '+command)
-        exec(command)            
+        exec(command)           
+        cf.check_casalog(logger)
         logger.info('Updating config file ({0}) to set mstransform values.'.format(config_file))
         config_raw.set('importdata','keep_obs',importdata['keep_obs'])
         config_raw.set('importdata','keep_spws',importdata['keep_spws'])

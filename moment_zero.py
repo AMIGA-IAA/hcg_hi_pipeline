@@ -105,9 +105,11 @@ def moment0(config,config_raw,config_file,logger):
         command = "immoments(imagename='{0}{1}',includepix=[{2},{3}],chans='{4}',outfile='{5}{6}.mom0')".format(img_dir,imagename,thresh*noises[i],thresh*1E6*noises[i],chans[i],mom_dir,targets[i])
         logger.info('Executing command: '+command)
         exec(command)
+        cf.check_casalog(logger)
         command = "exportfits(imagename='{0}{1}.mom0', fitsimage='{0}{1}.mom0.fits',overwrite=True,dropstokes=True,stokeslast=True,history=True,dropdeg=True)".format(mom_dir,targets[i])
         logger.info('Executing command: '+command)
         exec(command)
+        cf.check_casalog(logger)
     logger.info('Completed generation of moment map(s).')
     
 

@@ -10,3 +10,4 @@ dependencies:
     - numpy=1.16
     - readline=7.0
     - aplpy=2.0
+    - jupyterlab

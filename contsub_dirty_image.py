@@ -44,7 +44,7 @@ def contsub(msfile,config,config_raw,config_file,logger):
             logger.info('Targets: {}'.format(calib['target_names']))
             sys.exit(-1)
         else:
-            print('For each target enter the line free channels in the following format:\nspwID1:min_ch1~max_ch1;min_ch2~max_ch2,spwID2:min_ch3~max_ch3 etc.')
+            print('For each target enter the line free channels in the following format:\nspwID1:min_ch1~max_ch1;min_ch2~max_ch2,spwID2:min_ch3~max_ch3;min_ch4~max_ch4')
             for i in range(len(calib['target_names'])):
                 contsub['linefree_ch'][i] = cf.uinput('Line free channels for {}: '.format(calib['target_names'][i]), contsub['linefree_ch'][i])
                 logger.info('Setting line free channels for {0} as: {1}.'.format(calib['target_names'][i], contsub['linefree_ch'][i]))
@@ -95,9 +95,17 @@ def contsub(msfile,config,config_raw,config_file,logger):
             order = contsub['fitorder']
         else:
             order = contsub['fitorder'][i]
-        command = "uvcontsub(vis='{0}{1}'+'.split', field='{2}', fitspw='{3}', spw='{4}', excludechans=False,combine='spw',solint='int', fitorder={5}, want_cont={6})".format(src_dir,target,field,chans,','.join(spws),order,contsub['save_cont'])
-        logger.info('Executing command: '+command)
-        exec(command)
+        if len(spws) > 1:
+            for spw in spws:
+                command = "uvcontsub(vis='{0}{1}.spw{4}.split', field='{2}', fitspw='{3}', spw='{4}', excludechans=False,combine='spw',solint='int', fitorder={5}, want_cont={6})".format(src_dir,target,field,chans,spw,order,contsub['save_cont'])
+                logger.info('Executing command: '+command)
+                exec(command)
+                cf.check_casalog(logger)
+        else:
+            command = "uvcontsub(vis='{0}{1}'+'.split', field='{2}', fitspw='{3}', spw='{4}', excludechans=False,combine='spw',solint='int', fitorder={5}, want_cont={6})".format(src_dir,target,field,chans,','.join(spws),order,contsub['save_cont'])
+            logger.info('Executing command: '+command)
+            exec(command)
+            cf.check_casalog(logger)
     logger.info('Completed continuum subtraction.')
     
 
@@ -120,27 +128,29 @@ def plot_spec(config,logger,contsub=False):
         target = targets[i]
         field = fields[i]
         if contsub:
-            msmd.open('{0}{1}.split.contsub'.format(src_dir,target))
+            MS_list = glob.glob('{0}{1}*split.contsub'.format(src_dir,target))
         else:
-            msmd.open('{0}{1}.split'.format(src_dir,target))
-        spws = msmd.spwsforfield('{}'.format(field))
-        msmd.close()
-        for spw in spws:
-            if contsub:
-                plot_file = plots_obs_dir+'{0}_contsub_amp_chn_spw{1}.png'.format(target,spw)
-            else:
-                plot_file = plots_obs_dir+'{0}_amp_chn_spw{1}.png'.format(target,spw)
-            logger.info('Plotting amplitude vs channel to {}'.format(plot_file))
-            plotms(vis=src_dir+target+'.split', xaxis='chan', yaxis='amp',
-                   ydatacolumn='corrected', spw=str(spw), plotfile=plot_file,
-                   expformat='png', overwrite=True, showgui=False)
-            if not contsub:
-                plot_file = plots_obs_dir+'{0}_amp_vel_spw{1}.png'.format(target,spw)
-                logger.info('Plotting amplitude vs velocity to {}'.format(plot_file))
-                plotms(vis=src_dir+target+'.split', xaxis='velocity', yaxis='amp',
+            MS_list = glob.glob('{0}{1}*split'.format(src_dir,target))
+        for MS in MS_list:
+            msmd.open(MS)
+            spws = msmd.spwsforfield('{}'.format(field))
+            msmd.close()
+            for spw in spws:
+                if contsub:
+                    plot_file = plots_obs_dir+'{0}_contsub_amp_chn_spw{1}.png'.format(target,spw)
+                else:
+                    plot_file = plots_obs_dir+'{0}_amp_chn_spw{1}.png'.format(target,spw)
+                logger.info('Plotting amplitude vs channel to {}'.format(plot_file))
+                plotms(vis=MS, xaxis='chan', yaxis='amp',
                        ydatacolumn='corrected', spw=str(spw), plotfile=plot_file,
-                       expformat='png', overwrite=True, showgui=False,
-                       freqframe='BARY', restfreq=str(config['global']['rest_freq']), veldef='OPTICAL')
+                       expformat='png', overwrite=True, showgui=False)
+                if not contsub:
+                    plot_file = plots_obs_dir+'{0}_amp_vel_spw{1}.png'.format(target,spw)
+                    logger.info('Plotting amplitude vs velocity to {}'.format(plot_file))
+                    plotms(vis=MS, xaxis='velocity', yaxis='amp',
+                           ydatacolumn='corrected', spw=str(spw), plotfile=plot_file,
+                           expformat='png', overwrite=True, showgui=False,
+                           freqframe='BARY', restfreq=str(config['global']['rest_freq']), veldef='OPTICAL')
     logger.info('Completed plotting amplitude spectrum.')
             
 def dirty_image(config,config_raw,config_file,logger):
@@ -282,10 +292,16 @@ def dirty_image(config,config_raw,config_file,logger):
     for i in range(len(targets)):
         target = targets[i]
         field = calib['targets'][i]
-        logger.info('Making dirty image of {} (line only).'.format(target))
-        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', imagename='{3}{1}'+'.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, restoringbeam='common', niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
-        logger.info('Executing command: '+command)
-        exec(command)
+        MS_list = glob.glob('{0}{1}*split.contsub'.format(src_dir,target))
+        if len(MS_list) == 1:
+            logger.info('Making dirty image of {} (line only).'.format(target))
+            command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', imagename='{3}{1}'+'.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, restoringbeam='common', niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+            logger.info('Executing command: '+command)
+            exec(command)
+            cf.check_casalog(logger)
+        else:
+            for MS in MS_list:
+                
     logger.info('Completed making dirty image.')
     
     
