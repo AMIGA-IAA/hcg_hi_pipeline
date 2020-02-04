@@ -95,12 +95,17 @@ def contsub(msfile,config,config_raw,config_file,logger):
         target = targets[i]
         field = fields[i]
         chans = contsub['linefree_ch'][i]
+        spws = chans.split(',')
+        for i in range(len(spws)):
+            spw = spws[i].strip()
+            spw = spw[0]
+            spws[i] = spw
         logger.info('Subtracting the continuum from field: {}'.format(target))
         if type(contsub['fitorder']) == type(1):
             order = contsub['fitorder']
         else:
             order = contsub['fitorder'][i]
-        command = "uvcontsub(vis='{0}{1}'+'.split', field='{2}', fitspw='{3}', excludechans=False,solint='int', fitorder={5}, want_cont={6})".format(src_dir,target,field,chans,order,contsub['save_cont'])
+        command = "uvcontsub(vis='{0}{1}'+'.split', field='{2}', fitspw='{3}', spw='{4}', excludechans=False, combine='spw', solint='int', fitorder={5}, want_cont={6})".format(src_dir,target,field,chans,','.join(spws),order,contsub['save_cont'])
         logger.info('Executing command: '+command)
         exec(command)
         cf.check_casalog(logger)
