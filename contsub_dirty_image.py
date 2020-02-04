@@ -142,7 +142,10 @@ def plot_spec(config,logger,contsub=False):
         else:
             MS_list = glob.glob('{0}{1}*split'.format(src_dir,target))
         for MS in MS_list:
-            plot_file = plots_obs_dir+'{0}_amp_chn.png'.format(target)
+            if contsub:
+                plot_file = plots_obs_dir+'{0}_contsub_amp_chn.png'.format(target)
+            else:
+                plot_file = plots_obs_dir+'{0}_amp_chn.png'.format(target)
             logger.info('Plotting amplitude vs channel to {}'.format(plot_file))
             plotms(vis=MS, xaxis='chan', yaxis='amp',
                    ydatacolumn='corrected', plotfile=plot_file,
