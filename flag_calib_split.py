@@ -940,89 +940,26 @@ def split_fields(msfile,config,config_raw,config_file,logger):
     sum_dir = './summary/'
     cf.makedir(sum_dir,logger)
     cf.makedir('./'+src_dir,logger)
-    new_target_names = calib['target_names'][:]
-    for i in range(len(calib['targets'])):
-        field = calib['targets'][i]
-        target_name = calib['target_names'][i]
-        msmd.open(msfile)
-        spws = msmd.spwsforfield(field)
-        nchans = []
-        maxfreqs = []
-        minfreqs = []
-        for spw in spws:
-            nchans.append(msmd.nchan(spw))
-            freqs = msmd.chanfreqs(spw)
-            maxfreqs.append(numpy.round(max(freqs)/1.E6,2))
-            minfreqs.append(numpy.round(min(freqs)/1.E6,2))
-        msmd.close()
-        if len(spws) > 1:
-            combine = False
-            split = False
-            combine_spws = []
-            if len(spws) == 2:
-                logger.info('The two SPWs which {0} was observed with have the frequency ranges:'.format(target_name))
-                logger.info('SPW{0}: {1}-{2} MHz'.format(spws[0],minfreqs[0],maxfreqs[0]))
-                logger.info('SPW{0}: {1}-{2} MHz'.format(spws[1],minfreqs[1],maxfreqs[1]))
-                if ((maxfreqs[0] > minfreqs[1] and minfreqs[0] < maxfreqs[1]) or (maxfreqs[1] > minfreqs[0] and minfreqs[1] < maxfreqs[0])) and nchans[0] == nchans[1]:
-                    logger.info('The two SPWs overlap and will be combined.')
-                    combine = True
-                    combine_spws = [spws[0],spws[1]]
-                else:
-                    logger.info('The two SPWs do not overlap (or do not have the same number of channels) and they will not be combined.')
-                    split = True
-            if len(spws) > 2:
-                logger.info('{0} was observed in {1} SPWs with have the frequency ranges:'.format(target_name,len(spws)))
-                for j in range(len(spws)):
-                    logger.info('SPW{0}: {1}-{2} MHz'.format(spws[j],minfreqs[j],maxfreqs[j]))
-                for j in range(len(spws)-1):
-                    for k in range(j+1,len(spws)):
-                        if ((maxfreqs[j] > minfreqs[k] and minfreqs[j] < maxfreqs[k]) or (maxfreqs[k] > minfreqs[j] and minfreqs[k] < maxfreqs[j])) and nchans[j] == nchans[k]:
-                            logger.info('The SPWs {0} and {1} overlap and will be combined.'.format(spws[j],spws[k]))
-                            combine = True
-                            combine_spws.append(spws[j])
-                            combine_spws.append(spws[k])
-                if combine and split:
-                    logger.info('Some SPWs overlap and others do not. These will be separated appropriately.')
-                elif combine:
-                    logger.info('All SPWs overlap and will be combined.')
-                elif split:
-                    logger.info('SPWs do not overlap and will be split into separate MSs.')
-                elif not combine and not split:
-                    logger.critical('The pipeline could not determine whether to split or combine the SPWs for {}.'.format(target_name))
-                    sys.exit(-1)
-            if combine:
-                logger.info('SPWs {0} will now be combined for {1}.'.format(combine_spws,target_name))
-                command = "mstransform(vis='{0}', outputvis='{2}{1}.split', field='{3}', spw='{4}', combinespws=True)".format(msfile,target_name,src_dir,field,','.join(numpy.array(spws,dtype='str')))
-                logger.info('Executing command: '+command)
-                exec(command)
-                cf.check_casalog(logger)
-                listobs_file = sum_dir+target_name+'.listobs.summary'
-                cf.rmfile(listobs_file,logger)
-                logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
-                listobs(vis=src_dir+target_name+'.split', listfile=listobs_file)
-            if split:
-                split_spws = spws[:]
-                for spw in combine_spws:
-                    split_spws.remove(spw)
-                if len(split_spws) > 0:
-                    logger.info('The following SPWs for {0} will be split into separate MSs: {1}'.format(target_name,split_spws))
-                    new_target_names.remove(target_name)
-                    for j in range(len(split_spws)):
-                        spw = spws[j]
-                        command = "mstransform(vis='{0}', outputvis='{2}{1}.spw{4}.split', field='{3}', spw='{4}', combinespws=True)".format(msfile,target_name,src_dir,field,spw)
-                        logger.info('Executing command: '+command)
-                        exec(command)
-                        cf.check_casalog(logger)
-                        listobs_file = sum_dir+target_name+'.spw{}.listobs.summary'.format(spw)
-                        cf.rmfile(listobs_file,logger)
-                        logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
-                        listobs(vis=src_dir+target_name+'.spw{}.split'.format(spw), listfile=listobs_file)
-                        new_target_names.insert(i+j,target_name+'.spw{}'.format(spw))
-                    if combine:
-                        new_target_names.insert(i,target_name)
-        else:
-            logger.info('Splitting {0} into separate file: {1}.'.format(field, target_name+'.split'))
-            command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{3}')".format(msfile,src_dir,target_name,field)
+    if not config_raw.has_option('calibration','mosaic'):
+        calib['mosaic'] = False
+        config_raw.set('calibration','mosaic',False)
+        configfile = open(config_file,'w')
+        config_raw.write(configfile)
+        configfile.close()
+    if calib['mosaic']:
+        logger.info('The parameters file indicates that this data set is a mosaic.')
+        unique_names = list(set(calib['target_names']))
+        for target_name in unique_names:
+            logger.info('All observations of {} will now be split off into a separate MS.'.format(target_name))
+            inx = [i for i in range(len(calib['target_names'])) if target_name in calib['target_names'][i]]
+            fields = calib['targets'][inx]
+            msmd.open(msfile)
+            spws = []
+            for field in fields:
+                spws.extend(msmd.spwsforfield(field))
+            msmd.close()
+            spws = list(set(spws))
+            command = "mstransform(vis='{0}', outputvis='{2}{1}.split', field='{3}', spw='{4}', combinespws=True)".format(msfile,target_name,src_dir,','.join(numpy.array(fields,dtype='str')),','.join(numpy.array(spws,dtype='str')))
             logger.info('Executing command: '+command)
             exec(command)
             cf.check_casalog(logger)
@@ -1030,14 +967,105 @@ def split_fields(msfile,config,config_raw,config_file,logger):
             cf.rmfile(listobs_file,logger)
             logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
             listobs(vis=src_dir+target_name+'.split', listfile=listobs_file)
-    if new_target_names != calib['target_names']:
-        logger.info('Updating config file to set target names with separate SPWs.')
-        logger.info('Replacing old target names ({})'.format(calib['target_names']))
-        logger.info('With new target names: {}'.format(new_target_names))
-        config_raw.set('calibration','target_names',new_target_names)
-        configfile = open(config_file,'w')
-        config_raw.write(configfile)
-        configfile.close()
+    else:
+        new_target_names = calib['target_names'][:]
+        for i in range(len(calib['targets'])):
+            field = calib['targets'][i]
+            target_name = calib['target_names'][i]
+            msmd.open(msfile)
+            spws = msmd.spwsforfield(field)
+            nchans = []
+            maxfreqs = []
+            minfreqs = []
+            for spw in spws:
+                nchans.append(msmd.nchan(spw))
+                freqs = msmd.chanfreqs(spw)
+                maxfreqs.append(numpy.round(max(freqs)/1.E6,2))
+                minfreqs.append(numpy.round(min(freqs)/1.E6,2))
+            msmd.close()
+            if len(spws) > 1:
+                combine = False
+                split = False
+                combine_spws = []
+                if len(spws) == 2:
+                    logger.info('The two SPWs which {0} was observed with have the frequency ranges:'.format(target_name))
+                    logger.info('SPW{0}: {1}-{2} MHz'.format(spws[0],minfreqs[0],maxfreqs[0]))
+                    logger.info('SPW{0}: {1}-{2} MHz'.format(spws[1],minfreqs[1],maxfreqs[1]))
+                    if ((maxfreqs[0] >= minfreqs[1] and minfreqs[0] <= maxfreqs[1]) or (maxfreqs[1] >= minfreqs[0] and minfreqs[1] <= maxfreqs[0])) and nchans[0] == nchans[1]:
+                        logger.info('The two SPWs overlap and will be combined.')
+                        combine = True
+                        combine_spws = [spws[0],spws[1]]
+                    else:
+                        logger.info('The two SPWs do not overlap (or do not have the same number of channels) and they will not be combined.')
+                        split = True
+                if len(spws) > 2:
+                    logger.info('{0} was observed in {1} SPWs with have the frequency ranges:'.format(target_name,len(spws)))
+                    for j in range(len(spws)):
+                        logger.info('SPW{0}: {1}-{2} MHz'.format(spws[j],minfreqs[j],maxfreqs[j]))
+                    for j in range(len(spws)-1):
+                        for k in range(j+1,len(spws)):
+                            if ((maxfreqs[j] >= minfreqs[k] and minfreqs[j] <= maxfreqs[k]) or (maxfreqs[k] >= minfreqs[j] and minfreqs[k] <= maxfreqs[j])) and nchans[j] == nchans[k]:
+                                logger.info('The SPWs {0} and {1} overlap and will be combined.'.format(spws[j],spws[k]))
+                                combine = True
+                                combine_spws.append(spws[j])
+                                combine_spws.append(spws[k])
+                    if combine and split:
+                        logger.info('Some SPWs overlap and others do not. These will be separated appropriately.')
+                    elif combine:
+                        logger.info('All SPWs overlap and will be combined.')
+                    elif split:
+                        logger.info('SPWs do not overlap and will be split into separate MSs.')
+                    elif not combine and not split:
+                        logger.critical('The pipeline could not determine whether to split or combine the SPWs for {}.'.format(target_name))
+                        sys.exit(-1)
+                if combine:
+                    logger.info('SPWs {0} will now be combined for {1}.'.format(combine_spws,target_name))
+                    command = "mstransform(vis='{0}', outputvis='{2}{1}.split', field='{3}', spw='{4}', combinespws=True)".format(msfile,target_name,src_dir,field,','.join(numpy.array(spws,dtype='str')))
+                    logger.info('Executing command: '+command)
+                    exec(command)
+                    cf.check_casalog(logger)
+                    listobs_file = sum_dir+target_name+'.listobs.summary'
+                    cf.rmfile(listobs_file,logger)
+                    logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
+                    listobs(vis=src_dir+target_name+'.split', listfile=listobs_file)
+                if split:
+                    split_spws = spws[:]
+                    for spw in combine_spws:
+                        split_spws.remove(spw)
+                    if len(split_spws) > 0:
+                        logger.info('The following SPWs for {0} will be split into separate MSs: {1}'.format(target_name,split_spws))
+                        new_target_names.remove(target_name)
+                        for j in range(len(split_spws)):
+                            spw = spws[j]
+                            command = "mstransform(vis='{0}', outputvis='{2}{1}.spw{4}.split', field='{3}', spw='{4}', combinespws=True)".format(msfile,target_name,src_dir,field,spw)
+                            logger.info('Executing command: '+command)
+                            exec(command)
+                            cf.check_casalog(logger)
+                            listobs_file = sum_dir+target_name+'.spw{}.listobs.summary'.format(spw)
+                            cf.rmfile(listobs_file,logger)
+                            logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
+                            listobs(vis=src_dir+target_name+'.spw{}.split'.format(spw), listfile=listobs_file)
+                            new_target_names.insert(i+j,target_name+'.spw{}'.format(spw))
+                        if combine:
+                            new_target_names.insert(i,target_name)
+            else:
+                logger.info('Splitting {0} into separate file: {1}.'.format(field, target_name+'.split'))
+                command = "split(vis='{0}', outputvis='{1}{2}'+'.split', field='{3}')".format(msfile,src_dir,target_name,field)
+                logger.info('Executing command: '+command)
+                exec(command)
+                cf.check_casalog(logger)
+                listobs_file = sum_dir+target_name+'.listobs.summary'
+                cf.rmfile(listobs_file,logger)
+                logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
+                listobs(vis=src_dir+target_name+'.split', listfile=listobs_file)
+        if new_target_names != calib['target_names']:
+            logger.info('Updating config file to set target names with separate SPWs.')
+            logger.info('Replacing old target names ({})'.format(calib['target_names']))
+            logger.info('With new target names: {}'.format(new_target_names))
+            config_raw.set('calibration','target_names',new_target_names)
+            configfile = open(config_file,'w')
+            config_raw.write(configfile)
+            configfile.close()
     logger.info('Completed split fields.')
 
 
