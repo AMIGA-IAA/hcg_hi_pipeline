@@ -68,48 +68,69 @@ def check_pipeline_params():
             flag_calib_split_kwds = ['src_dir','shadow_tol','quack_int','timecutoff','freqcutoff','rthresh','refant',
                                      'fluxcal','fluxmod','man_mod','bandcal','phasecal','targets','target_names']
             dirty_cont_image_kwds = ['rest_freq','img_dir']
-            contsub_dirty_image_kwds = ['linefree_ch','fitorder','save_cont']
-            clean_image_kwds = ['automask','multiscale','beam_scales','sefd','corr_eff','thresh','line_ch','pix_size','im_size','robust']
+            contsub_dirty_image_kwds = ['linefree_ch','fitorder','save_cont','line_ch','robust']
+            clean_image_kwds = ['automask','multiscale','beam_scales','sefd','corr_eff','thresh','pix_size','im_size']
             moment_kwds = ['mom_thresh','mom_chans']
             cleanup_kwds = ['cleanup_level']
             
             if any(keyword in diff for keyword in import_data_kwds):
+                for keyword in import_data_kwds:
+                    if keyword in diff:
+                        print('The {} keyword value has changed in the parameters file since the previous run.'.format(keyword))
                 print('Steps from {} onwards will be marked as incomplete.'.format('import_data'))
                 try:
                     os.remove('import_data.done')
                 except FileNotFoundError:
                     pass
             elif any(keyword in diff for keyword in flag_calib_split_kwds):
+                for keyword in flag_calib_split_kwds:
+                    if keyword in diff:
+                        print('The {} keyword value has changed in the parameters file since the previous run.'.format(keyword))
                 print('Steps from {} onwards will be marked as incomplete.'.format('flag_calib_split'))
                 try:
                     os.remove('flag_calib_split.done')
                 except FileNotFoundError:
                     pass
             elif any(keyword in diff for keyword in dirty_cont_image_kwds):
+                for keyword in dirty_cont_image_kwds:
+                    if keyword in diff:
+                        print('The {} keyword value has changed in the parameters file since the previous run.'.format(keyword))
                 print('Steps from {} onwards will be marked as incomplete.'.format('dirty_cont_image'))
                 try:
                     os.remove('dirty_cont_image.done')
                 except FileNotFoundError:
                     pass
             elif any(keyword in diff for keyword in contsub_dirty_image_kwds):
+                for keyword in contsub_dirty_image_kwds:
+                    if keyword in diff:
+                        print('The {} keyword value has changed in the parameters file since the previous run.'.format(keyword))
                 print('Steps from {} onwards will be marked as incomplete.'.format('contsub_dirty_image'))
                 try:
                     os.remove('contsub_dirty_image.done')
                 except FileNotFoundError:
                     pass
             elif any(keyword in diff for keyword in clean_image_kwds):
+                for keyword in clean_image_kwds:
+                    if keyword in diff:
+                        print('The {} keyword value has changed in the parameters file since the previous run.'.format(keyword))
                 print('Steps from {} onwards will be marked as incomplete.'.format('clean_image'))
                 try:
                     os.remove('clean_image.done')
                 except FileNotFoundError:
                     pass
             elif any(keyword in diff for keyword in moment_kwds):
+                for keyword in moment_kwds:
+                    if keyword in diff:
+                        print('The {} keyword value has changed in the parameters file since the previous run.'.format(keyword))
                 print('Steps from {} onwards will be marked as incomplete.'.format('moment_zero'))
                 try:
                     os.remove('moment_zero.done')
                 except FileNotFoundError:
                     pass
             elif any(keyword in diff for keyword in cleanup_kwds):
+                for keyword in cleanup_kwds:
+                    if keyword in diff:
+                        print('The {} keyword value has changed in the parameters file since the previous run.'.format(keyword))
                 print('Steps from {} onwards will be marked as incomplete.'.format('cleanup'))
                 try:
                     os.remove('cleanup.done')

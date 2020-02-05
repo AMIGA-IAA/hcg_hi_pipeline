@@ -37,6 +37,7 @@ def listobs_sum(msfile, logger):
     cf.rmfile(listobs_file,logger)
     logger.info('Writing listobs summary of data set to: {}'.format(listobs_file))
     listobs(vis=msfile, listfile=listobs_file)
+    cf.check_casalog(logger)
     logger.info('Completed listobs summary.')
 
 def get_obsfreq(msfile):

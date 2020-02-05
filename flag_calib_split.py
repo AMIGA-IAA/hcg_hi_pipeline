@@ -1,4 +1,4 @@
-import imp, numpy
+import imp, numpy, os
 imp.load_source('common_functions','common_functions.py')
 import common_functions as cf
 
@@ -1005,7 +1005,7 @@ def split_fields(msfile,config,config_raw,config_file,logger):
                 for spw in combine_spws:
                     split_spws.remove(spw)
                 if len(split_spws) > 0:
-                    logg.info('The following SPWs for {0} will be split into separate MSs: {1}'.format(target_name,split_spws))
+                    logger.info('The following SPWs for {0} will be split into separate MSs: {1}'.format(target_name,split_spws))
                     new_target_names.remove(target_name)
                     for j in range(len(split_spws)):
                         spw = spws[j]
@@ -1056,7 +1056,7 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
 #Flag, set intents, calibrate, flag more, calibrate again, then split fields
 cf.check_casaversion(logger)
 flag_version = 'Original'
-if  os.access(msfile+'flagversions/', os.R_OK):
+if  os.path.isdir(msfile+'flagversions/'):
     restore_flags(msfile,flag_version,logger)
 else:
     save_flags(msfile,flag_version,logger)
