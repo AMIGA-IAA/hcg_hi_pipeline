@@ -869,7 +869,7 @@ def calibration(msfile,config,logger):
     
     logger.info('Apply all calibrations to bandpass and flux calibrators.')
     for i in range(len(calib['bandcal'])):
-        logger.info('Applying clibration to: {}'.format(calib['bandcal'][i]))
+        logger.info('Applying calibration to: {}'.format(calib['bandcal'][i]))
         if calib['bandcal'][i] == calib['fluxcal'][i]:
             command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'][i],gctab, dltab, bstab, iptab, amtab)
             logger.info('Executing command: '+command)
@@ -881,7 +881,7 @@ def calibration(msfile,config,logger):
             exec(command)
             cf.check_casalog(logger)
             
-            logger.info('Applying clibration to: {}'.format(calib['fluxcal'][i]))
+            logger.info('Applying calibration to: {}'.format(calib['fluxcal'][i]))
             command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['fluxcal'][i],gctab, dltab, bstab, iptab, amtab, fxtab, calib['bandcal'][i])
             logger.info('Executing command: '+command)
             exec(command)
@@ -901,25 +901,35 @@ def calibration(msfile,config,logger):
     
     logger.info('Apply all calibrations to phase calibrators and targets.')
     for i in range(len(calib['targets'])):
-        if not calib['phasecal'][i] in calib['fluxcal']:
-            logger.info('Applying clibration to: {}'.format(calib['phasecal'][i]))
-            command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'][i],gctab, dltab, bstab, iptab, amtab, fxtab,calib['bandcal'][i])
-            logger.info('Executing command: '+command)
-            exec(command)
-            cf.check_casalog(logger)
-            
-            logger.info('Applying clibration to: {}'.format(calib['targets'][i]))
-            command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, fxtab,calib['bandcal'][i],calib['phasecal'][i])
-            logger.info('Executing command: '+command)
-            exec(command)
-            cf.check_casalog(logger)
-        else:
-            logger.info('Applying clibration to: {}'.format(calib['targets'][i]))
-            command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{7}', '{7}', '{8}', '{8}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab,calib['bandcal'][i],calib['phasecal'][i])
-            logger.info('Executing command: '+command)
-            exec(command)
-            cf.check_casalog(logger)
-    
+        msmd.open(msfile)
+        spws = msmd.spwsforfield(calib['targets'][i])
+        msmd.close()
+        inx = []
+        for spw in spws:
+            inx.append(spw_IDs.index(spw))
+        bandcals = calib['bandcal'][inx]
+        spws = spw_IDs[inx]
+        unique_bandcals = list(set(bandcals))
+        for bandcal in unique_bandcals:
+            inx = [i for i,x in enumerate(bandcals) if x == bandcal]
+            if not calib['phasecal'][i] in calib['fluxcal']:
+                logger.info('Applying calibration to: {}'.format(calib['phasecal'][i]))
+                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], spw='{9}', calwt=False)".format(msfile,calib['phasecal'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal, ','.join(spws[inx]))
+                logger.info('Executing command: '+command)
+                exec(command)
+                cf.check_casalog(logger)
+
+                logger.info('Applying calibration to: {}'.format(calib['targets'][i]))
+                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], spw='{9}', calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal, calib['phasecal'][i], ','.join(spws[inx]))
+                logger.info('Executing command: '+command)
+                exec(command)
+                cf.check_casalog(logger)
+            else:
+                logger.info('Applying calibration to: {}'.format(calib['targets'][i]))
+                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{7}', '{7}', '{8}', '{8}'], spw='{9}', calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, bandcal, calib['phasecal'][i], ','.join(spws[inx]))
+                logger.info('Executing command: '+command)
+                exec(command)
+                cf.check_casalog(logger)
     logger.info('Completed calibration.')
 
 
@@ -977,11 +987,14 @@ def split_fields(msfile,config,config_raw,config_file,logger):
             nchans = []
             maxfreqs = []
             minfreqs = []
+            chan_wids = []
             for spw in spws:
                 nchans.append(msmd.nchan(spw))
                 freqs = msmd.chanfreqs(spw)
-                maxfreqs.append(numpy.round(max(freqs)/1.E6,2))
-                minfreqs.append(numpy.round(min(freqs)/1.E6,2))
+                wids = msmd.chanwidths(spw)
+                maxfreqs.append(numpy.round(max(freqs)/1.E6,4))
+                minfreqs.append(numpy.round(min(freqs)/1.E6,4))
+                chan_wids.append(numpy.round(numpy.mean(wids)/1.E3,3))
             msmd.close()
             if len(spws) > 1:
                 combine = False
@@ -991,7 +1004,7 @@ def split_fields(msfile,config,config_raw,config_file,logger):
                     logger.info('The two SPWs which {0} was observed with have the frequency ranges:'.format(target_name))
                     logger.info('SPW{0}: {1}-{2} MHz'.format(spws[0],minfreqs[0],maxfreqs[0]))
                     logger.info('SPW{0}: {1}-{2} MHz'.format(spws[1],minfreqs[1],maxfreqs[1]))
-                    if ((maxfreqs[0] >= minfreqs[1] and minfreqs[0] <= maxfreqs[1]) or (maxfreqs[1] >= minfreqs[0] and minfreqs[1] <= maxfreqs[0])) and nchans[0] == nchans[1]:
+                    if ((maxfreqs[0]+(chan_wids[0]/1000.) >= minfreqs[1] and minfreqs[0] <= maxfreqs[1]+(chan_wids[1]/1000.)) or (maxfreqs[1]+(chan_wids[1]/1000.) >= minfreqs[0] and minfreqs[1] <= maxfreqs[0]+(chan_wids[0]/1000.))) and nchans[0] == nchans[1]:
                         logger.info('The two SPWs overlap and will be combined.')
                         combine = True
                         combine_spws = [spws[0],spws[1]]
@@ -1004,11 +1017,14 @@ def split_fields(msfile,config,config_raw,config_file,logger):
                         logger.info('SPW{0}: {1}-{2} MHz'.format(spws[j],minfreqs[j],maxfreqs[j]))
                     for j in range(len(spws)-1):
                         for k in range(j+1,len(spws)):
-                            if ((maxfreqs[j] >= minfreqs[k] and minfreqs[j] <= maxfreqs[k]) or (maxfreqs[k] >= minfreqs[j] and minfreqs[k] <= maxfreqs[j])) and nchans[j] == nchans[k]:
+                            if ((maxfreqs[j]+(chan_wids[j]/1000.) >= minfreqs[k] and minfreqs[j] <= maxfreqs[k]+(chan_wids[k]/1000.)) or (maxfreqs[k]+(chan_wids[k]/1000.) >= minfreqs[j] and minfreqs[k] <= maxfreqs[j]+(chan_wids[j]/1000.))) and nchans[j] == nchans[k]:
                                 logger.info('The SPWs {0} and {1} overlap and will be combined.'.format(spws[j],spws[k]))
                                 combine = True
                                 combine_spws.append(spws[j])
                                 combine_spws.append(spws[k])
+                            else:
+                                logger.info('The SPWs {0} and {1} do not overlap and will not be combined.'.format(spws[j],spws[k]))
+                                split = True
                     if combine and split:
                         logger.info('Some SPWs overlap and others do not. These will be separated appropriately.')
                     elif combine:
@@ -1084,7 +1100,7 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
 #Flag, set intents, calibrate, flag more, calibrate again, then split fields
 cf.check_casaversion(logger)
 flag_version = 'Original'
-if  os.path.isdir(msfile+'flagversions/'):
+if  os.path.isdir(msfile+'.flagversions/flags.Original'):
     restore_flags(msfile,flag_version,logger)
 else:
     save_flags(msfile,flag_version,logger)

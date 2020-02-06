@@ -239,6 +239,7 @@ if not config['importdata']['jvla']:
     import_data(sorted(data_files), msfile, logger)
 else:
     os.symlink(data_path+msfile,msfile)
+    os.symlink(data_path+msfile+'.flagversions',msfile+'.flagversions')
 listobs_sum(msfile,logger)
 transform_data(msfile,config,config_raw,config_file,logger)
 msinfo = get_msinfo(msfile,logger)
