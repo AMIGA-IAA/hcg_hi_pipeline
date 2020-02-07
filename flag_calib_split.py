@@ -202,6 +202,7 @@ def plot_flags(msfile,name,logger):
     fields = list(set(fields))
     
     msmd.open(msfile)
+    nobs = msmd.nobservations()
     spw_IDs = []
     for field in fields:
         spw_IDs.extend(list(msmd.spwsforfield(field)))
@@ -210,16 +211,18 @@ def plot_flags(msfile,name,logger):
     msmd.close()
     
     for field in fields:
-        logger.info('Making flags plots for {}.'.format(field))
-        plot_file = plot_name+'_'+field
-        logger.info('Plotting amplitude vs frequency to {}'.format(plot_file+'_freq.png'))
-        plotms(vis=msfile, xaxis='freq', yaxis='amp', field=field, plotfile=plot_file+'_freq.png',
-               customflaggedsymbol=True, spw=','.join(numpy.array(spw_IDs,dtype='str')),
-               averagedata=True, avgtime='60', expformat='png', overwrite=True, showgui=False)
-        logger.info('Plotting amplitude vs time to {}'.format(plot_file+'_time.png'))
-        plotms(vis=msfile, xaxis='time', yaxis='amp', field=field, plotfile=plot_file+'_time.png',
-               customflaggedsymbol=True, spw=','.join(numpy.array(spw_IDs,dtype='str')),
-               averagedata=True, avgchannel='5', expformat='png', overwrite=True, showgui=False)
+        for i in range(nobs):
+            for spw in spw_IDs:
+                logger.info('Making flags plots for {}.'.format(field))
+                plot_file = plot_name+'_'+field
+                logger.info('Plotting amplitude vs frequency to {}'.format(plot_file+'_freq_ob{}.png'.format(i)))
+                plotms(vis=msfile, xaxis='freq', yaxis='amp', field=field, plotfile=plot_file+'_freq_ob{}.png'.format(i),
+                       customflaggedsymbol=True, spw=str(spw), observation=str(i),
+                       averagedata=True, avgtime='60', expformat='png', overwrite=True, showgui=False)
+                logger.info('Plotting amplitude vs time to {}'.format(plot_file+'_time_ob{}.png'.format(i)))
+                plotms(vis=msfile, xaxis='time', yaxis='amp', field=field, plotfile=plot_file+'_time_ob{}.png'.format(i),
+                       customflaggedsymbol=True, spw=str(spw), observation=str(i),
+                       averagedata=True, avgchannel='5', expformat='png', overwrite=True, showgui=False)
     logger.info('Completed flags plots ')
 
 def select_refant(msfile,config,config_raw,config_file,logger):
@@ -716,6 +719,7 @@ def calibration(msfile,config,logger):
     std_flux_mods = ['3C48_L.im', '3C138_L.im', '3C286_L.im', '3C147_L.im']
     
     msmd.open(msfile)
+    nobs = msmd.nobservations()
     spw_IDs = []
     for target in calib['targets']:
         spw_IDs.extend(list(msmd.spwsforfield(target)))
@@ -787,11 +791,12 @@ def calibration(msfile,config,logger):
     exec(command)
     cf.check_casalog(logger)
     
-    plot_file = plots_obs_dir+'{0}_bpphasesol.png'.format(msfile)
-    logger.info('Plotting bandpass phase solutions to: {}'.format(plot_file))
-    plotms(vis=bptab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='phase',
-           plotrange=[0,0,-180,180], expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
-           iteraxis='antenna', coloraxis='spw', spw=','.join(numpy.array(spw_IDs,dtype='str')))
+    for i in range(nobs):
+        plot_file = plots_obs_dir+'bpphasesol_ob{}.png'.format(i)
+        logger.info('Plotting bandpass phase solutions to: {}'.format(plot_file))
+        plotms(vis=bptab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='phase',
+               plotrange=[0,0,-180,180], expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
+               iteraxis='antenna', coloraxis='spw', spw=','.join(numpy.array(spw_IDs,dtype='str')), observation=str(i))
     
     bstab = cal_tabs+'bandpass.bcal'
     logger.info('Determining bandpass solution(s) ({}).'.format(bstab))
@@ -834,17 +839,18 @@ def calibration(msfile,config,logger):
     exec(command)
     cf.check_casalog(logger)
     
-    plot_file = plots_obs_dir+'phasesol.png'
-    logger.info('Plotting phase solutions to: {}'.format(plot_file))
-    plotms(vis=amtab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='phase',
-           expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
-           iteraxis='antenna', coloraxis='spw', plotrange=[-1,-1,-20,20], spw=','.join(numpy.array(spw_IDs,dtype='str')))
+    for i in range(nobs):
+        plot_file = plots_obs_dir+'phasesol_ob{}.png'.format(i)
+        logger.info('Plotting phase solutions to: {}'.format(plot_file))
+        plotms(vis=amtab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='phase',
+               expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
+               iteraxis='antenna', coloraxis='spw', plotrange=[-1,-1,-20,20], spw=','.join(numpy.array(spw_IDs,dtype='str')), observation=str(i))
 
-    plot_file = plots_obs_dir+'ampsol.png'
-    logger.info('Plotting amplitude solutions to: {}'.format(plot_file))
-    plotms(vis=amtab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='amp',
-           expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
-           iteraxis='antenna', coloraxis='spw', plotrange=[-1,-1,0,1], spw=','.join(numpy.array(spw_IDs,dtype='str')))
+        plot_file = plots_obs_dir+'ampsol_ob{}.png'.format(i)
+        logger.info('Plotting amplitude solutions to: {}'.format(plot_file))
+        plotms(vis=amtab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='amp',
+               expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
+               iteraxis='antenna', coloraxis='spw', plotrange=[-1,-1,0,1], spw=','.join(numpy.array(spw_IDs,dtype='str')), observation=str(i))
     
     if len(calfields.split(',')) > len(list(set(calib['fluxcal']))):
         fxtab = cal_tabs+'fluxsol.cal'
@@ -907,26 +913,26 @@ def calibration(msfile,config,logger):
         inx = []
         for spw in spws:
             inx.append(spw_IDs.index(spw))
-        bandcals = calib['bandcal'][inx]
-        spws = spw_IDs[inx]
+        bandcals = list(numpy.array(calib['bandcal'],dtype='str')[inx])
+        spws = list(numpy.array(spw_IDs,dtype='str')[inx])
         unique_bandcals = list(set(bandcals))
         for bandcal in unique_bandcals:
-            inx = [i for i,x in enumerate(bandcals) if x == bandcal]
+            inx = [j for j,x in enumerate(bandcals) if x == bandcal]
             if not calib['phasecal'][i] in calib['fluxcal']:
                 logger.info('Applying calibration to: {}'.format(calib['phasecal'][i]))
-                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], spw='{9}', calwt=False)".format(msfile,calib['phasecal'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal, ','.join(spws[inx]))
+                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal)#, ','.join(numpy.array(spws)[inx]))
                 logger.info('Executing command: '+command)
                 exec(command)
                 cf.check_casalog(logger)
 
                 logger.info('Applying calibration to: {}'.format(calib['targets'][i]))
-                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], spw='{9}', calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal, calib['phasecal'][i], ','.join(spws[inx]))
+                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal, calib['phasecal'][i])
                 logger.info('Executing command: '+command)
                 exec(command)
                 cf.check_casalog(logger)
             else:
                 logger.info('Applying calibration to: {}'.format(calib['targets'][i]))
-                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{7}', '{7}', '{8}', '{8}'], spw='{9}', calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, bandcal, calib['phasecal'][i], ','.join(spws[inx]))
+                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{7}', '{7}', '{8}', '{8}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, bandcal, calib['phasecal'][i])
                 logger.info('Executing command: '+command)
                 exec(command)
                 cf.check_casalog(logger)
@@ -1045,7 +1051,7 @@ def split_fields(msfile,config,config_raw,config_file,logger):
                     logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
                     listobs(vis=src_dir+target_name+'.split', listfile=listobs_file)
                 if split:
-                    split_spws = spws[:]
+                    split_spws = list(spws[:])
                     for spw in combine_spws:
                         split_spws.remove(spw)
                     if len(split_spws) > 0:
