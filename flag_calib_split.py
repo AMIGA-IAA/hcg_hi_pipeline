@@ -203,15 +203,10 @@ def plot_flags(msfile,name,logger):
     
     msmd.open(msfile)
     nobs = msmd.nobservations()
-    spw_IDs = []
-    for field in fields:
-        spw_IDs.extend(list(msmd.spwsforfield(field)))
-    spw_IDs = list(set(list(spw_IDs)))
-    nspw = len(spw_IDs)
-    msmd.close()
     
     for field in fields:
         for i in range(nobs):
+            spw_IDs = list(msmd.spwsforfield(field))
             for spw in spw_IDs:
                 logger.info('Making flags plots for {}.'.format(field))
                 plot_file = plot_name+'_'+field
@@ -223,6 +218,7 @@ def plot_flags(msfile,name,logger):
                 plotms(vis=msfile, xaxis='time', yaxis='amp', field=field, plotfile=plot_file+'_time_ob{0}_spw{1}.png'.format(i,spw),
                        customflaggedsymbol=True, spw=str(spw), observation=str(i),
                        averagedata=True, avgchannel='5', expformat='png', overwrite=True, showgui=False)
+    msmd.close()
     logger.info('Completed flags plots ')
 
 def select_refant(msfile,config,config_raw,config_file,logger):
