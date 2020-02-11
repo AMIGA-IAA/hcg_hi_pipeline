@@ -192,10 +192,10 @@ def transform_data(msfile,config,config_raw,config_file,logger):
         if interactive:
             print('Select which observations, SPWs, and fields to keep in the MS.')
             print('Blank strings mean all.')
-            importdata['keep_obs'] = cf.uinput('The following observations will be kept: ', importdata['keep_obs'])
-            importdata['keep_spws'] = cf.uinput('The following SPWs will be kept: ', importdata['keep_spws'])
-            importdata['keep_fields'] = cf.uinput('The following fields will be kept: ', importdata['keep_fields'])
-        command = "mstransform(vis='{0}', outputvis='{0}_1', field='{1}', spw='{2}', observation='{3}')".format(msfile,importdata['keep_fields'],importdata['keep_spws'],importdata['keep_obs'])
+            importdata['keep_obs'] = [cf.uinput('The following observations will be kept: ', importdata['keep_obs'])]
+            importdata['keep_spws'] = [cf.uinput('The following SPWs will be kept: ', importdata['keep_spws'])]
+            importdata['keep_fields'] = [cf.uinput('The following fields will be kept: ', importdata['keep_fields'])]
+        command = "mstransform(vis='{0}', outputvis='{0}_1', field='{1}', spw='{2}', observation='{3}')".format(msfile,','.join(importdata['keep_fields']),','.join(importdata['keep_spws']),','.join(importdata['keep_obs']))
         logger.info('Executing command: '+command)
         exec(command)           
         cf.check_casalog(logger)

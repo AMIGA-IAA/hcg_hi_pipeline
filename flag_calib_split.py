@@ -968,7 +968,7 @@ def split_fields(msfile,config,config_raw,config_file,logger):
         for target_name in unique_names:
             logger.info('All observations of {} will now be split off into a separate MS.'.format(target_name))
             inx = [i for i in range(len(calib['target_names'])) if target_name in calib['target_names'][i]]
-            fields = calib['targets'][inx]
+            fields = numpy.array(calib['targets'],dtype='str')[inx]
             msmd.open(msfile)
             spws = []
             for field in fields:
