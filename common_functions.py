@@ -178,7 +178,7 @@ def backup_pipeline_params(configfile,logger):
     logger.info('Backing up {0} to {1}.'.format(configfile,backup_file))
     shutil.copyfile(configfile,backup_file)
     
-def check_casalog(logger):
+def check_casalog(config,config_raw,logger):
     """
     Checks the casa log for severe errors.
     """
@@ -195,7 +195,11 @@ def check_casalog(logger):
                 logger.critical('There were severe errors in the CASA log:')
             logger.critical(line)
     if sev_err:
-        sys.exit(-1)
+        if config_raw.has_option('global','ignore_errs'):
+            if not config['global']['ignore_errs']:
+                sys.exit(-1)
+        else:
+            sys.exit(-1)
         
 def check_casaversion(logger):
     """

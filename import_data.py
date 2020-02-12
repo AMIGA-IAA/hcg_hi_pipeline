@@ -3,7 +3,7 @@ imp.load_source('common_functions','common_functions.py')
 import common_functions as cf
 
 
-def import_data(data_files, msfile, logger):
+def import_data(data_files, msfile, config, config_raw, logger):
     """ 
     Import VLA archive files from a location to a single MS.
     
@@ -20,10 +20,10 @@ def import_data(data_files, msfile, logger):
     command = "importvla(archivefiles = {0}, vis = '{1}')".format(data_files, msfile)
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     logger.info('Completed import vla data')
     
-def listobs_sum(msfile, logger):
+def listobs_sum(msfile, config, config_raw, logger):
     """ 
     Write the listobs summary to file.
     
@@ -37,7 +37,7 @@ def listobs_sum(msfile, logger):
     cf.rmfile(listobs_file,logger)
     logger.info('Writing listobs summary of data set to: {}'.format(listobs_file))
     listobs(vis=msfile, listfile=listobs_file)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     logger.info('Completed listobs summary.')
 
 def get_obsfreq(msfile):
@@ -198,7 +198,7 @@ def transform_data(msfile,config,config_raw,config_file,logger):
         command = "mstransform(vis='{0}', outputvis='{0}_1', field='{1}', spw='{2}', observation='{3}')".format(msfile,','.join(importdata['keep_fields']),','.join(importdata['keep_spws']),','.join(importdata['keep_obs']))
         logger.info('Executing command: '+command)
         exec(command)           
-        cf.check_casalog(logger)
+        cf.check_casalog(config,config_raw,logger)
         logger.info('Updating config file ({0}) to set mstransform values.'.format(config_file))
         config_raw.set('importdata','keep_obs',importdata['keep_obs'])
         config_raw.set('importdata','keep_spws',importdata['keep_spws'])
@@ -236,11 +236,11 @@ cf.rmdir('plots',logger)
 data_path = config['importdata']['data_path']
 if not config['importdata']['jvla']:
     data_files = glob.glob(os.path.join(data_path, '*'))
-    import_data(sorted(data_files), msfile, logger)
+    import_data(sorted(data_files), msfile, config, config_raw, logger)
 else:
     os.symlink(data_path+msfile,msfile)
     os.symlink(data_path+msfile+'.flagversions',msfile+'.flagversions')
-listobs_sum(msfile,logger)
+listobs_sum(msfile,config,config_raw,logger)
 transform_data(msfile,config,config_raw,config_file,logger)
 msinfo = get_msinfo(msfile,logger)
 plot_elevation(msfile,config,logger)

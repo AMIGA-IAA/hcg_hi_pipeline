@@ -3,7 +3,7 @@ imp.load_source('common_functions','common_functions.py')
 import common_functions as cf
 
 
-def manual_flags(logger):
+def manual_flags(config, config_raw, logger):
     """
     Apply manual flags from the file 'manual_flags.list'.
     """
@@ -24,13 +24,13 @@ def manual_flags(logger):
             command = "flagdata(vis='{}', mode='list', action='apply', inpfile={})".format(msfile,lines)
             logger.info('Executing command: '+command)
             exec(command)
-            cf.check_casalog(logger)
+            cf.check_casalog(config,config_raw,logger)
             logger.info('Completed manual flagging.')
         flag_file.close()
     except IOError:
         logger.warning("'manual_flags.list' does not exist. Continuing without manual flagging.")        
 
-def base_flags(msfile, config,logger):
+def base_flags(msfile, config, config_raw, logger):
     """ 
     Sets basic initial data flags.
     
@@ -46,20 +46,20 @@ def base_flags(msfile, config,logger):
     command = "flagdata(vis='{0}', mode='shadow', tolerance={1}, flagbackup=False)".format(msfile,tol)
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     logger.info('Flagging zero amplitude data.')
     command = "flagdata(vis='{}', mode='clip', clipzeros=True, flagbackup=False)".format(msfile)
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     logger.info('Flagging first {} s of every scan.'.format(quack_int))
     command = "flagdata(vis='{0}', mode='quack', quackinterval={1}, quackmode='beg', flagbackup=False)".format(msfile,quack_int)
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     logger.info('Completed basic flagging.')
 
-def tfcrop(msfile,config,logger):
+def tfcrop(msfile, config, config_raw, logger):
     """
     Runs CASA's TFcrop flagging algorithm.
     
@@ -72,10 +72,10 @@ def tfcrop(msfile,config,logger):
     command = "flagdata(vis='{0}', mode='tfcrop', action='apply', display='', timecutoff={1}, freqcutoff={2}, flagbackup=False)".format(msfile,flag['timecutoff'],flag['freqcutoff'])
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     logger.info('Completed running TFCrop.')
 
-def rflag(msfile,config,logger):
+def rflag(msfile, config, config_raw, logger):
     """
     Runs CASA's rflag flagging algorithm.
     
@@ -89,10 +89,10 @@ def rflag(msfile,config,logger):
     command = "flagdata(vis='{0}', mode='rflag', action='apply', datacolumn='corrected', freqdevscale={1}, timedevscale={1}, display='', flagbackup=False)".format(msfile,thresh)
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     logger.info('Completed running rflag.')
 
-def extend_flags(msfile,logger):
+def extend_flags(msfile, config, config_raw,  logger):
     """
     Extends existing flags.
     
@@ -104,11 +104,11 @@ def extend_flags(msfile,logger):
     command = "flagdata(vis='{}', mode='extend', spw='', extendpols=True, action='apply', display='', flagbackup=False)".format(msfile)
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     command = "flagdata(vis='{}', mode='extend', spw='', growtime=75.0, growfreq=90.0, action='apply', display='', flagbackup=False)".format(msfile)
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     logger.info('Completed extending existing flags.')
 
 def flag_sum(msfile,name,logger):
@@ -695,7 +695,7 @@ def set_fields(msfile,config,config_raw,config_file,logger):
 
    
     
-def calibration(msfile,config,logger):
+def calibration(msfile, config, config_raw, logger):
     """
     Runs the basic calibration steps on each SPW based on the intents described in the configuration file.
     Applies the calibration to all science target fields.
@@ -740,7 +740,7 @@ def calibration(msfile,config,logger):
     command = "gencal(vis='{0}', caltable='{1}', caltype='gceff')".format(msfile,gctab)
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     
     prev_set = {}
     for i in range(len(calib['fluxcal'])):
@@ -755,12 +755,12 @@ def calibration(msfile,config,logger):
                 command = "setjy(vis='{0}', field='{1}', scalebychan=True, fluxdensity=[{2},0,0,0], standard='manual')".format(msfile,calib['fluxcal'][i],calib['fluxmod'][i])
                 logger.info('Executing command: '+command)
                 exec(command)
-                cf.check_casalog(logger)
+                cf.check_casalog(config,config_raw,logger)
             elif calib['fluxmod'][i] in std_flux_mods:
                 command = "setjy(vis='{0}', field='{1}', scalebychan=True, model='{2}')".format(msfile,calib['fluxcal'][i],calib['fluxmod'][i])
                 logger.info('Executing command: '+command)
                 exec(command)
-                cf.check_casalog(logger)
+                cf.check_casalog(config,config_raw,logger)
             else:
                 logger.warning('The flux model cannot be recognised. The setjy task will not be run. Fluxes will be incorrect.')
         elif calib['fluxmod'][i] != calib['fluxmod'][prev_set[calib['fluxcal'][i]]]:
@@ -778,14 +778,14 @@ def calibration(msfile,config,logger):
     command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', gaintype='K', gaintable=['{4}'], spw='{5}')".format(msfile,','.join(calib['bandcal']),dltab,calib['refant'],gctab,','.join(numpy.array(spw_IDs,dtype='str')))
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     
     bptab = cal_tabs+'bpphase.gcal'
     logger.info('Make bandpass calibrator phase solutions for {0} ({1}).'.format(calib['bandcal'],bptab))
     command = "gaincal(vis='{0}', field='{1}',  caltable='{2}', refant='{3}', calmode='p', solint='int', combine='', minsnr=2.0, gaintable=['{4}','{5}'], spw='{6}')".format(msfile,','.join(calib['bandcal']),bptab,calib['refant'],gctab,dltab,','.join(numpy.array(spw_IDs,dtype='str')))
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     
     for i in range(nobs):
         plot_file = plots_obs_dir+'bpphasesol_ob{}.png'.format(i)
@@ -799,7 +799,7 @@ def calibration(msfile,config,logger):
     command = "bandpass(vis='{0}', caltable='{1}', field='{2}', refant='{3}', solint='inf', solnorm=True, gaintable=['{4}', '{5}', '{6}'], spw='{7}')".format(msfile,bstab,','.join(calib['bandcal']),calib['refant'],gctab, dltab, bptab,','.join(numpy.array(spw_IDs,dtype='str')))
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     
     plot_file = plots_obs_dir+'bandpasssol_.png'
     logger.info('Plotting bandpass amplitude solutions to: {}'.format(plot_file))
@@ -819,21 +819,21 @@ def calibration(msfile,config,logger):
     command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='p', solint='int', minsnr=2.0, gaintable=['{4}', '{5}', '{6}'],spw='{7}')".format(msfile,calfields,iptab,calib['refant'],gctab, dltab, bstab,','.join(numpy.array(spw_IDs,dtype='str')))
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     
     sptab = cal_tabs+'scanphase.gcal'
     logger.info('Determining scan phase solutions ({}).'.format(sptab))
     command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='p', solint='inf', minsnr=2.0, gaintable=['{4}', '{5}', '{6}'],spw='{7}')".format(msfile,calfields,sptab,calib['refant'],gctab, dltab, bstab,','.join(numpy.array(spw_IDs,dtype='str')))
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     
     amtab = cal_tabs+'amp.gcal'
     logger.info('Determining amplitude solutions ({}).'.format(amtab))
     command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='ap', solint='inf', minsnr=2.0, gaintable=['{4}', '{5}', '{6}', '{7}'],spw='{8}')".format(msfile,calfields,amtab,calib['refant'],gctab, dltab, bstab, iptab,','.join(numpy.array(spw_IDs,dtype='str')))
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(logger)
+    cf.check_casalog(config,config_raw,logger)
     
     for i in range(nobs):
         plot_file = plots_obs_dir+'phasesol_ob{}.png'.format(i)
@@ -876,18 +876,18 @@ def calibration(msfile,config,logger):
             command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'][i],gctab, dltab, bstab, iptab, amtab)
             logger.info('Executing command: '+command)
             exec(command)
-            cf.check_casalog(logger)
+            cf.check_casalog(config,config_raw,logger)
         else:
             command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{1}', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'][i],gctab, dltab, bstab, iptab, amtab, fxtab)
             logger.info('Executing command: '+command)
             exec(command)
-            cf.check_casalog(logger)
+            cf.check_casalog(config,config_raw,logger)
             
             logger.info('Applying calibration to: {}'.format(calib['fluxcal'][i]))
             command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['fluxcal'][i],gctab, dltab, bstab, iptab, amtab, fxtab, calib['bandcal'][i])
             logger.info('Executing command: '+command)
             exec(command)
-            cf.check_casalog(logger)
+            cf.check_casalog(config,config_raw,logger)
             
     plot_file = plots_obs_dir+'corr_phase.png'
     logger.info('Plotting corrected phases for {0} to: {1}'.format(calib['bandcal'],plot_file))
@@ -919,19 +919,19 @@ def calibration(msfile,config,logger):
                 command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal)#, ','.join(numpy.array(spws)[inx]))
                 logger.info('Executing command: '+command)
                 exec(command)
-                cf.check_casalog(logger)
+                cf.check_casalog(config,config_raw,logger)
 
                 logger.info('Applying calibration to: {}'.format(calib['targets'][i]))
                 command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal, calib['phasecal'][i])
                 logger.info('Executing command: '+command)
                 exec(command)
-                cf.check_casalog(logger)
+                cf.check_casalog(config,config_raw,logger)
             else:
                 logger.info('Applying calibration to: {}'.format(calib['targets'][i]))
                 command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{7}', '{7}', '{8}', '{8}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, bandcal, calib['phasecal'][i])
                 logger.info('Executing command: '+command)
                 exec(command)
-                cf.check_casalog(logger)
+                cf.check_casalog(config,config_raw,logger)
     logger.info('Completed calibration.')
 
 
@@ -974,7 +974,7 @@ def split_fields(msfile,config,config_raw,config_file,logger):
             command = "mstransform(vis='{0}', outputvis='{2}{1}.split', field='{3}', spw='{4}', combinespws=True)".format(msfile,target_name,src_dir,','.join(numpy.array(fields,dtype='str')),','.join(numpy.array(spws,dtype='str')))
             logger.info('Executing command: '+command)
             exec(command)
-            cf.check_casalog(logger)
+            cf.check_casalog(config,config_raw,logger)
             listobs_file = sum_dir+target_name+'.listobs.summary'
             cf.rmfile(listobs_file,logger)
             logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
@@ -1001,7 +1001,6 @@ def split_fields(msfile,config,config_raw,config_file,logger):
             if len(spws) > 1:
                 combine = False
                 separate = False
-                #combine_spws = []
                 combine_spws = {}
                 if len(spws) == 2:
                     logger.info('The two SPWs which {0} was observed with have the frequency ranges:'.format(target_name))
@@ -1010,7 +1009,6 @@ def split_fields(msfile,config,config_raw,config_file,logger):
                     if ((maxfreqs[0]+(chan_wids[0]/1000.) >= minfreqs[1] and minfreqs[0] <= maxfreqs[1]+(chan_wids[1]/1000.)) or (maxfreqs[1]+(chan_wids[1]/1000.) >= minfreqs[0] and minfreqs[1] <= maxfreqs[0]+(chan_wids[0]/1000.))) and nchans[0] == nchans[1]:
                         logger.info('The two SPWs overlap and will be combined.')
                         combine = True
-                        #combine_spws = [spws[0],spws[1]]
                         combine_spws[spws[0]] = [spws[1]]
                     else:
                         logger.info('The two SPWs do not overlap (or do not have the same number of channels) and they will not be combined.')
@@ -1024,8 +1022,6 @@ def split_fields(msfile,config,config_raw,config_file,logger):
                             if ((maxfreqs[j]+(chan_wids[j]/1000.) >= minfreqs[k] and minfreqs[j] <= maxfreqs[k]+(chan_wids[k]/1000.)) or (maxfreqs[k]+(chan_wids[k]/1000.) >= minfreqs[j] and minfreqs[k] <= maxfreqs[j]+(chan_wids[j]/1000.))) and nchans[j] == nchans[k]:
                                 logger.info('The SPWs {0} and {1} overlap and will be combined.'.format(spws[j],spws[k]))
                                 combine = True
-                                #combine_spws.append(spws[j])
-                                #combine_spws.append(spws[k])
                                 if spws[j] in combine_spws.keys():
                                     combine_spws[spws[j]].append(spws[k])
                                 elif spws[k] in combine_spws.keys():
@@ -1055,13 +1051,14 @@ def split_fields(msfile,config,config_raw,config_file,logger):
                         sys.exit(-1)
                 if combine:
                     if len(combine_spws.keys()) == 1:
+                        key = combine_spws.keys()[0]
                         combine_list = [key]
                         combine_list.extend(combine_spws[key])
                         logger.info('SPWs {0} will now be combined for {1}.'.format(combine_list,target_name))
                         command = "mstransform(vis='{0}', outputvis='{2}{1}.split', field='{3}', spw='{4}', combinespws=True)".format(msfile,target_name,src_dir,field,','.join(numpy.array(list(set(combine_list)),dtype='str')))
                         logger.info('Executing command: '+command)
                         exec(command)
-                        cf.check_casalog(logger)
+                        cf.check_casalog(config,config_raw,logger)
                         listobs_file = sum_dir+target_name+'.listobs.summary'
                         cf.rmfile(listobs_file,logger)
                         logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
@@ -1076,7 +1073,7 @@ def split_fields(msfile,config,config_raw,config_file,logger):
                             command = "mstransform(vis='{0}', outputvis='{2}{1}.spw{5}.split', field='{3}', spw='{4}', combinespws=True)".format(msfile,target_name,src_dir,field,','.join(numpy.array(list(set(combine_list)),dtype='str')),'+'.join(numpy.array(list(set(combine_list)),dtype='str')))
                             logger.info('Executing command: '+command)
                             exec(command)
-                            cf.check_casalog(logger)
+                            cf.check_casalog(config,config_raw,logger)
                             listobs_file = sum_dir+target_name+'.spw{}.listobs.summary'.format('+'.join(numpy.array(set(combine_list),dtype='str')))
                             cf.rmfile(listobs_file,logger)
                             logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
@@ -1101,7 +1098,7 @@ def split_fields(msfile,config,config_raw,config_file,logger):
                             command = "mstransform(vis='{0}', outputvis='{2}{1}.spw{4}.split', field='{3}', spw='{4}')".format(msfile,target_name,src_dir,field,spw)
                             logger.info('Executing command: '+command)
                             exec(command)
-                            cf.check_casalog(logger)
+                            cf.check_casalog(config,config_raw,logger)
                             listobs_file = sum_dir+target_name+'.spw{}.listobs.summary'.format(spw)
                             cf.rmfile(listobs_file,logger)
                             logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
@@ -1112,7 +1109,7 @@ def split_fields(msfile,config,config_raw,config_file,logger):
                 command = "split(vis='{0}', outputvis='{1}{2}.split', field='{3}')".format(msfile,src_dir,target_name,field)
                 logger.info('Executing command: '+command)
                 exec(command)
-                cf.check_casalog(logger)
+                cf.check_casalog(config,config_raw,logger)
                 listobs_file = sum_dir+target_name+'.listobs.summary'
                 cf.rmfile(listobs_file,logger)
                 logger.info('Writing listobs summary for split data set to: {}'.format(listobs_file))
@@ -1147,9 +1144,9 @@ if  os.path.isdir(msfile+'.flagversions/flags.Original'):
     restore_flags(msfile,flag_version,logger)
 else:
     save_flags(msfile,flag_version,logger)
-manual_flags(logger)
-base_flags(msfile,config,logger)
-tfcrop(msfile,config,logger)
+manual_flags(config,config_raw,logger)
+base_flags(msfile,config,config_raw,logger)
+tfcrop(msfile,config,config_raw,logger)
 flag_version = 'initial'
 rm_flags(msfile,flag_version,logger)
 save_flags(msfile,flag_version,logger)
@@ -1157,18 +1154,18 @@ flag_sum(msfile,flag_version,logger)
 select_refant(msfile,config,config_raw,config_file,logger)
 set_fields(msfile,config,config_raw,config_file,logger)
 plot_flags(msfile,flag_version,logger)
-calibration(msfile,config,logger)
-rflag(msfile,config,logger)
+calibration(msfile,config,config_raw,logger)
+rflag(msfile,config,config_raw,logger)
 flag_version = 'rflag'
 rm_flags(msfile,flag_version,logger)
 save_flags(msfile,flag_version,logger)
 flag_sum(msfile,flag_version,logger)
-extend_flags(msfile,logger)
+extend_flags(msfile,config,config_raw,logger)
 flag_version = 'extended'
 rm_flags(msfile,flag_version,logger)
 save_flags(msfile,flag_version,logger)
 flag_sum(msfile,flag_version,logger)
-calibration(msfile,config,logger)
+calibration(msfile,config,config_raw,logger)
 flag_version = 'final'
 rm_flags(msfile,flag_version,logger)
 save_flags(msfile,flag_version,logger)

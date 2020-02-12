@@ -114,7 +114,7 @@ def dirty_cont_image(config,config_raw,config_file,logger):
         command = "tclean(vis='{0}{1}.split', field='{2}', imagename='{3}{1}.cont.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
         logger.info('Executing command: '+command)
         exec(command)  
-        cf.check_casalog(logger)
+        cf.check_casalog(config,config_raw,logger)
     logger.info('Completed making dirty continuum image.')
 
     

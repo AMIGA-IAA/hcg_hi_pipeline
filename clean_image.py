@@ -234,7 +234,7 @@ def image(config,config_raw,config_file,logger):
         command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', spw='{3}', imagename='{4}{1}', cell='{5}', imsize=[{6},{6}], specmode='cube', outframe='bary', veltype='radio', restfreq='{7}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='{8}', scales={9}, restoringbeam='common', pbcor=True, weighting='briggs', robust={10}, niter=100000, gain=0.1, threshold='{11}Jy', usemask='{12}', sidelobethreshold={13}, noisethreshold={14}, lownoisethreshold={15}, minbeamfrac={16}, negativethreshold={17}, cyclefactor=2.0,interactive=False)".format(src_dir,target,field,cln_param['line_ch'][i],img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],mask,cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
         logger.info('Executing command: '+command)
         exec(command)
-        cf.check_casalog(logger)
+        cf.check_casalog(config,config_raw,logger)
         logger.info('CLEANing finished. Image cube saved as {}.'.format(target+'.image'))
         ia.open(img_dir+target+'.dirty.image')
         coords = ia.coordsys()
@@ -245,12 +245,12 @@ def image(config,config_raw,config_file,logger):
             command = "imregrid(imagename='{0}{1}'+'.image', template='J2000', output='{0}{1}'+'.image.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(img_dir,target)
             logger.info('Executing command: '+command)
             exec(command)
-            cf.check_casalog(logger)
+            cf.check_casalog(config,config_raw,logger)
             logger.info('{} regridded in J2000 coordinates.'.format(target+'.image.J2000'))
             command = "imregrid(imagename='{0}{1}'+'.image.pbcor', template='J2000', output='{0}{1}'+'.image.pbcor.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(img_dir,target)
             logger.info('Executing command: '+command)
             exec(command)
-            cf.check_casalog(logger)
+            cf.check_casalog(config,config_raw,logger)
             logger.info('{} regridded in J2000 coordinates.'.format(target+'.image.pbcor.J2000'))
         coords.done()
         ia.close()
@@ -263,7 +263,7 @@ def image(config,config_raw,config_file,logger):
         command = "exportfits(imagename='{0}{1}', fitsimage='{0}{2}', velocity=True,optical=False,overwrite=True,dropstokes=True,stokeslast=True,history=True,dropdeg=True)".format(img_dir,imagename,fitsname)
         logger.info('Executing command: '+command)
         exec(command)
-        cf.check_casalog(logger)
+        cf.check_casalog(config,config_raw,logger)
         fitsname = target+'_HI.pbcor.fits'
         logger.info('Saving primary beam corrected image cube as {}'.format(fitsname))
         if coord_chn:
@@ -273,7 +273,7 @@ def image(config,config_raw,config_file,logger):
         command = "exportfits(imagename='{0}{1}', fitsimage='{0}{2}', velocity=True,optical=False,overwrite=True,dropstokes=True,stokeslast=True,history=True,dropdeg=True)".format(img_dir,imagename,fitsname)
         logger.info('Executing command: '+command)
         exec(command)
-        cf.check_casalog(logger)
+        cf.check_casalog(config,config_raw,logger)
         coord_chn = False
     logger.info('Completed generation of clean image(s).')
     

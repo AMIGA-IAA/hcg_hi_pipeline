@@ -108,7 +108,7 @@ def contsub(msfile,config,config_raw,config_file,logger):
         command = "uvcontsub(vis='{0}{1}'+'.split', field='{2}', fitspw='{3}', spw='{4}', excludechans=False, combine='spw', solint='int', fitorder={5}, want_cont={6})".format(src_dir,target,field,chans,','.join(spws),order,contsub['save_cont'])
         logger.info('Executing command: '+command)
         exec(command)
-        cf.check_casalog(logger)
+        cf.check_casalog(config,config_raw,logger)
     logger.info('Completed continuum subtraction.')
     
 
@@ -310,7 +310,7 @@ def dirty_image(config,config_raw,config_file,logger):
         command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', imagename='{3}{1}'+'.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, restoringbeam='common', niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
         logger.info('Executing command: '+command)
         exec(command)
-        cf.check_casalog(logger)
+        cf.check_casalog(config,config_raw,logger)
                 
     logger.info('Completed making dirty image.')
     
