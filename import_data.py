@@ -211,7 +211,7 @@ def transform_data(msfile,config,config_raw,config_file,logger):
         cf.rmdir(msfile,logger)
         cf.mvdir(msfile+'_1',msfile,logger)
         logger.info('Completed data transformation.')
-        listobs_sum(msfile,logger)
+        listobs_sum(msfile,config,config_raw,logger)
     else:
         logger.info('No transformation made.')
 
