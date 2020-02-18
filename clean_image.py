@@ -14,6 +14,9 @@ def noise_est(config,logger):
     """
     logger.info('Starting making noise estimation.')
     targets = config['calibration']['target_names'][:]
+    calib = config['calibration']
+    if calib['mosaic']:
+        targets = list(set(calib['target_names']))
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     noise = []
@@ -50,6 +53,9 @@ def image(config,config_raw,config_file,logger):
     config_file = Path to configuration file. (String)
     """
     noises = noise_est(config,logger)
+    cln_param = config['clean']
+    if config_raw.has_option('clean','noise'):
+        noise = cln_param['noise'][:]
     calib = config['calibration']
     contsub = config['continuum_subtraction']
     rest_freq = config['global']['rest_freq']
@@ -62,7 +68,8 @@ def image(config,config_raw,config_file,logger):
             target_name = target[:inx]
             if target_name in calib['target_names'][i-1]:
                 fields.insert(i,fields[i-1])
-    cln_param = config['clean']
+    if calib['mosaic']:
+        targets = list(set(targets))
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
     cf.makedir('./'+img_dir,logger)
@@ -231,7 +238,14 @@ def image(config,config_raw,config_file,logger):
             mask = 'auto-multithresh'
         else:
             mask = 'pb'
-        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', spw='{3}', imagename='{4}{1}', cell='{5}', imsize=[{6},{6}], specmode='cube', outframe='bary', veltype='radio', restfreq='{7}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='{8}', scales={9}, restoringbeam='common', pbcor=True, weighting='briggs', robust={10}, niter=100000, gain=0.1, threshold='{11}Jy', usemask='{12}', sidelobethreshold={13}, noisethreshold={14}, lownoisethreshold={15}, minbeamfrac={16}, negativethreshold={17}, cyclefactor=2.0,interactive=False)".format(src_dir,target,field,cln_param['line_ch'][i],img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],mask,cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
+        gridder = 'wproject'
+        if calib['mosaic']:
+            for target_name in targets:
+                inx = [j for j in range(len(calib['target_names'])) if target_name in calib['target_names'][j]]
+                fields = numpy.array(calib['targets'],dtype='str')[inx]
+            field = ','.join(fields)
+            gridder = 'mosaic'
+        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', spw='{3}', imagename='{4}{1}', cell='{5}', imsize=[{6},{6}], specmode='cube', outframe='bary', veltype='radio', restfreq='{7}', gridder='{8}', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='{9}', scales={10}, restoringbeam='common', pbcor=True, weighting='briggs', robust={11}, niter=100000, gain=0.1, threshold='{12}Jy', usemask='{13}', phasecenter='{14}', sidelobethreshold={15}, noisethreshold={16}, lownoisethreshold={17}, minbeamfrac={18}, negativethreshold={19}, cyclefactor=2.0,interactive=False)".format(src_dir,target,field,cln_param['line_ch'][i],img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,gridder,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],mask,cln_param['phasecenter'],cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
         logger.info('Executing command: '+command)
         exec(command)
         cf.check_casalog(config,config_raw,logger)

@@ -27,6 +27,10 @@ def contsub(msfile,config,config_raw,config_file,logger):
             target_name = target[:inx]
             if target_name in calib['target_names'][i-1]:
                 fields.insert(i,fields[i-1])
+    if calib['mosaic']:
+        logger.info('The parameters file indicates that this data set is a mosaic.')
+        logger.info('All fields in the mosaic will have the same continuum channels.')
+        targets = list(set(targets))
     reset_ch = False
     if len(contsub['linefree_ch']) == 0 or len(contsub['linefree_ch']) != len(targets):
         reset_ch = True
@@ -94,6 +98,11 @@ def contsub(msfile,config,config_raw,config_file,logger):
     for i in range(len(targets)):
         target = targets[i]
         field = fields[i]
+        if calib['mosaic']:
+            for target_name in targets:
+                inx = [j for j in range(len(calib['target_names'])) if target_name in calib['target_names'][j]]
+                fields = numpy.array(calib['targets'],dtype='str')[inx]
+            field = ','.join(fields)
         chans = contsub['linefree_ch'][i]
         spws = chans.split(',')
         for i in range(len(spws)):
@@ -125,18 +134,10 @@ def plot_spec(config,logger,contsub=False):
     cf.makedir(plots_obs_dir,logger)
     calib = config['calibration']
     targets = calib['target_names'][:]
-    fields = calib['targets'][:]
-    for i in range(len(targets)):
-        target = targets[i]
-        if 'spw' in target:
-            inx = target.index('.spw')
-            target_name = target[:inx]
-            if target_name in calib['target_names'][i-1]:
-                fields.insert(i,fields[i-1])
+    if calib['mosaic']:
+        targets = list(set(calib['target_names']))
     src_dir = config['global']['src_dir']+'/'
-    for i in range(len(targets)):
-        target = targets[i]
-        field = fields[i]
+    for target in targets:
         if contsub:
             MS_list = glob.glob('{0}{1}*split.contsub'.format(src_dir,target))
         else:
@@ -182,6 +183,8 @@ def dirty_image(config,config_raw,config_file,logger):
             target_name = target[:inx]
             if target_name in calib['target_names'][i-1]:
                 fields.insert(i,fields[i-1])
+    if calib['mosaic']:
+        targets = list(set(calib['target_names']))
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
@@ -306,8 +309,15 @@ def dirty_image(config,config_raw,config_file,logger):
     for i in range(len(targets)):
         target = targets[i]
         field = fields[i]
+        gridder = 'wproject'
+        if calib['mosaic']:
+            for target_name in targets:
+                inx = [j for j in range(len(calib['target_names'])) if target_name in calib['target_names'][j]]
+                fields = numpy.array(calib['targets'],dtype='str')[inx]
+            field = ','.join(fields)
+            gridder = 'mosaic'
         logger.info('Making dirty image of {} (line only).'.format(target))
-        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', imagename='{3}{1}'+'.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, restoringbeam='common', niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', imagename='{3}{1}'+'.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='{7}', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={8}, restoringbeam='common', niter=0, phasecenter='{9}', interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,gridder,cln_param['robust'],cln_param['phasecenter'])
         logger.info('Executing command: '+command)
         exec(command)
         cf.check_casalog(config,config_raw,logger)

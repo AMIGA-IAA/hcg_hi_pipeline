@@ -1,4 +1,4 @@
-import imp, glob
+import imp, glob, numpy
 imp.load_source('common_functions','common_functions.py')
 import common_functions as cf
 
@@ -24,6 +24,8 @@ def dirty_cont_image(config,config_raw,config_file,logger):
             target_name = target[:inx]
             if target_name in calib['target_names'][i-1]:
                 fields.insert(i,fields[i-1])
+    if calib['mosaic']:
+        targets = list(set(calib['target_names']))
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     img_dir = config['global']['img_dir']+'/'
@@ -110,8 +112,15 @@ def dirty_cont_image(config,config_raw,config_file,logger):
     for i in range(len(targets)):
         target = targets[i]
         field = fields[i]
+        gridder = 'wproject'
+        if calib['mosaic']:
+            for target_name in targets:
+                inx = [j for j in range(len(calib['target_names'])) if target_name in calib['target_names'][j]]
+                fields = numpy.array(calib['targets'],dtype='str')[inx]
+            field = ','.join(fields)
+            gridder = 'mosaic'
         logger.info('Making dirty image of {} (inc. continuum).'.format(target))
-        command = "tclean(vis='{0}{1}.split', field='{2}', imagename='{3}{1}.cont.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='wproject', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={7}, niter=0, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,cln_param['robust'])
+        command = "tclean(vis='{0}{1}.split', field='{2}', imagename='{3}{1}.cont.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='{7}', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={8}, niter=0, phasecenter='{9}', interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,gridder,cln_param['robust'],cln_param['phasecenter'])
         logger.info('Executing command: '+command)
         exec(command)  
         cf.check_casalog(config,config_raw,logger)

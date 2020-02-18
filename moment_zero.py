@@ -14,7 +14,10 @@ def noise_est(config,logger):
     noise = Estimate of the theortical noise in Jy/beam. (List of Floats)
     """
     logger.info('Starting making noise estimation.')
-    targets = config['calibration']['target_names']
+    targets = config['calibration']['target_names'][:]
+    calib = config['calibration']
+    if calib['mosaic']:
+        targets = list(set(calib['target_names']))
     cln_param = config['clean']
     src_dir = config['global']['src_dir']+'/'
     noise = []
@@ -49,10 +52,16 @@ def moment0(config,config_raw,config_file,logger):
     config_file = Path to configuration file. (String)
     """
     noises = noise_est(config,logger)
+    cln_param = config['clean']
+    calib = config['calibration']
+    if config_raw.has_option('clean','noise'):
+        noise = cln_param['noise'][:]
     moment = config['moment']
     thresh = moment['mom_thresh']
     chans = moment['mom_chans']
     targets = config['calibration']['target_names']
+    if calib['mosaic']:
+        targets = list(set(targets))
     img_dir = config['global']['img_dir']+'/'
     mom_dir = config['global']['mom_dir']+'/'
     cf.makedir('./'+mom_dir,logger)
