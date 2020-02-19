@@ -182,11 +182,9 @@ def check_casalog(config,config_raw,logger):
     """
     Checks the casa log for severe errors.
     """
-    casalogs = glob.glob('./casa*.log')
-    casalogs.sort(key=os.path.getmtime)
-    latest_log = open(casalogs[-1],'r')
-    casalog_lines = latest_log.readlines()
-    latest_log.close()
+    current_log = open(casalog.logfile(), 'r')
+    casalog_lines = current_log.readlines()
+    current_log.close()
     sev_err = False
     for line in casalog_lines:
         if 'SEVERE' in line:
