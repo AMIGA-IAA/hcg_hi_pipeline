@@ -10,6 +10,7 @@ import ConfigParser
 from ast import literal_eval
 import glob
 import collections
+import casadef
 
 
 # Read configuration file
@@ -182,11 +183,9 @@ def check_casalog(config,config_raw,logger):
     """
     Checks the casa log for severe errors.
     """
-    casalogs = glob.glob('./casa*.log')
-    casalogs.sort(key=os.path.getmtime)
-    latest_log = open(casalogs[-1],'r')
-    casalog_lines = latest_log.readlines()
-    latest_log.close()
+    current_log = open(casalog.logfile(), 'r')
+    casalog_lines = current_log.readlines()
+    current_log.close()
     sev_err = False
     for line in casalog_lines:
         if 'SEVERE' in line:
@@ -205,13 +204,4 @@ def check_casaversion(logger):
     """
     Checks the casa log for the version number.
     """
-    casalogs = glob.glob('./casa*.log')
-    casalogs.sort(key=os.path.getmtime)
-    latest_log = open(casalogs[-1],'r')
-    casalog_lines = latest_log.readlines()
-    latest_log.close()
-    for line in casalog_lines:
-        if 'CASA Version' in line:
-            inx = line.index('CASA Version')
-            logger.info(line[inx:].rstrip())
-            break
+    logger.info(casadef.casa_version)
