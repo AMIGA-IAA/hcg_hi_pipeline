@@ -20,7 +20,7 @@ def import_data(data_files, msfile, config, config_raw, logger):
     command = "importvla(archivefiles = {0}, vis = '{1}')".format(data_files, msfile)
     logger.info('Executing command: '+command)
     exec(command)
-    cf.check_casalog(config,config_raw,logger)
+    cf.check_casalog(config,config_raw,logger,casalog)
     logger.info('Completed import vla data')
     
 def listobs_sum(msfile, config, config_raw, logger):
@@ -37,7 +37,7 @@ def listobs_sum(msfile, config, config_raw, logger):
     cf.rmfile(listobs_file,logger)
     logger.info('Writing listobs summary of data set to: {}'.format(listobs_file))
     listobs(vis=msfile, listfile=listobs_file)
-    cf.check_casalog(config,config_raw,logger)
+    cf.check_casalog(config,config_raw,logger,casalog)
     logger.info('Completed listobs summary.')
 
 def get_obsfreq(msfile):
@@ -198,7 +198,7 @@ def transform_data(msfile,config,config_raw,config_file,logger):
         command = "mstransform(vis='{0}', outputvis='{0}_1', field='{1}', spw='{2}', observation='{3}', datacolumn='data')".format(msfile,','.join(importdata['keep_fields']),','.join(importdata['keep_spws']),','.join(importdata['keep_obs']))
         logger.info('Executing command: '+command)
         exec(command)           
-        cf.check_casalog(config,config_raw,logger)
+        cf.check_casalog(config,config_raw,logger,casalog)
         logger.info('Updating config file ({0}) to set mstransform values.'.format(config_file))
         config_raw.set('importdata','keep_obs',importdata['keep_obs'])
         config_raw.set('importdata','keep_spws',importdata['keep_spws'])
@@ -233,6 +233,8 @@ msfile = '{0}.ms'.format(config['global']['project_name'])
 cf.check_casaversion(logger)
 cf.rmdir('summary',logger)
 cf.rmdir('plots',logger)
+cf.rmdir(msfile,logger)
+cf.rmdir(msfile+'.flagversions',logger)
 data_path = config['importdata']['data_path']
 if not config['importdata']['jvla']:
     data_files = glob.glob(os.path.join(data_path, '*'))

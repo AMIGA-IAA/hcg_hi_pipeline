@@ -64,7 +64,10 @@ def rmdir(pathdir,logger):
     Input:
     pathdir = Path of the directory to be removed. (String)
     '''
-    if os.path.exists(pathdir):
+    if os.path.islink(pathdir):
+        logger.info('{0} is a symbolic link. It will now be unlinked.'.format(pathdir))
+        os.unlink(pathdir)
+    elif os.path.exists(pathdir):
         try:
             shutil.rmtree(pathdir)
             logger.info('Deleted: {0}'.format(pathdir))
@@ -95,6 +98,9 @@ def rmfile(pathdir,logger):
     Input:
     pathdir = Path of the file to be removed. (String)
     '''
+    if os.path.islink(pathdir):
+        logger.info('{0} is a symbolic link. It will now be unlinked.'.format(pathdir))
+        os.unlink(pathdir)
     if os.path.exists(pathdir):
         try:
             os.remove(pathdir)
@@ -179,7 +185,7 @@ def backup_pipeline_params(configfile,logger):
     logger.info('Backing up {0} to {1}.'.format(configfile,backup_file))
     shutil.copyfile(configfile,backup_file)
     
-def check_casalog(config,config_raw,logger):
+def check_casalog(config,config_raw,logger,casalog):
     """
     Checks the casa log for severe errors.
     """

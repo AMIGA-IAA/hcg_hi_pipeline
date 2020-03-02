@@ -248,7 +248,7 @@ def image(config,config_raw,config_file,logger):
         command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', spw='{3}', imagename='{4}{1}', cell='{5}', imsize=[{6},{6}], specmode='cube', outframe='bary', veltype='radio', restfreq='{7}', gridder='{8}', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='{9}', scales={10}, restoringbeam='common', pbcor=True, weighting='briggs', robust={11}, niter=100000, gain=0.1, threshold='{12}Jy', usemask='{13}', phasecenter='{14}', sidelobethreshold={15}, noisethreshold={16}, lownoisethreshold={17}, minbeamfrac={18}, negativethreshold={19}, cyclefactor=2.0,interactive=False)".format(src_dir,target,field,cln_param['line_ch'][i],img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,gridder,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],mask,cln_param['phasecenter'],cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
         logger.info('Executing command: '+command)
         exec(command)
-        cf.check_casalog(config,config_raw,logger)
+        cf.check_casalog(config,config_raw,logger,casalog)
         logger.info('CLEANing finished. Image cube saved as {}.'.format(target+'.image'))
         ia.open(img_dir+target+'.dirty.image')
         coords = ia.coordsys()
@@ -259,12 +259,12 @@ def image(config,config_raw,config_file,logger):
             command = "imregrid(imagename='{0}{1}'+'.image', template='J2000', output='{0}{1}'+'.image.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(img_dir,target)
             logger.info('Executing command: '+command)
             exec(command)
-            cf.check_casalog(config,config_raw,logger)
+            cf.check_casalog(config,config_raw,logger,casalog)
             logger.info('{} regridded in J2000 coordinates.'.format(target+'.image.J2000'))
             command = "imregrid(imagename='{0}{1}'+'.image.pbcor', template='J2000', output='{0}{1}'+'.image.pbcor.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(img_dir,target)
             logger.info('Executing command: '+command)
             exec(command)
-            cf.check_casalog(config,config_raw,logger)
+            cf.check_casalog(config,config_raw,logger,casalog)
             logger.info('{} regridded in J2000 coordinates.'.format(target+'.image.pbcor.J2000'))
         coords.done()
         ia.close()
@@ -277,7 +277,7 @@ def image(config,config_raw,config_file,logger):
         command = "exportfits(imagename='{0}{1}', fitsimage='{0}{2}', velocity=True,optical=False,overwrite=True,dropstokes=True,stokeslast=True,history=True,dropdeg=True)".format(img_dir,imagename,fitsname)
         logger.info('Executing command: '+command)
         exec(command)
-        cf.check_casalog(config,config_raw,logger)
+        cf.check_casalog(config,config_raw,logger,casalog)
         fitsname = target+'_HI.pbcor.fits'
         logger.info('Saving primary beam corrected image cube as {}'.format(fitsname))
         if coord_chn:
@@ -287,7 +287,7 @@ def image(config,config_raw,config_file,logger):
         command = "exportfits(imagename='{0}{1}', fitsimage='{0}{2}', velocity=True,optical=False,overwrite=True,dropstokes=True,stokeslast=True,history=True,dropdeg=True)".format(img_dir,imagename,fitsname)
         logger.info('Executing command: '+command)
         exec(command)
-        cf.check_casalog(config,config_raw,logger)
+        cf.check_casalog(config,config_raw,logger,casalog)
         coord_chn = False
     logger.info('Completed generation of clean image(s).')
     
@@ -310,7 +310,7 @@ img_path = config['global']['img_dir']+'/'
 cf.check_casaversion(logger)
 logger.info('Deleting any existing clean image(s).')
 for target in targets:
-    del_list = [img_path+target+'.mask',img_path+target+'.model',img_path+target+'.pb',img_path+target+'.psf',img_path+target+'.residual',img_path+target+'.sumwt']
+    del_list = [img_path+target+'.mask',img_path+target+'.model',img_path+target+'.pb',img_path+target+'.psf',img_path+target+'.residual',img_path+target+'.sumwt',img_path+target+'.weight']
     del_list.extend(glob.glob(img_path+'{}.image*'.format(target)))
     if len(del_list) > 0:
         for file_path in del_list:
