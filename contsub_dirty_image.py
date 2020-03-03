@@ -94,7 +94,6 @@ def contsub(msfile,config,config_raw,config_file,logger):
     logger.info('Line free channels set as: {}.'.format(contsub['linefree_ch']))
     logger.info('Fit order(s) set as: {}.'.format(contsub['fitorder']))
     logger.info('For the targets: {}.'.format(targets))
-    extra_splits = 0
     for i in range(len(targets)):
         target = targets[i]
         field = fields[i]
@@ -105,16 +104,16 @@ def contsub(msfile,config,config_raw,config_file,logger):
             field = ','.join(fields)
         chans = contsub['linefree_ch'][i]
         spws = chans.split(',')
-        for i in range(len(spws)):
-            spw = spws[i].strip()
+        for j in range(len(spws)):
+            spw = spws[j].strip()
             inx = spw.index(':')
             spw = spw[0:inx]
-            spws[i] = spw
+            spws[j] = spw
         logger.info('Subtracting the continuum from field: {}'.format(target))
         if type(contsub['fitorder']) == type(1):
-            order = contsub['fitorder']
+            order = int(contsub['fitorder'])
         else:
-            order = contsub['fitorder'][i]
+            order = int(contsub['fitorder'][i])
         command = "uvcontsub(vis='{0}{1}'+'.split', field='{2}', fitspw='{3}', spw='{4}', excludechans=False, combine='spw', solint='int', fitorder={5}, want_cont={6})".format(src_dir,target,field,chans,','.join(spws),order,contsub['save_cont'])
         logger.info('Executing command: '+command)
         exec(command)
