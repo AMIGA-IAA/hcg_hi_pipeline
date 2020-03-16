@@ -68,8 +68,8 @@ def check_pipeline_params():
             flag_calib_split_kwds = ['src_dir','shadow_tol','quack_int','timecutoff','freqcutoff','rthresh','refant',
                                      'fluxcal','fluxmod','man_mod','bandcal','phasecal','targets','target_names','mosaic']
             dirty_cont_image_kwds = ['rest_freq','img_dir']
-            contsub_dirty_image_kwds = ['linefree_ch','fitorder','save_cont','line_ch','robust']
-            clean_image_kwds = ['automask','multiscale','beam_scales','sefd','corr_eff','thresh','pix_size','im_size','noise','phasecenter']
+            contsub_dirty_image_kwds = ['linefree_ch','fitorder','save_cont','line_ch']
+            clean_image_kwds = ['automask','multiscale','beam_scales','sefd','corr_eff','robust','thresh','pix_size','im_size','noise','phasecenter']
             moment_kwds = ['mom_thresh','mom_chans']
             cleanup_kwds = ['cleanup_level']
             
