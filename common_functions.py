@@ -210,4 +210,4 @@ def check_casaversion(logger):
     """
     Checks the casa log for the version number.
     """
-    logger.info(casadef.casa_version)
+    logger.info('CASA version: {}'.format(casadef.casa_version))

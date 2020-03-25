@@ -56,6 +56,7 @@ def image(config,config_raw,config_file,logger):
     cln_param = config['clean']
     if config_raw.has_option('clean','noise'):
         noises = cln_param['noise'][:]
+        logger.info('Noise level(s) set manually as {0} Jy.'.format(noises))
     calib = config['calibration']
     contsub = config['continuum_subtraction']
     rest_freq = config['global']['rest_freq']

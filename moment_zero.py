@@ -56,6 +56,7 @@ def moment0(config,config_raw,config_file,logger):
     calib = config['calibration']
     if config_raw.has_option('clean','noise'):
         noises = cln_param['noise'][:]
+        logger.info('Noise level(s) set manually as {0} Jy.'.format(noises))
     moment = config['moment']
     thresh = moment['mom_thresh']
     chans = moment['mom_chans']

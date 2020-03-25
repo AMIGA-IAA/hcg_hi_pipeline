@@ -23,6 +23,26 @@ def import_data(data_files, msfile, config, config_raw, logger):
     cf.check_casalog(config,config_raw,logger,casalog)
     logger.info('Completed import vla data')
     
+def obs_dates(msfile, config, logger):
+    """
+    Reads the observation date and time for each file imported and prints to log.
+    
+    Input:
+    msfile = Path where the MS will be created. (String)
+    """
+    logger.info('Starting archive file summary.')
+    logger.info('To find the exact files imported here search the VLA archive (https://archive.nrao.edu/archive/advquery.jsp) for:')
+    tb.open(msfile+'/OBSERVATION')
+    times = tb.getcol('TIME_RANGE')
+    tb.close()
+    for i in range(len(times[0])):
+        start_time = qa.time({'value':times[0][i],'unit':'s'},form='fits')[0]
+        end_time = qa.time({'value':times[1][i],'unit':'s'},form='fits')[0]
+        start_time = start_time.replace('T',' ')
+        end_time = end_time.replace('T',' ')
+        logger.info('Project: {0}\tStart Time: {1}\tEnd Time: {2}'.format(config['global']['project_name'],start_time,end_time))
+    logger.info('Completed archive file summary.')
+    
 def listobs_sum(msfile, config, config_raw, logger):
     """ 
     Write the listobs summary to file.
@@ -239,6 +259,7 @@ data_path = config['importdata']['data_path']
 if not config['importdata']['jvla']:
     data_files = glob.glob(os.path.join(data_path, '*'))
     import_data(sorted(data_files), msfile, config, config_raw, logger)
+    obs_dates(msfile, config, logger)
 else:
     os.symlink(data_path+msfile,msfile)
     os.symlink(data_path+msfile+'.flagversions',msfile+'.flagversions')
