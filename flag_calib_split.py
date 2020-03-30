@@ -1144,7 +1144,7 @@ logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['projec
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 #Flag, set intents, calibrate, flag more, calibrate again, then split fields
-'''cf.check_casaversion(logger)
+cf.check_casaversion(logger)
 flag_version = 'Original'
 if  os.path.isdir(msfile+'.flagversions/flags.Original'):
     restore_flags(msfile,flag_version,logger)
@@ -1176,7 +1176,7 @@ flag_version = 'final'
 rm_flags(msfile,flag_version,logger)
 save_flags(msfile,flag_version,logger)
 flag_sum(msfile,flag_version,logger)
-plot_flags(msfile,flag_version,logger)'''
+plot_flags(msfile,flag_version,logger)
 cf.rmdir(config['global']['src_dir'],logger)
 split_fields(msfile,config,config_raw,config_file,logger)
 
