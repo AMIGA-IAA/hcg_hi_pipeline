@@ -999,56 +999,62 @@ def split_fields(msfile,config,config_raw,config_file,logger):
                 chan_wids.append(numpy.round(numpy.mean(wids)/1.E3,3))
             msmd.close()
             if len(spws) > 1:
-                combine = False
-                separate = False
-                combine_spws = {}
-                if len(spws) == 2:
-                    logger.info('The two SPWs which {0} was observed with have the frequency ranges:'.format(target_name))
-                    logger.info('SPW{0}: {1}-{2} MHz'.format(spws[0],minfreqs[0],maxfreqs[0]))
-                    logger.info('SPW{0}: {1}-{2} MHz'.format(spws[1],minfreqs[1],maxfreqs[1]))
-                    if ((maxfreqs[0]+(chan_wids[0]/1000.) >= minfreqs[1] and minfreqs[0] <= maxfreqs[1]+(chan_wids[1]/1000.)) or (maxfreqs[1]+(chan_wids[1]/1000.) >= minfreqs[0] and minfreqs[1] <= maxfreqs[0]+(chan_wids[0]/1000.))) and nchans[0] == nchans[1]:
-                        logger.info('The two SPWs overlap and will be combined.')
-                        combine = True
-                        combine_spws[spws[0]] = [spws[1]]
-                    else:
-                        logger.info('The two SPWs do not overlap (or do not have the same number of channels) and they will not be combined.')
-                        separate = True
-                if len(spws) > 2:
-                    logger.info('{0} was observed in {1} SPWs with have the frequency ranges:'.format(target_name,len(spws)))
-                    for j in range(len(spws)):
-                        logger.info('SPW{0}: {1}-{2} MHz'.format(spws[j],minfreqs[j],maxfreqs[j]))
-                    for j in range(len(spws)-1):
-                        for k in range(j+1,len(spws)):
-                            if ((maxfreqs[j]+(chan_wids[j]/1000.) >= minfreqs[k] and minfreqs[j] <= maxfreqs[k]+(chan_wids[k]/1000.)) or (maxfreqs[k]+(chan_wids[k]/1000.) >= minfreqs[j] and minfreqs[k] <= maxfreqs[j]+(chan_wids[j]/1000.))) and nchans[j] == nchans[k]:
-                                logger.info('The SPWs {0} and {1} overlap and will be combined.'.format(spws[j],spws[k]))
-                                combine = True
-                                if spws[j] in combine_spws.keys():
-                                    combine_spws[spws[j]].append(spws[k])
-                                elif spws[k] in combine_spws.keys():
-                                    combine_spws[spws[k]].append(spws[j])
+                if config_raw.has_option('calibration','man_comb_spws'):
+                    combine_spws = dict(calib['man_comb_spws'])[field]
+                    combine = True
+                    separate = True
+                    logger.info('A manual SPW combination scheme has been set in the configuration file.')
+                else:
+                    combine = False
+                    separate = False
+                    combine_spws = {}
+                    if len(spws) == 2:
+                        logger.info('The two SPWs which {0} was observed with have the frequency ranges:'.format(target_name))
+                        logger.info('SPW{0}: {1}-{2} MHz'.format(spws[0],minfreqs[0],maxfreqs[0]))
+                        logger.info('SPW{0}: {1}-{2} MHz'.format(spws[1],minfreqs[1],maxfreqs[1]))
+                        if ((maxfreqs[0]+(chan_wids[0]/1000.) >= minfreqs[1] and minfreqs[0] <= maxfreqs[1]+(chan_wids[1]/1000.)) or (maxfreqs[1]+(chan_wids[1]/1000.) >= minfreqs[0] and minfreqs[1] <= maxfreqs[0]+(chan_wids[0]/1000.))) and nchans[0] == nchans[1]:
+                            logger.info('The two SPWs overlap and will be combined.')
+                            combine = True
+                            combine_spws[spws[0]] = [spws[1]]
+                        else:
+                            logger.info('The two SPWs do not overlap (or do not have the same number of channels) and they will not be combined.')
+                            separate = True
+                    if len(spws) > 2:
+                        logger.info('{0} was observed in {1} SPWs with have the frequency ranges:'.format(target_name,len(spws)))
+                        for j in range(len(spws)):
+                            logger.info('SPW{0}: {1}-{2} MHz'.format(spws[j],minfreqs[j],maxfreqs[j]))
+                        for j in range(len(spws)-1):
+                            for k in range(j+1,len(spws)):
+                                if ((maxfreqs[j]+(chan_wids[j]/1000.) >= minfreqs[k] and minfreqs[j] <= maxfreqs[k]+(chan_wids[k]/1000.)) or (maxfreqs[k]+(chan_wids[k]/1000.) >= minfreqs[j] and minfreqs[k] <= maxfreqs[j]+(chan_wids[j]/1000.))) and nchans[j] == nchans[k]:
+                                    logger.info('The SPWs {0} and {1} overlap and will be combined.'.format(spws[j],spws[k]))
+                                    combine = True
+                                    if spws[j] in combine_spws.keys():
+                                        combine_spws[spws[j]].append(spws[k])
+                                    elif spws[k] in combine_spws.keys():
+                                        combine_spws[spws[k]].append(spws[j])
+                                    else:
+                                        new_key = True
+                                        for key in combine_spws.keys():
+                                            if spws[j] in combine_spws[key]:
+                                                combine_spws[key].append(spws[k])
+                                                new_key = False
+                                            if spws[k] in combine_spws[key]:
+                                                combine_spws[key].append(spws[j])
+                                                new_key = False
+                                        if new_key:
+                                            combine_spws[spws[j]] = [spws[k]]
                                 else:
-                                    new_key = True
-                                    for key in combine_spws.keys():
-                                        if spws[j] in combine_spws[key]:
-                                            combine_spws[key].append(spws[k])
-                                            new_key = False
-                                        if spws[k] in combine_spws[key]:
-                                            combine_spws[key].append(spws[j])
-                                            new_key = False
-                                    if new_key:
-                                        combine_spws[spws[j]] = [spws[k]]
-                            else:
-                                logger.info('The SPWs {0} and {1} do not overlap and will not be combined.'.format(spws[j],spws[k]))
-                                separate = True
-                    if combine and separate:
-                        logger.info('Some SPWs overlap and others do not. These will be separated appropriately.')
-                    elif combine:
-                        logger.info('All SPWs overlap and will be combined.')
-                    elif separate:
-                        logger.info('SPWs do not overlap and will be split into separate MSs.')
-                    elif not combine and not separate:
-                        logger.critical('The pipeline could not determine whether to split or combine the SPWs for {}.'.format(target_name))
-                        sys.exit(-1)
+                                    logger.info('The SPWs {0} and {1} do not overlap and will not be combined.'.format(spws[j],spws[k]))
+                                    separate = True
+                        if combine and separate:
+                            logger.info('Some SPWs overlap and others do not. These will be separated appropriately.')
+                        elif combine:
+                            logger.info('All SPWs overlap and will be combined.')
+                        elif separate:
+                            logger.info('SPWs do not overlap and will be split into separate MSs.')
+                        elif not combine and not separate:
+                            logger.critical('The pipeline could not determine whether to split or combine the SPWs for {}.'.format(target_name))
+                            sys.exit(-1)
                 if combine:
                     if len(combine_spws.keys()) == 1:
                         key = combine_spws.keys()[0]
