@@ -1096,7 +1096,7 @@ def split_fields(msfile,config,config_raw,config_file,logger):
                         logger.info('The following SPWs for {0} will be split into separate MSs: {1}'.format(target_name,split_spws))
                         if target_name in new_target_names:
                             inx = new_target_names.index(target_name)+1
-                            if not combine:
+                            if not combine or len(combine_spws.keys()) == 0:
                                 new_target_names.remove(target_name)
                                 inx += -1
                         for j in range(len(split_spws)):
@@ -1144,7 +1144,7 @@ logger = cf.get_logger(LOG_FILE_INFO  = '{}.log'.format(config['global']['projec
 msfile = '{0}.ms'.format(config['global']['project_name'])
 
 #Flag, set intents, calibrate, flag more, calibrate again, then split fields
-cf.check_casaversion(logger)
+'''cf.check_casaversion(logger)
 flag_version = 'Original'
 if  os.path.isdir(msfile+'.flagversions/flags.Original'):
     restore_flags(msfile,flag_version,logger)
@@ -1176,7 +1176,7 @@ flag_version = 'final'
 rm_flags(msfile,flag_version,logger)
 save_flags(msfile,flag_version,logger)
 flag_sum(msfile,flag_version,logger)
-plot_flags(msfile,flag_version,logger)
+plot_flags(msfile,flag_version,logger)'''
 cf.rmdir(config['global']['src_dir'],logger)
 split_fields(msfile,config,config_raw,config_file,logger)
 
