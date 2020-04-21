@@ -139,9 +139,9 @@ def plot_spec(config,logger,contsub=False):
     src_dir = config['global']['src_dir']+'/'
     for target in targets:
         if contsub:
-            MS_list = glob.glob('{0}{1}*split.contsub'.format(src_dir,target))
+            MS_list = glob.glob('{0}{1}.split.contsub'.format(src_dir,target))
         else:
-            MS_list = glob.glob('{0}{1}*split'.format(src_dir,target))
+            MS_list = glob.glob('{0}{1}.split'.format(src_dir,target))
         for MS in MS_list:
             if contsub:
                 plot_file = plots_obs_dir+'{0}_contsub_amp_chn.png'.format(target)
