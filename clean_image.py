@@ -113,9 +113,11 @@ def image(config,config_raw,config_file,logger):
         configfile.close()
     logger.info('Line emission channels set as: {}.'.format(cln_param['line_ch']))
     logger.info('For the targets: {}.'.format(targets))
-    if cln_param['multiscale']:
+    if numpy.any(cln_param['multiscale']):
         algorithm = 'multiscale'
         logger.info('Setting CLEAN algorithm to MS-CLEAN.')
+        if not numpy.all(cln_param['multiscale']):
+            logger.info('However, some targets will still use Hogbom CLEAN.')
         reset_cln = False
         if cln_param['beam_scales'] == []:
             reset_cln = True
@@ -149,6 +151,18 @@ def image(config,config_raw,config_file,logger):
     for i in range(len(targets)):
         target = targets[i]
         field = fields[i]
+        if numpy.all(cln_param['multiscale']):
+            ms_clean = True
+            algorithm = 'multiscale'
+        elif type(cln_param['multiscale']) != type(True):
+            ms_clean = cln_param['multiscale'][i]
+            if ms_clean:
+                algorithm = 'multiscale'
+            else:
+                algorithm = 'hogbom'
+        else:
+            ms_clean = False
+            algorithm = 'hogbom'
         logger.info('Starting {} image.'.format(target))
         reset_cln = False
         ia.open(img_dir+target+'.dirty.image')
@@ -156,7 +170,7 @@ def image(config,config_raw,config_file,logger):
         ia.close()
         if rest_beam['minor']['unit'] not in cln_param['pix_size'][i]:
             logger.error('The pixel size and beam size have diffent units.')
-            if cln_param['multiscale']:
+            if ms_clean:
                 logger.error('MS-CLEAN scales will likely be incorrect.')
             logger.info('Pixel size: {}'.format(cln_param['pix_size'][i]))
             logger.info('Beam size units: {}'.format(rest_beam['minor']['unit']))
@@ -208,7 +222,7 @@ def image(config,config_raw,config_file,logger):
         logger.info('lownoisethreshold = {}'.format(cln_param['automask_lns']))
         logger.info('minbeamfraction = {}'.format(cln_param['automask_mbf']))
         logger.info('negativethreshold = {}'.format(cln_param['automask_neg']))
-        if cln_param['multiscale']:
+        if ms_clean:
             pix_size = cln_param['pix_size'][i]
             pix_size = float(pix_size[:pix_size.find(rest_beam['minor']['unit'])])
             pix_per_beam = rest_beam['major']['value']/pix_size

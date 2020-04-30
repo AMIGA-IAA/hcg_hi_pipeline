@@ -30,7 +30,7 @@ logger.info('Starting to make combined clean image.')
 img_dir = 'HCG'+str(HCG)
 
 img_param = config['image']
-command = "tclean(vis={0}, imagename='{1}/HCG{2}', cell='{3}', imsize={4}, spw='{5}', specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='mosaic', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='multiscale', scales={7}, weighting='briggs', robust={8}, restoringbeam='common', pbcor=True, niter=100000, gain=0.1, cyclefactor=2.0,interactive=False, threshold='{9}mJy', usemask='auto-multithresh', phasecenter='{10}', sidelobethreshold={11}, noisethreshold={12}, lownoisethreshold={15}, minbeamfrac={14}, negativethreshold={14})".format(msfiles,img_dir,HCG,img_param['pix_size'],img_param['im_size'],img_param['im_chns'],img_param['rest_freq'],img_param['scales'],img_param['robust'],str(2.5*img_param['rms']),img_param['phasecenter'],img_param['automask_sl'],img_param['automask_ns'],img_param['automask_lns'],img_param['automask_mbf'],img_param['automask_neg'])
+command = "tclean(vis={0}, imagename='{1}/HCG{2}', cell='{3}', imsize={4}, spw='{5}', specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='mosaic', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='multiscale', scales={7}, weighting='briggs', robust={8}, restoringbeam='common', pbcor=True, niter=100000, gain=0.1, cyclefactor=2.0, interactive=False, threshold='{9}mJy', usemask='auto-multithresh', phasecenter='{10}', sidelobethreshold={11}, noisethreshold={12}, lownoisethreshold={13}, minbeamfrac={14}, negativethreshold={15})".format(msfiles,img_dir,HCG,img_param['pix_size'],img_param['im_size'],img_param['im_chns'],img_param['rest_freq'],img_param['scales'],img_param['robust'],str(2.5*img_param['rms']),img_param['phasecenter'],img_param['automask_sl'],img_param['automask_ns'],img_param['automask_lns'],img_param['automask_mbf'],img_param['automask_neg'])
 logger.info('Executing command: '+command)
 exec(command)
 cf.check_casalog(config,config_raw,logger,casalog)
@@ -45,11 +45,11 @@ coord_chn = False
 if 'J2000' not in coords.referencecode()[0]:
     coord_chn = True
     logger.info('Coordinate system not J2000. Image will be regridded.')
-    command = "imregrid(imagename='{0}/HCG{1}'+'.image', template='J2000', output='{0}/HCG{1}'+'.image.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(img_dir,HCG)
+    command = "imregrid(imagename='{0}/HCG{1}.image', template='J2000', output='{0}/HCG{1}.image.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(img_dir,HCG)
     logger.info('Executing command: '+command)
     exec(command)
     cf.check_casalog(config,config_raw,logger,casalog)
-    command = "imregrid(imagename='{0}/HCG{1}'+'.image.pbcor', template='J2000', output='{0}/HCG{1}'+'.image.pbcor.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(img_dir,HCG)
+    command = "imregrid(imagename='{0}/HCG{1}.image.pbcor', template='J2000', output='{0}/HCG{1}.image.pbcor.J2000', asvelocity=True, interpolation='linear', decimate=10, overwrite=True)".format(img_dir,HCG)
     logger.info('Executing command: '+command)
     exec(command)
     cf.check_casalog(config,config_raw,logger,casalog)
@@ -78,3 +78,8 @@ exec(command)
 cf.check_casalog(config,config_raw,logger,casalog)
 
 logger.info('Completed generating fits files.')
+
+logger.info('Moving logs to source directory.')
+
+os.system('mv casa-*.log HCG{}/.'.format(str(HCG)))
+os.system('mv HCG{0}.log HCG{0}/.'.format(str(HCG)))
