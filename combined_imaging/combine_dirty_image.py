@@ -18,21 +18,37 @@ logger.info('Starting joint (dirty) imaging of HCG {0} from the projects: {1}'.f
 
 msfiles = []
 for proj in proj_IDs:
-    msfile = '../{0}/sources/HCG{1}.split.contsub'.format(proj,str(HCG))
-    if os.path.exists(msfile):
-        msfiles.append(msfile)
-        logger.info('MS file added to combine list: {}'.format(msfile))
+    msfile = '../{0}/sources/HCG{1}.*split.contsub'.format(proj,str(HCG))
+    new_files = glob.glob(msfile)
+    if len(new_files) > 0:
+        msfiles.extend(new_files)
+        logger.info('MS file(s) added to combine list: {}'.format(new_files))
     else:
         logger.warning('MS not found: {}'.format(msfile))
+        
+logger.info('Setting relative weights of each MS.')
+for msfile in msfiles:
+    command = "initweights(vis='{0}', wtmode='nyq')".format(msfile)
+    logger.info('Executing command: '+command)
+    exec(command)
+    cf.check_casalog(config,config_raw,logger,casalog)
         
 logger.info('Starting to make combined dirty image.')
 
 img_dir = 'HCG'+str(HCG)
 
 img_param = config['image']
-command = "tclean(vis={0}, imagename='{1}/HCG{2}.dirty', cell='{3}', imsize={4}, spw='{5}', specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='mosaic', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='multiscale', scales={7}, weighting='briggs', robust={8}, restoringbeam='common', pbcor=True, niter=0, gain=0.1, cyclefactor=2.0, interactive=False, threshold='{9}mJy', usemask='auto-multithresh', phasecenter='{10}')".format(msfiles,img_dir,HCG,img_param['pix_size'],img_param['im_size'],img_param['im_chns'],img_param['rest_freq'],img_param['scales'],img_param['robust'],str(2.5*img_param['rms']),img_param['phasecenter'])
+img_param['msfiles'] = msfiles
+img_param['img_dir'] = img_dir
+img_param['HCG'] = HCG
+img_param['clean_thresh'] = 2.5*img_param['rms']
+command = "tclean(vis={msfiles}, imagename='{img_dir}/HCG{HCG}.dirty', cell='{pix_size}', imsize={im_size}, spw='{im_chns}', specmode='cube', outframe='bary', veltype='radio', restfreq='{rest_freq}', gridder='mosaic', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='multiscale', scales={scales}, weighting='briggs', robust={robust}, pbcor=True, niter=0, gain=0.1, cyclefactor=2.0, interactive=False, threshold='{clean_thresh}mJy', usemask='auto-multithresh', phasecenter='{phasecenter}')".format(**img_param)
 logger.info('Executing command: '+command)
 exec(command)
 cf.check_casalog(config,config_raw,logger,casalog)
 
 logger.info('Completed joint (dirty) imaging of HCG {0}.'.format(str(HCG)))
+
+logger.info('Moving CASA log to source directory.')
+
+os.system('mv {0} HCG{1}/.'.format(casalog.logfile(),str(HCG)))

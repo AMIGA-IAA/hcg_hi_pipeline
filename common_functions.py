@@ -89,6 +89,21 @@ def mvdir(pathdir, newdir, logger):
         except:
             logger.debug('Could not move: {0}'.format(pathdir))
             pass
+        
+def cpdir(pathdir, newdir, logger):
+    '''
+    Copies an entire directory.
+    
+    Input:
+    pathdir = Path of the directory to be copied. (String)
+    '''
+    if os.path.exists(pathdir):
+        try:
+            shutil.copytree(pathdir,newdir)
+            logger.info('Copied {0} to {1}'.format(pathdir,newdir))
+        except:
+            logger.debug('Could not find: {0}'.format(pathdir))
+            pass
 
 
 def rmfile(pathdir,logger):

@@ -18,19 +18,31 @@ logger.info('Starting joint (clean) imaging of HCG {0} from the projects: {1}'.f
 
 msfiles = []
 for proj in proj_IDs:
-    msfile = '../{0}/sources/HCG{1}.split.contsub'.format(proj,str(HCG))
-    if os.path.exists(msfile):
-        msfiles.append(msfile)
-        logger.info('MS file added to combine list: {}'.format(msfile))
+    msfile = '../{0}/sources/HCG{1}.*split.contsub'.format(proj,str(HCG))
+    new_files = glob.glob(msfile)
+    if len(new_files) > 0:
+        msfiles.extend(new_files)
+        logger.info('MS file(s) added to combine list: {}'.format(new_files))
     else:
         logger.warning('MS not found: {}'.format(msfile))
+        
+logger.info('Setting relative weights of each MS.')
+for msfile in msfiles:
+    command = "initweights(vis='{0}', wtmode='nyq')".format(msfile)
+    logger.info('Executing command: '+command)
+    exec(command)
+    cf.check_casalog(config,config_raw,logger,casalog)
         
 logger.info('Starting to make combined clean image.')
 
 img_dir = 'HCG'+str(HCG)
 
 img_param = config['image']
-command = "tclean(vis={0}, imagename='{1}/HCG{2}', cell='{3}', imsize={4}, spw='{5}', specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='mosaic', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='multiscale', scales={7}, weighting='briggs', robust={8}, restoringbeam='common', pbcor=True, niter=100000, gain=0.1, cyclefactor=2.0, interactive=False, threshold='{9}mJy', usemask='auto-multithresh', phasecenter='{10}', sidelobethreshold={11}, noisethreshold={12}, lownoisethreshold={13}, minbeamfrac={14}, negativethreshold={15})".format(msfiles,img_dir,HCG,img_param['pix_size'],img_param['im_size'],img_param['im_chns'],img_param['rest_freq'],img_param['scales'],img_param['robust'],str(2.5*img_param['rms']),img_param['phasecenter'],img_param['automask_sl'],img_param['automask_ns'],img_param['automask_lns'],img_param['automask_mbf'],img_param['automask_neg'])
+img_param['msfiles'] = msfiles
+img_param['img_dir'] = img_dir
+img_param['HCG'] = HCG
+img_param['clean_thresh'] = 2.5*img_param['rms']
+command = "tclean(vis={msfiles}, imagename='{img_dir}/HCG{HCG}', cell='{pix_size}', imsize={im_size}, spw='{im_chns}', specmode='cube', outframe='bary', veltype='radio', restfreq='{rest_freq}', gridder='mosaic', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='multiscale', scales={scales}, weighting='briggs', robust={robust}, restoringbeam='common', pbcor=True, niter=100000, gain=0.1, cyclefactor=2.0, interactive=False, threshold='{clean_thresh}mJy', usemask='auto-multithresh', phasecenter='{phasecenter}', sidelobethreshold={automask_sl}, noisethreshold={automask_ns}, lownoisethreshold={automask_lns}, minbeamfrac={automask_mbf}, negativethreshold={automask_neg})".format(**img_param)
 logger.info('Executing command: '+command)
 exec(command)
 cf.check_casalog(config,config_raw,logger,casalog)
@@ -81,5 +93,5 @@ logger.info('Completed generating fits files.')
 
 logger.info('Moving logs to source directory.')
 
-os.system('mv casa-*.log HCG{}/.'.format(str(HCG)))
+os.system('mv {0} HCG{1}/.'.format(casalog.logfile(),str(HCG)))
 os.system('mv HCG{0}.log HCG{0}/.'.format(str(HCG)))
