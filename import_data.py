@@ -234,7 +234,28 @@ def transform_data(msfile,config,config_raw,config_file,logger):
         listobs_sum(msfile,config,config_raw,logger)
     else:
         logger.info('No transformation made.')
-
+        
+def hanning_smooth(msfile,config,config_raw,config_file,logger):
+    """
+    Hanning smooths the dataset and replaces the previous version.
+    
+    Input:
+    msfile = Path to the MS. (String)
+    config = The parameters read from the configuration file. (Ordered dictionary)
+    config_raw = The instance of the parser.
+    config_file = Path to configuration file. (String)
+    """
+    logger.info('Starting Hanning smoothing.')
+    importdata = config['importdata']
+    command = "hanningsmooth(vis='{0}', outputvis='{0}_1')".format(msfile)
+    logger.info('Executing command: '+command)
+    exec(command)           
+    cf.check_casalog(config,config_raw,logger,casalog)
+    cf.rmdir(msfile+'.flagversions',logger)
+    cf.makedir(msfile+'.flagversions',logger)
+    cf.rmdir(msfile,logger)
+    cf.mvdir(msfile+'_1',msfile,logger)
+    logger.info('Completed Hanning smoothing.')
 
 # Read configuration file with parameters
 config_file = sys.argv[-1]
@@ -265,6 +286,9 @@ else:
     os.symlink(data_path+msfile+'.flagversions',msfile+'.flagversions')
 listobs_sum(msfile,config,config_raw,logger)
 transform_data(msfile,config,config_raw,config_file,logger)
+if config_raw.has_option('importdata','hanning'):
+    if config['importdata']['hanning']:
+        hanning_smooth(msfile,config,config_raw,config_file,logger)
 msinfo = get_msinfo(msfile,logger)
 plot_elevation(msfile,config,logger)
 plot_ants(msfile,logger)
