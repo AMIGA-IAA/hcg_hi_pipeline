@@ -1162,16 +1162,21 @@ set_fields(msfile,config,config_raw,config_file,logger)
 plot_flags(msfile,flag_version,logger)
 calibration(msfile,config,config_raw,logger)
 rflag(msfile,config,config_raw,logger)
-flag_version = 'rflag'
-rm_flags(msfile,flag_version,logger)
-save_flags(msfile,flag_version,logger)
-flag_sum(msfile,flag_version,logger)
-extend_flags(msfile,config,config_raw,logger)
-flag_version = 'extended'
-rm_flags(msfile,flag_version,logger)
-save_flags(msfile,flag_version,logger)
-flag_sum(msfile,flag_version,logger)
-calibration(msfile,config,config_raw,logger)
+skip_rflag = False
+if config_raw.has_option('flagging','no_rflag'):
+    if config['flagging']['no_rflag']:
+        skip_rflag = True
+if not skip_rflag:
+    flag_version = 'rflag'
+    rm_flags(msfile,flag_version,logger)
+    save_flags(msfile,flag_version,logger)
+    flag_sum(msfile,flag_version,logger)
+    extend_flags(msfile,config,config_raw,logger)
+    flag_version = 'extended'
+    rm_flags(msfile,flag_version,logger)
+    save_flags(msfile,flag_version,logger)
+    flag_sum(msfile,flag_version,logger)
+    calibration(msfile,config,config_raw,logger)
 flag_version = 'final'
 rm_flags(msfile,flag_version,logger)
 save_flags(msfile,flag_version,logger)
