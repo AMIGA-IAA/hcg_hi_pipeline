@@ -18,7 +18,7 @@ logger.info('Starting joint (dirty) imaging of HCG {0} from the projects: {1}'.f
 
 msfiles = []
 for proj in proj_IDs:
-    msfile = '../{0}/sources/HCG{1}.*split.contsub'.format(proj,str(HCG))
+    msfile = '../{0}/sources/HCG{1}*.*split.contsub'.format(proj,str(HCG))
     new_files = glob.glob(msfile)
     if len(new_files) > 0:
         msfiles.extend(new_files)
