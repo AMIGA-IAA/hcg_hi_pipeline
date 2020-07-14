@@ -200,6 +200,7 @@ def transform_data(msfile,config,config_raw,config_file,logger):
     """
     logger.info('Starting data transform.')
     importdata = config['importdata']
+    chanavg = False
     if not importdata['mstransform']:
         if interactive:
             print('You may want to review the listobs summary of the imported data to decide if certain observations, SPWs, or fields should be removed.')
@@ -215,7 +216,20 @@ def transform_data(msfile,config,config_raw,config_file,logger):
             importdata['keep_obs'] = [cf.uinput('The following observations will be kept: ', importdata['keep_obs'])]
             importdata['keep_spws'] = [cf.uinput('The following SPWs will be kept: ', importdata['keep_spws'])]
             importdata['keep_fields'] = [cf.uinput('The following fields will be kept: ', importdata['keep_fields'])]
-        command = "mstransform(vis='{0}', outputvis='{0}_1', field='{1}', spw='{2}', observation='{3}', datacolumn='data')".format(msfile,','.join(importdata['keep_fields']),','.join(importdata['keep_spws']),','.join(importdata['keep_obs']))
+            resp = ''
+            while (resp.lower() not in ['yes','ye','y']) and (resp.lower() not in ['no','n']) :
+                resp = str(raw_input('Do you want to perform channel averaging (y/n): '))
+            if resp.lower() in ['yes','ye','y']:
+                chanavg = True
+                importdata['chanavg'] = int(cf.uinput('Enter the number of channels to be averaged together: ', importdata['chanavg']))
+        command = "mstransform(vis='{0}', outputvis='{0}_1', field='{1}', spw='{2}', observation='{3}', datacolumn='data'".format(msfile,','.join(importdata['keep_fields']),','.join(importdata['keep_spws']),','.join(importdata['keep_obs']))
+        if config_raw.has_option('importdata','hanning'):
+            if config['importdata']['hanning']:
+                command += ', hanning=True'
+        if config_raw.has_option('importdata','chanavg') or chanavg:
+            if importdata['chanavg'] > 1:
+                command += ', chanaverage=True, chanbin='+str(importdata['chanavg'])
+        command += ')'
         logger.info('Executing command: '+command)
         exec(command)           
         cf.check_casalog(config,config_raw,logger,casalog)
@@ -223,6 +237,8 @@ def transform_data(msfile,config,config_raw,config_file,logger):
         config_raw.set('importdata','keep_obs',importdata['keep_obs'])
         config_raw.set('importdata','keep_spws',importdata['keep_spws'])
         config_raw.set('importdata','keep_fields',importdata['keep_fields'])
+        if config_raw.has_option('importdata','chanavg') or chanavg:
+            config_raw.set('importdata','chanavg',importdata['chanavg'])
         configfile = open(config_file,'w')
         config_raw.write(configfile)
         configfile.close()
@@ -286,7 +302,7 @@ else:
     os.symlink(data_path+msfile+'.flagversions',msfile+'.flagversions')
 listobs_sum(msfile,config,config_raw,logger)
 transform_data(msfile,config,config_raw,config_file,logger)
-if config_raw.has_option('importdata','hanning'):
+if config_raw.has_option('importdata','hanning') and not config['importdata']['mstransform']:
     if config['importdata']['hanning']:
         hanning_smooth(msfile,config,config_raw,config_file,logger)
 msinfo = get_msinfo(msfile,logger)
