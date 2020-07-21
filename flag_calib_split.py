@@ -734,9 +734,18 @@ def calibration(msfile, config, config_raw, logger):
             logger.warning('No phase calibrator for SPW {}.'.format(spw_IDs[i]))
         if len(targets_in_spw) == 0:
             logger.warning('No targets in SPW {}.'.format(spw_IDs[i]))
+            
+    aptab = None
+    if config['importdata']['jvla']:
+        aptab = cal_tabs+'antpos.cal'
+        logger.info('Looking up antenna position offsets ({}).'.format(aptab))
+        command = "gencal(vis='{0}', caltable='{1}', caltype='antpos', antenna='')".format(msfile,aptab)
+        logger.info('Executing command: '+command)
+        exec(command)
+        cf.check_casalog(config,config_raw,logger,casalog)
     
     gctab = cal_tabs+'gaincurve.cal'
-    logger.info('Calibrating gain vs elevation({}).'.format(gctab))
+    logger.info('Calibrating gain vs elevation ({}).'.format(gctab))
     command = "gencal(vis='{0}', caltable='{1}', caltype='gceff')".format(msfile,gctab)
     logger.info('Executing command: '+command)
     exec(command)
@@ -775,14 +784,20 @@ def calibration(msfile, config, config_raw, logger):
     
     dltab = cal_tabs+'delays.cal'
     logger.info('Calibrating delays for bandpass calibrators {0} ({1}).'.format(calib['bandcal'],dltab))
-    command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', gaintype='K', gaintable=['{4}'], spw='{5}')".format(msfile,','.join(calib['bandcal']),dltab,calib['refant'],gctab,','.join(numpy.array(spw_IDs,dtype='str')))
+    if aptab is not None:
+        command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', gaintype='K', gaintable=['{4}','{5}'], spw='{6}')".format(msfile,','.join(calib['bandcal']),dltab,calib['refant'],aptab,gctab,','.join(numpy.array(spw_IDs,dtype='str')))
+    else:
+        command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', gaintype='K', gaintable=['{4}'], spw='{5}')".format(msfile,','.join(calib['bandcal']),dltab,calib['refant'],gctab,','.join(numpy.array(spw_IDs,dtype='str')))
     logger.info('Executing command: '+command)
     exec(command)
     cf.check_casalog(config,config_raw,logger,casalog)
     
     bptab = cal_tabs+'bpphase.gcal'
     logger.info('Make bandpass calibrator phase solutions for {0} ({1}).'.format(calib['bandcal'],bptab))
-    command = "gaincal(vis='{0}', field='{1}',  caltable='{2}', refant='{3}', calmode='p', solint='int', combine='', minsnr=2.0, gaintable=['{4}','{5}'], spw='{6}')".format(msfile,','.join(calib['bandcal']),bptab,calib['refant'],gctab,dltab,','.join(numpy.array(spw_IDs,dtype='str')))
+    if aptab is not None:
+        command = "gaincal(vis='{0}', field='{1}',  caltable='{2}', refant='{3}', calmode='p', solint='int', combine='', minsnr=2.0, gaintable=['{4}','{5}','{6}'], spw='{7}')".format(msfile,','.join(calib['bandcal']),bptab,calib['refant'],aptab,gctab,dltab,','.join(numpy.array(spw_IDs,dtype='str')))
+    else:
+        command = "gaincal(vis='{0}', field='{1}',  caltable='{2}', refant='{3}', calmode='p', solint='int', combine='', minsnr=2.0, gaintable=['{4}','{5}'], spw='{6}')".format(msfile,','.join(calib['bandcal']),bptab,calib['refant'],gctab,dltab,','.join(numpy.array(spw_IDs,dtype='str')))
     logger.info('Executing command: '+command)
     exec(command)
     cf.check_casalog(config,config_raw,logger,casalog)
@@ -796,7 +811,10 @@ def calibration(msfile, config, config_raw, logger):
     
     bstab = cal_tabs+'bandpass.bcal'
     logger.info('Determining bandpass solution(s) ({}).'.format(bstab))
-    command = "bandpass(vis='{0}', caltable='{1}', field='{2}', refant='{3}', solint='inf', solnorm=True, gaintable=['{4}', '{5}', '{6}'], spw='{7}')".format(msfile,bstab,','.join(calib['bandcal']),calib['refant'],gctab, dltab, bptab,','.join(numpy.array(spw_IDs,dtype='str')))
+    if aptab is not None:
+        command = "bandpass(vis='{0}', caltable='{1}', field='{2}', refant='{3}', solint='inf', solnorm=True, gaintable=['{4}', '{5}', '{6}', '{7}'], spw='{8}')".format(msfile,bstab,','.join(calib['bandcal']),calib['refant'],aptab,gctab, dltab, bptab,','.join(numpy.array(spw_IDs,dtype='str')))
+    else:
+        command = "bandpass(vis='{0}', caltable='{1}', field='{2}', refant='{3}', solint='inf', solnorm=True, gaintable=['{4}', '{5}', '{6}'], spw='{7}')".format(msfile,bstab,','.join(calib['bandcal']),calib['refant'],gctab, dltab, bptab,','.join(numpy.array(spw_IDs,dtype='str')))
     logger.info('Executing command: '+command)
     exec(command)
     cf.check_casalog(config,config_raw,logger,casalog)
@@ -816,21 +834,30 @@ def calibration(msfile, config, config_raw, logger):
     
     iptab = cal_tabs+'intphase.gcal'
     logger.info('Determining integration phase solutions ({}).'.format(iptab))
-    command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='p', solint='int', minsnr=2.0, gaintable=['{4}', '{5}', '{6}'],spw='{7}')".format(msfile,calfields,iptab,calib['refant'],gctab, dltab, bstab,','.join(numpy.array(spw_IDs,dtype='str')))
+    if aptab is not None:
+        command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='p', solint='int', minsnr=2.0, gaintable=['{4}', '{5}', '{6}', '{7}'],spw='{8}')".format(msfile,calfields,iptab,calib['refant'],aptab,gctab, dltab, bstab,','.join(numpy.array(spw_IDs,dtype='str')))
+    else:
+        command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='p', solint='int', minsnr=2.0, gaintable=['{4}', '{5}', '{6}'],spw='{7}')".format(msfile,calfields,iptab,calib['refant'],gctab, dltab, bstab,','.join(numpy.array(spw_IDs,dtype='str')))
     logger.info('Executing command: '+command)
     exec(command)
     cf.check_casalog(config,config_raw,logger,casalog)
     
     sptab = cal_tabs+'scanphase.gcal'
     logger.info('Determining scan phase solutions ({}).'.format(sptab))
-    command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='p', solint='inf', minsnr=2.0, gaintable=['{4}', '{5}', '{6}'],spw='{7}')".format(msfile,calfields,sptab,calib['refant'],gctab, dltab, bstab,','.join(numpy.array(spw_IDs,dtype='str')))
+    if aptab is not None:
+        command = command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='p', solint='inf', minsnr=2.0, gaintable=['{4}', '{5}', '{6}', '{7}'],spw='{8}')".format(msfile,calfields,sptab,calib['refant'],aptab,gctab, dltab, bstab,','.join(numpy.array(spw_IDs,dtype='str')))
+    else:
+        command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='p', solint='inf', minsnr=2.0, gaintable=['{4}', '{5}', '{6}'],spw='{7}')".format(msfile,calfields,sptab,calib['refant'],gctab, dltab, bstab,','.join(numpy.array(spw_IDs,dtype='str')))
     logger.info('Executing command: '+command)
     exec(command)
     cf.check_casalog(config,config_raw,logger,casalog)
     
     amtab = cal_tabs+'amp.gcal'
     logger.info('Determining amplitude solutions ({}).'.format(amtab))
-    command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='ap', solint='inf', minsnr=2.0, gaintable=['{4}', '{5}', '{6}', '{7}'],spw='{8}')".format(msfile,calfields,amtab,calib['refant'],gctab, dltab, bstab, iptab,','.join(numpy.array(spw_IDs,dtype='str')))
+    if aptab is not None:
+        command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='ap', solint='inf', minsnr=2.0, gaintable=['{4}', '{5}', '{6}', '{7}', '{8}'],spw='{9}')".format(msfile,calfields,amtab,calib['refant'],aptab,gctab, dltab, bstab, iptab,','.join(numpy.array(spw_IDs,dtype='str')))
+    else:
+        command = "gaincal(vis='{0}', field='{1}', caltable='{2}', refant='{3}', calmode='ap', solint='inf', minsnr=2.0, gaintable=['{4}', '{5}', '{6}', '{7}'],spw='{8}')".format(msfile,calfields,amtab,calib['refant'],gctab, dltab, bstab, iptab,','.join(numpy.array(spw_IDs,dtype='str')))
     logger.info('Executing command: '+command)
     exec(command)
     cf.check_casalog(config,config_raw,logger,casalog)
@@ -873,18 +900,27 @@ def calibration(msfile, config, config_raw, logger):
     for i in range(len(calib['bandcal'])):
         logger.info('Applying calibration to: {}'.format(calib['bandcal'][i]))
         if calib['bandcal'][i] == calib['fluxcal'][i]:
-            command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'][i],gctab, dltab, bstab, iptab, amtab)
+            if aptab is not None:
+                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'][i],aptab, gctab, dltab, bstab, iptab, amtab)
+            else:
+                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'][i],gctab, dltab, bstab, iptab, amtab)
             logger.info('Executing command: '+command)
             exec(command)
             cf.check_casalog(config,config_raw,logger,casalog)
         else:
-            command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{1}', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'][i],gctab, dltab, bstab, iptab, amtab, fxtab)
+            if aptab is not None:
+                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}'], gainfield=['', '', '{1}', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'][i],aptab, gctab, dltab, bstab, iptab, amtab, fxtab)
+            else:
+                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{1}', '{1}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['bandcal'][i],gctab, dltab, bstab, iptab, amtab, fxtab)
             logger.info('Executing command: '+command)
             exec(command)
             cf.check_casalog(config,config_raw,logger,casalog)
             
             logger.info('Applying calibration to: {}'.format(calib['fluxcal'][i]))
-            command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['fluxcal'][i],gctab, dltab, bstab, iptab, amtab, fxtab, calib['bandcal'][i])
+            if aptab is not None:
+                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}'], gainfield=['', '', '{9}', '{9}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['fluxcal'][i],aptab, gctab, dltab, bstab, iptab, amtab, fxtab, calib['bandcal'][i])
+            else:
+                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['fluxcal'][i],gctab, dltab, bstab, iptab, amtab, fxtab, calib['bandcal'][i])
             logger.info('Executing command: '+command)
             exec(command)
             cf.check_casalog(config,config_raw,logger,casalog)
@@ -916,19 +952,27 @@ def calibration(msfile, config, config_raw, logger):
             inx = [j for j,x in enumerate(bandcals) if x == bandcal]
             if not calib['phasecal'][i] in calib['fluxcal']:
                 logger.info('Applying calibration to: {}'.format(calib['phasecal'][i]))
-                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal)#, ','.join(numpy.array(spws)[inx]))
+                if aptab is not None:
+                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}'], gainfield=['', '', '{9}', '{9}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'][i],aptab, gctab, dltab, bstab, iptab, amtab, fxtab, bandcal)
+                else:
+                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal)
                 logger.info('Executing command: '+command)
                 exec(command)
                 cf.check_casalog(config,config_raw,logger,casalog)
-
                 logger.info('Applying calibration to: {}'.format(calib['targets'][i]))
-                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal, calib['phasecal'][i])
+                if aptab is not None:
+                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}'], gainfield=['', '', '{9}', '{9}', '{10}', '{10}', '{10}'], calwt=False)".format(msfile,calib['targets'][i],aptab, gctab, dltab, bstab, iptab, amtab, fxtab, bandcal, calib['phasecal'][i])
+                else:
+                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal, calib['phasecal'][i])
                 logger.info('Executing command: '+command)
                 exec(command)
                 cf.check_casalog(config,config_raw,logger,casalog)
             else:
                 logger.info('Applying calibration to: {}'.format(calib['targets'][i]))
-                command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{7}', '{7}', '{8}', '{8}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, bandcal, calib['phasecal'][i])
+                if aptab is not None:
+                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '', '{8}', '{8}', '{9}', '{9}'], calwt=False)".format(msfile,calib['targets'][i],aptab, gctab, dltab, bstab, iptab, amtab, bandcal, calib['phasecal'][i])
+                else:
+                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{7}', '{7}', '{8}', '{8}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, bandcal, calib['phasecal'][i])
                 logger.info('Executing command: '+command)
                 exec(command)
                 cf.check_casalog(config,config_raw,logger,casalog)
@@ -1161,12 +1205,12 @@ select_refant(msfile,config,config_raw,config_file,logger)
 set_fields(msfile,config,config_raw,config_file,logger)
 plot_flags(msfile,flag_version,logger)
 calibration(msfile,config,config_raw,logger)
-rflag(msfile,config,config_raw,logger)
 skip_rflag = False
 if config_raw.has_option('flagging','no_rflag'):
     if config['flagging']['no_rflag']:
         skip_rflag = True
 if not skip_rflag:
+    rflag(msfile,config,config_raw,logger)
     flag_version = 'rflag'
     rm_flags(msfile,flag_version,logger)
     save_flags(msfile,flag_version,logger)
