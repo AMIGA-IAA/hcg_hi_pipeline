@@ -1196,7 +1196,11 @@ else:
     save_flags(msfile,flag_version,logger)
 manual_flags(config,config_raw,logger)
 base_flags(msfile,config,config_raw,logger)
-tfcrop(msfile,config,config_raw,logger)
+if config_raw.has_option('flagging','no_tfcrop'):
+    if not config['flagging']['no_tfcrop']:
+        tfcrop(msfile,config,config_raw,logger)
+else:
+    tfcrop(msfile,config,config_raw,logger)
 flag_version = 'initial'
 rm_flags(msfile,flag_version,logger)
 save_flags(msfile,flag_version,logger)

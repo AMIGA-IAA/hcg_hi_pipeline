@@ -65,7 +65,7 @@ def check_pipeline_params():
             os.remove('diff_params.txt')
             
             import_data_kwds = ['project_name','data_path','jvla','mstransform','keep_','hanning', 'chanavg']
-            flag_calib_split_kwds = ['src_dir','shadow_tol','quack_int','timecutoff','freqcutoff','rthresh','refant','no_rflag',
+            flag_calib_split_kwds = ['src_dir','shadow_tol','quack_int','timecutoff','freqcutoff','rthresh','refant','no_rflag','no_tfcrop',
                                      'fluxcal','fluxmod','man_mod','bandcal','phasecal','targets','target_names','mosaic','man_comb_spws']
             dirty_cont_image_kwds = ['rest_freq','img_dir']
             contsub_dirty_image_kwds = ['linefree_ch','fitorder','save_cont','line_ch']
