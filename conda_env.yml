@@ -11,3 +11,4 @@ dependencies:
     - readline=7.0
     - aplpy=2.0
     - jupyterlab
+    - astroquery=0.4
