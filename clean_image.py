@@ -33,9 +33,23 @@ def noise_est(config,logger):
         corr_eff = cln_param['corr_eff']
         SEFD = cln_param['sefd']
         N_pol = 2.
-        noise.append(SEFD/(corr_eff*numpy.sqrt(N_pol*N*(N-1.)*t_int*ch_wid)))
+        f_smo = 1.
+        if config_raw.has_option('importdata','hanning'):
+            if config['importdata']['hanning']:
+                if not config['importdata']['mstransform']:
+                    f_smo = 8./3.
+                else:
+                    if not config_raw.has_option('importdata','chanavg'):
+                        f_smo = 8./3.
+                    else:
+                        Nchan = float(config['importdata']['chanavg'])
+                        if Nchan > 1.:
+                            f_smo = Nchan/((Nchan-2.) + 2.*(9./16.) + 2.*(1./16.))
+                        else:
+                            f_smo = 8./3.
+        noise.append(SEFD/(corr_eff*numpy.sqrt(f_smo*N_pol*N*(N-1.)*t_int*ch_wid)))
         logger.info('Effective integration time for {0}: {1} {2}'.format(target,int(t_int),msmd.effexposuretime()['unit']))
-        logger.info('Expected rms noise for {0}: {1} Jy/beam'.format(target,SEFD/(corr_eff*numpy.sqrt(N_pol*N*(N-1.)*t_int*ch_wid))))
+        logger.info('Expected rms noise for {0}: {1} Jy/beam'.format(target,SEFD/(corr_eff*numpy.sqrt(f_smo*N_pol*N*(N-1.)*t_int*ch_wid))))
         msmd.close()
     logger.info('Completed making noise estimation.')
     return noise

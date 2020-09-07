@@ -12,3 +12,4 @@ dependencies:
     - aplpy=2.0
     - jupyterlab
     - astroquery=0.4
+    - configparser=5.0
