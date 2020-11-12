@@ -6,11 +6,12 @@ This pipeline was developed using [CASA](https://casa.nrao.edu/casa_obtaining.sh
 
 ## Getting started
 
-In order to run the pipeline you will first need to modify 2 files: PROJECTID_params.cfg and hi_segmented_pipeline.yml. The required changes are as follows:
-  1. Replace every instance of "PROJECTID" in both files (including the parameters file name) with an name or code for your project.
-  2. In the parameters file specify the path to the raw VLA data you wish to process.
-  3. In the pipeline yaml file specify the new name of the parameters file under the variable "configfile".
-  4. In the pipeline yaml file specify the path to your installation of CASA.
+In order to run the pipeline you will first need to modify 2 files: "PROJECTID_params.cfg" and "hi_segmented_pipeline.yml". The required changes are as follows:
+  1. Replace every instance of "PROJECTID" in both files (including the parameters file name) with a name or code for your project. This will be used as the base name for the measurement set (e.g. "PROJECTID.ms").
+  2. In the parameters file specify the path to the raw VLA data you wish to process. If using historical VLA data then this should be the path to the directory containing any ".xp" files you want to import. These should be the only files in that directory as the pipeline will blindly try to import everything it finds. It will import these files and construct a measurement set in the local directory. For JVLA data this should be the path to the directory above the "PROJECTID.ms" directory. In this case the pipeline will create a symbolic link to avoid copying the data. Therefore, it is vital that the value of "PROJECTID" you set in step 1 matches the existing measurement set name.
+  3. In the pipeline yaml file specify the new name of the parameters file under the variable "configfile". Normally this will be "PROJECTID_params.cfg".
+  4. In the pipeline yaml file specify the path to the directory containing the CASA executable.
+  5. In the pipeline yaml file define the scripts value as the path to the directory containing the pipeline scipts (e.g. ~/hcg_hi_pipeline/).
 
 Each of these points in the files are highlighted with a "CHANGEME" comment next to them. You will also need to (manually) make a symbolic link to the the 'hi_segmented_pipeline.py' script. If the files 'hi_segmented_pipeline.py', 'hi_segmented_pipeline.yml', and 'PROJECTID_params.cfg' are all present in the execution directory, then the pipeline will construct the remaining necessary links and copy the raw data (if a historical VLA data set, data from JVLA observations is not duplicated, merely linked to).
 

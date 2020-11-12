@@ -873,7 +873,7 @@ def calibration(msfile, config, config_raw, logger):
         logger.info('Plotting amplitude solutions to: {}'.format(plot_file))
         plotms(vis=amtab, plotfile=plot_file, gridrows=3, gridcols=3, xaxis='time', yaxis='amp',
                expformat='png', overwrite=True, showlegend=False, showgui=False, exprange='all',
-               iteraxis='antenna', coloraxis='spw', plotrange=[-1,-1,0,1], spw=','.join(numpy.array(spw_IDs,dtype='str')), observation=str(i))
+               iteraxis='antenna', coloraxis='spw', plotrange=[-1,-1,0,2], spw=','.join(numpy.array(spw_IDs,dtype='str')), observation=str(i))
     
     if len(calfields.split(',')) > len(list(set(calib['fluxcal']))):
         fxtab = cal_tabs+'fluxsol.cal'
