@@ -1,4 +1,4 @@
-casa: CASA_INSTALLATION_PATH --- CHANGEME
-scripts: PATH_TO_PIPELINE_PYTHON_SCRIPTS CHANGEME
-configfile: PROJECTID_params.cfg --- CHANGEME
-project: PROJECTID --- CHANGME
+casa: /home/jonesmg/software/casa/casa-release-5.4.2-8.el7/bin/
+scripts: /home/jonesmg/software/hcg_hi_pipeline/
+configfile: GMRT_HUD_params.cfg
+project: GMRT_HUD

@@ -22,6 +22,39 @@ def import_data(data_files, msfile, config, config_raw, logger):
     exec(command)
     cf.check_casalog(config,config_raw,logger,casalog)
     logger.info('Completed import vla data')
+
+def import_data_gmrt(data_files, msfile, config, config_raw, logger):
+    """ 
+    Import GMRT UV fits files from a location to a single MS.
+    
+    Input:
+    data_files = Paths to the fits files. (List/Array of Strings)
+    msfile = Path where the MS will be created. (String)
+    """
+    logger.info('Starting import gmrt data')
+    sum_dir = './summary/'
+    cf.makedir(sum_dir,logger)
+    cf.rmdir(msfile,logger)
+    logger.info('Input files: {}'.format(data_files))
+    logger.info('Output msfile: {}'.format(msfile))
+    if len(data_files) == 1:
+        command = "importgmrt(fitsfile = '{0}', vis = '{1}')".format(data_files[0], msfile)
+        logger.info('Executing command: '+command)
+        exec(command)
+    else:
+        msfiles = []
+        for i in range(len(data_files)):
+            command = "importgmrt(fitsfile = '{0}', vis = '{1}_{2}')".format(data_files[i], msfile, i)
+            logger.info('Executing command: '+command)
+            exec(command)
+            msfiles.append(msfile+'_'+str(i))
+        command = "concat(vis={0}, concatvis={1})".format(msfiles, msfile)
+	logger.info('Executing command: '+command)
+        exec(command)
+        for i in range(len(data_files)):
+            cf.rmdir(msfiles[i],logger)
+    cf.check_casalog(config,config_raw,logger,casalog)
+    logger.info('Completed import gmrt data')
     
 def obs_dates(msfile, config, logger):
     """
@@ -294,12 +327,16 @@ cf.rmdir(msfile,logger)
 cf.rmdir(msfile+'.flagversions',logger)
 data_path = config['importdata']['data_path']
 if not config['importdata']['jvla']:
-    data_files = glob.glob(os.path.join(data_path, '*'))
-    import_data(sorted(data_files), msfile, config, config_raw, logger)
-    obs_dates(msfile, config, logger)
+    if config['importdata']['gmrt']:
+        data_files = glob.glob(os.path.join(data_path, '*.fits'))
+        import_data_gmrt(sorted(data_files), msfile, config, config_raw, logger)
+    else:
+        data_files = glob.glob(os.path.join(data_path, '*'))
+        import_data(sorted(data_files), msfile, config, config_raw, logger)
 else:
     os.symlink(data_path+msfile,msfile)
     os.symlink(data_path+msfile+'.flagversions',msfile+'.flagversions')
+obs_dates(msfile, config, logger)
 listobs_sum(msfile,config,config_raw,logger)
 transform_data(msfile,config,config_raw,config_file,logger)
 if config_raw.has_option('importdata','hanning') and not config['importdata']['mstransform']:
