@@ -22,58 +22,52 @@ def cleanup(config,logger):
         logger.info('Deleting CASA .last files.')
         del_list = glob.glob('./*.last')
         for file_path in del_list:
-            os.remove(file_path)
+            cf.rmfile(file_path,logger)
         logger.info('Deleting calibration tables.')
-        try:
-            shutil.rmtree('./cal_tabs')
-        except OSError:
-            pass
+        cf.rmdir('./cal_tabs',logger)
         logger.info('Deleting flag tables.')
-        try:
-            shutil.rmtree('./{}.flagversions'.format(msfile))
-        except OSError:
-            pass
+        cf.rmdir('./{}.flagversions'.format(msfile),logger)
         logger.info('Deleting full measurement set.')
-        shutil.rmtree('./{}'.format(msfile)) 
+        cf.rmdir('./{}'.format(msfile),logger) 
     if cln_lvl >= 2:       
         logger.info('Deleting dirty images.')
         del_list = glob.glob(img_dir+'*.dirty.*')
         for file_path in del_list:
-            shutil.rmtree(file_path)
+            cf.rmdir(file_path,logger)
         logger.info('Deleting CLEANing masks.')
         del_list = glob.glob(img_dir+'*.mask')
         for file_path in del_list:
-            shutil.rmtree(file_path)
+            cf.rmdir(file_path,logger)
         logger.info('Deleting CLEAN models.')
         del_list = glob.glob(img_dir+'*.model')
         for file_path in del_list:
-            shutil.rmtree(file_path)
+            cf.rmdir(file_path,logger)
         logger.info('Deleting primary beam and PSF models.')
         del_list = glob.glob(img_dir+'*.pb')
         for file_path in del_list:
-            shutil.rmtree(file_path)
+            cf.rmdir(file_path,logger)
         del_list = glob.glob(img_dir+'*.psf')
         for file_path in del_list:
-            shutil.rmtree(file_path)
+            cf.rmdir(file_path,logger)
         logger.info('Deleting weighting.')
         del_list = glob.glob(img_dir+'*.sumwt')
         for file_path in del_list:
-            shutil.rmtree(file_path)
+            cf.rmdir(file_path,logger)
         logger.info('Deleting raw moments.')
         del_list = glob.glob(mom_dir+'*.mom0')
         for file_path in del_list:
-            shutil.rmtree(file_path)
+            cf.rmdir(file_path,logger)
     if cln_lvl >= 3:
         logger.info('Deleting split measurement sets.')
-        shutil.rmtree(src_dir)
+        cf.rmdir(src_dir,logger)
         logger.info('Deleting CLEAN residuals.')
         del_list = glob.glob(img_dir+'*.residual')
         for file_path in del_list:
-            shutil.rmtree(file_path)
+            cf.rmdir(file_path,logger)
         logger.info('Deleting image files (except fits).')
         del_list = glob.glob(img_dir+'*.image*')
         for file_path in del_list:
-            shutil.rmtree(file_path)
+            cf.rmdir(file_path,logger)
     logger.info('Cleanup completed.')
 
 # Read configuration file with parameters
