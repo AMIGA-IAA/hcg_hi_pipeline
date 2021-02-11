@@ -243,24 +243,26 @@ def image(config,config_raw,config_file,logger):
             scales = cln_param['beam_scales']
             scales = list(numpy.array(numpy.array(scales)*pix_per_beam,dtype='int'))
             B_min = au.getBaselineLengths('{0}{1}.split.contsub'.format(src_dir,target), sort=True)[0][1]
-            msmd.open('{0}{1}.split.contsub'.format(src_dir,target))
-            spws = msmd.spwsforfield(field)
-            f_min = None
-            for spw in spws:
-                if f_min == None or f_min > min(msmd.chanfreqs(spw=spw,unit='Hz')):
-                    f_min = min(msmd.chanfreqs(spw=spw,unit='Hz'))
-            msmd.close()
-            max_scale = 180.*3600.*299792458./(1.2*numpy.pi*f_min*B_min)
-            logger.info('The maximum recoverable scale for {0} is {1} arcsec.'.format(target,int(max_scale)))
-            if 'arcsec' not in cln_param['pix_size'][i]:
-                logger.warning('Pixel size not in arcsec. Maximum scale not checked.')
-            else:
-                pix_size = cln_param['pix_size'][i]
-                pix_size = float(pix_size[:pix_size.find('arcsec')])
-                if max(scales)*pix_size > max_scale:
-                    logger.warning('Some MS-CLEAN scale(s) is (are) larger than largest recoverable angular scales.')
-                    logger.info('Removing offending scales.')
-                    scales = list(set(numpy.where(numpy.array(scales)*pix_size <= max_scale,scales,0)))
+            if numpy.isfinite(B_min):
+                if B_min > 0.:
+                    msmd.open('{0}{1}.split.contsub'.format(src_dir,target))
+                    spws = msmd.spwsforfield(field)
+                    f_min = None
+                    for spw in spws:
+                        if f_min == None or f_min > min(msmd.chanfreqs(spw=spw,unit='Hz')):
+                            f_min = min(msmd.chanfreqs(spw=spw,unit='Hz'))
+                    msmd.close()
+                    max_scale = 180.*3600.*299792458./(1.2*numpy.pi*f_min*B_min)
+                    logger.info('The maximum recoverable scale for {0} is {1} arcsec.'.format(target,int(max_scale)))
+                    if 'arcsec' not in cln_param['pix_size'][i]:
+                        logger.warning('Pixel size not in arcsec. Maximum scale not checked.')
+                    else:
+                        pix_size = cln_param['pix_size'][i]
+                        pix_size = float(pix_size[:pix_size.find('arcsec')])
+                        if max(scales)*pix_size > max_scale:
+                            logger.warning('Some MS-CLEAN scale(s) is (are) larger than largest recoverable angular scales.')
+                            logger.info('Removing offending scales.')
+                            scales = list(set(numpy.where(numpy.array(scales)*pix_size <= max_scale,scales,0)))
             logger.info('CLEANing with scales of {} pixels.'.format(scales))
         logger.info('CLEANing {0} to a threshold of {1} Jy.'.format(target,noises[i]*cln_param['thresh']))
         if cln_param['automask']:
@@ -274,7 +276,12 @@ def image(config,config_raw,config_file,logger):
                 fields = numpy.array(calib['targets'],dtype='str')[inx]
             field = ','.join(fields)
             gridder = 'mosaic'
-        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', spw='{3}', imagename='{4}{1}', cell='{5}', imsize=[{6},{6}], specmode='cube', outframe='bary', veltype='radio', restfreq='{7}', gridder='{8}', wprojplanes=-1, pblimit=0.1, normtype='flatnoise', deconvolver='{9}', scales={10}, restoringbeam='common', pbcor=True, weighting='briggs', robust={11}, niter=100000, gain=0.1, threshold='{12}Jy', usemask='{13}', phasecenter='{14}', sidelobethreshold={15}, noisethreshold={16}, lownoisethreshold={17}, minbeamfrac={18}, negativethreshold={19}, cyclefactor=2.0,interactive=False)".format(src_dir,target,field,cln_param['line_ch'][i],img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,gridder,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],mask,cln_param['phasecenter'],cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'])
+        if config_raw.has_option('clean','uvtaper'):
+            if (cln_param['uvtaper'] is not None) or (cln_param['uvtaper'] != ''):
+                uvtaper = cln_param['uvtaper']
+            else:
+                uvtaper = ''
+        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', spw='{3}', imagename='{4}{1}', cell='{5}', imsize=[{6},{6}], specmode='cube', outframe='bary', veltype='radio', restfreq='{7}', gridder='{8}', wprojplanes=-1, pblimit=0.1, normtype='flatnoise', deconvolver='{9}', scales={10}, restoringbeam='common', pbcor=True, weighting='briggs', robust={11}, niter=100000, gain=0.1, threshold='{12}Jy', usemask='{13}', phasecenter='{14}', sidelobethreshold={15}, noisethreshold={16}, lownoisethreshold={17}, minbeamfrac={18}, negativethreshold={19}, cyclefactor=2.0, uvtaper={20}, interactive=False)".format(src_dir,target,field,cln_param['line_ch'][i],img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,gridder,algorithm,scales,cln_param['robust'],noises[i]*cln_param['thresh'],mask,cln_param['phasecenter'],cln_param['automask_sl'],cln_param['automask_ns'],cln_param['automask_lns'],cln_param['automask_mbf'],cln_param['automask_neg'],uvtaper)
         logger.info('Executing command: '+command)
         exec(command)
         cf.check_casalog(config,config_raw,logger,casalog)

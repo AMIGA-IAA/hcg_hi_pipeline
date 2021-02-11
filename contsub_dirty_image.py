@@ -316,8 +316,13 @@ def dirty_image(config,config_raw,config_file,logger):
                 fields = numpy.array(calib['targets'],dtype='str')[inx]
             field = ','.join(fields)
             gridder = 'mosaic'
+        if config_raw.has_option('clean','uvtaper'):
+            if (cln_param['uvtaper'] is not None) or (cln_param['uvtaper'] != ''):
+                uvtaper = cln_param['uvtaper']
+            else:
+                uvtaper = ''
         logger.info('Making dirty image of {} (line only).'.format(target))
-        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', imagename='{3}{1}'+'.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='{7}', wprojplanes=-1, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={8}, restoringbeam='common', niter=0, phasecenter='{9}', interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,gridder,cln_param['robust'],cln_param['phasecenter'])
+        command = "tclean(vis='{0}{1}'+'.split.contsub', field='{2}', imagename='{3}{1}'+'.dirty', cell='{4}', imsize=[{5},{5}], specmode='cube', outframe='bary', veltype='radio', restfreq='{6}', gridder='{7}', wprojplanes=-1, pblimit=0.1, normtype='flatnoise', deconvolver='hogbom', weighting='briggs', robust={8}, restoringbeam='common', niter=0, phasecenter='{9}', uvtaper={10}, interactive=False)".format(src_dir,target,field,img_dir,cln_param['pix_size'][i],cln_param['im_size'][i],rest_freq,gridder,cln_param['robust'],cln_param['phasecenter'],uvtaper)
         logger.info('Executing command: '+command)
         exec(command)
         cf.check_casalog(config,config_raw,logger,casalog)

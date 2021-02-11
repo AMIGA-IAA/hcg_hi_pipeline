@@ -55,6 +55,10 @@ def base_flags(msfile, config, config_raw, logger):
     logger.info('Flagging first {} s of every scan.'.format(quack_int))
     command = "flagdata(vis='{0}', mode='quack', quackinterval={1}, quackmode='beg', flagbackup=False)".format(msfile,quack_int)
     logger.info('Executing command: '+command)
+    if config['importdata']['gmrt']:
+        logger.info('Flagging final {} s of every scan.'.format(quack_int))
+        command = "flagdata(vis='{0}', mode='quack', quackinterval={1}, quackmode='endb', flagbackup=False)".format(msfile,quack_int)
+        logger.info('Executing command: '+command)
     exec(command)
     cf.check_casalog(config,config_raw,logger,casalog)
     logger.info('Completed basic flagging.')
@@ -272,7 +276,7 @@ def set_fields(msfile,config,config_raw,config_file,logger):
     tb.close()
     tb.open('{}/SPECTRAL_WINDOW'.format(msfile))
     spw_names = tb.getcol('NAME')
-    if not config['importdata']['jvla']:
+    if not (config['importdata']['jvla'] or config['importdata']['gmrt']):
         spw_IDs = tb.getcol('DOPPLER_ID')
     else:
         spw_IDs = tb.getcol('FREQ_GROUP')
