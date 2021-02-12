@@ -41,4 +41,29 @@ The pipeline is intended to be run in interactive mode on its first execution. I
 
 ## Parameter descriptions
 
-Work in progress ...
+global:
+- project_name: This will be used as the base name for the measurement set. If you are using JVLA data that was already downloaded in ms format, it is important that this name matches that of the existing ms (minus the ".ms" extention).
+- rest_freq: This should be "1420405751.786Hz" unless not working with HI, which is not advised.
+- interactive: True/False. If true the pipeline will halt at various points to query the user. If false it will attempt to run without user input. Note that running in interactive mode can help to catch errors in the parameter values that might cause the pipeline to crash, however, it means it cannot be left to run unattended.
+- src_dir: Name of directory to store split source files in.
+- img_dir: Name of directory to store images in.
+- mom_dir: Name of directory to store moments in.
+- cleanup_level: Integer from 0-3. Sets the level of tidying done (see above).
+- (ignore_errs: True/False. "Hidden" parameter that deactivates the function that checks the casalog for severe errors after each task. It is inadvisable to use this except in exceptional circumstances or for the purposes of debugging.)
+
+importdata:
+- data_path: The path from the execution directory (or the absolute path) to the directory where the raw data are saved. If working with JVLA data this should be the path to the directory above the ms directory, not the ms directory itself.
+- jvla: True/False. Are you using histoorical or JVLA data? This determines whether the data are copied to the execution directory (historical data are assumed to be relatively small) or is a symbolic link is made to an existing ms (as well a several other minor differences in the flagging and calibration steps).
+- mstransform: True/False. Do you want to transform the measurement set when you import it?
+- keep_obs: (String in single quotes.) List of the observation blocks to keep when running mstransform e.g. '0,1,4'.
+- keep_spws: (String in single quotes.) List of the spectral windows to keep when running mstransform e.g. '0,1,4'.
+- keep_fields: (String in single quotes.) List of the fields to keep when running mstransform e.g. '0,1,4' or '3C48, HCG22'.
+- hanning: True/False. Apply Hanning smoothing to the data when importing it?
+- chanavg: Number of channels to average together when importing the data (0 for no averaging). Note if the "hanning" parameter is set to True, then this smoothing will be performed in addition to Hanning smoothing, not instead of it.
+
+flagging:
+- shadow_tol: Float. The number of metres of dish overlap that is tolerated before the data are flagged for the shadowed antenna.
+- quack_int: Float. The number of seconds removed from the beginning of each scan to allow time for dishes to settle.
+- timecutoff: Float.
+
+... Work in progress.
