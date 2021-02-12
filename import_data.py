@@ -157,15 +157,13 @@ def plot_elevation(msfile,config,logger):
     cf.makedir(plots_obs_dir,logger)
     plot_file = plots_obs_dir+'{0}_elevation.png'.format(msfile)
     logger.info('Plotting elevation to: {}'.format(plot_file))
-    elev = config['plot_elevation']
-    avgtime = elev['avgtime']
-    correlation = elev['correlation']
-    width = elev['width']
-    min_elev = elev['min_elev']
-    max_elev = elev['max_elev']
+    avgtime = 16
+    width = 900
+    min_elev = 0
+    max_elev = 90
     showgui = False
     plotms(vis=msfile, xaxis='time', yaxis='elevation',
-            correlation=correlation, coloraxis = 'field',
+            correlation='', coloraxis = 'field',
             symbolsize=5, plotrange=[-1,-1, min_elev, max_elev],  
             averagedata=True, avgtime=str(avgtime), plotfile = plot_file,
             expformat = 'png', customsymbol = True, symbolshape = 'circle',
