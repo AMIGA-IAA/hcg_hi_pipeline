@@ -743,6 +743,10 @@ def calibration(msfile, config, config_raw, logger):
         logger.info('Executing command: '+command)
         exec(command)
         cf.check_casalog(config,config_raw,logger,casalog)
+        if cf.search_casalog('No offsets found for this MS',config,config_raw,logger,casalog):
+            aptab = None
+            logger.info('No antenna position offsets were found.')
+            logger.info('Ignoring this step for the remainder of calibration.')
     
     gctab = cal_tabs+'gaincurve.cal'
     logger.info('Calibrating gain vs elevation ({}).'.format(gctab))

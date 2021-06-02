@@ -220,6 +220,19 @@ def check_casalog(config,config_raw,logger,casalog):
                 sys.exit(-1)
         else:
             sys.exit(-1)
+
+def search_casalog(search_str,config,config_raw,logger,casalog):
+    """
+    Searches the casa log for given string.
+    """
+    current_log = open(casalog.logfile(), 'r')
+    casalog_lines = current_log.readlines()
+    current_log.close()
+    found = False
+    for line in casalog_lines:
+        if search_str in line:
+            found = True
+    return found
         
 def check_casaversion(logger):
     """
