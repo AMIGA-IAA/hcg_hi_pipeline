@@ -105,3 +105,7 @@ clean:
 - automask\_mbf: Float. As above for minbeamfrac.
 - automask\_lns: Float. As above for lownoisethreshold.
 - automask\_neg: Float. As above for negativethreshold.
+
+moment:
+- mom_thresh: Float. Threshold used for clipping when making the moment (in multiples of the rms noise).
+- mom_chans: List of strings. Default is an empty string for all targets. If you want to restrict the channels that can contribute to the moment map then define them here (same syntax as linefree\_ch).

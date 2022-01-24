@@ -1,0 +1,29 @@
+# Step by step example of implementing the pipeline for HCG 16
+
+1. If you do not already have all the prerequistes listed in the documentation then: Install [git](https://git-scm.com/). Install [CASA](https://casa.nrao.edu/casa_obtaining.shtml), we recommend CASA 5.4 for maximum compatiblity, but the pipeline should also function with any CASA 5 version. Install CASA [Analysis Utilities](https://casaguides.nrao.edu/index.php/Analysis_Utilities). Install [Ananconda](https://www.anaconda.com/) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
+
+2. Clone the github repo to you local machine with the terminal command `git@github.com:AMIGA-IAA/hcg_hi_pipeline.git`.
+
+3. Construct the conda environment: `conda env create -f conda_env.yml`. Activate it: `conda activate hcg_hi_pipeline`.
+
+4. Move into this example directory and download and unpack the raw VLA data with the following commands:
+    - `wget "https://b2share.eudat.eu/api/files/831f14fa-1840-454c-819b-d0b61500583b/hcg16-data.tar.gz"`
+    - `tar -xzf hcg16-data.tar.gz AW234_B891206.xp1`
+    - `tar -xzf hcg16-data.tar.gz AW500_C990113.xp1`
+    - `tar -xzf hcg16-data.tar.gz AW500_D990114.xp1`
+    - `mkdir AW234`
+    - `mkdir AW500`
+    - `mv AW234* AW234/.`
+    - `mv AW500* AW500/.`
+    - `mkdir AW234/raw_data`
+    - `mkdir AW500/raw_data`
+    - `mv AW234/*.xp1 AW234/raw_data/.`
+    - `mv AW500/*.xp1 AW500/raw_data/.`
+    
+5. Move into the AW234 directory and create a symbolic link to the main pipeline script: `ln -s ../../hi_segmented_pipeline.py`. Copy the pipeline parameters file: `cp ../../hi_segmented_pipeline.yml .`. 
+
+6. In the 'hi\_segmented\_pipeline.yml' you will need to set the absolute paths to CASA (e.g. /home/user/software/CASA/casa-release-5.4.2-8.el7/bin/), the top directory of this repo (e.g. /home/user/software/hcg\_hi\_pipeline/), the name of the pipeline parameters file for this dataset (AW234\_params.cfg), and a project name (AW234).
+
+7. The AW234\_params.cfg is an edited version of the template parameters file in the top repo directory. See the parameters description there for an explanation of all of the parameters. To ensure everything is setup correctly begin by running (remember the conda environment must be active) just the first step of the pipeline: `python hi_segmented_pipeline.py make import_data --local`. If the paths in hi\_segmented\_pipeline.yml are correctly set this step will create symbolic links to all the other pipeline scripts and load the raw data into the CASA MS format. A common error at this stage is for CASA to complain that the leap second tables are out of date. For historical VLA data this isn't a problem, but it's good practice to [keep it up to date](https://casaguides.nrao.edu/index.php/Fixing_out_of_date_TAI_UTC_tables_(missing_information_on_leap_seconds)), and the pipeline will not allow you to continue while a severe error is present. To check for errors either scroll through the terminal output or open AW234.log. Ensure this step executes correctly before continuing. Note that this step will momentarily produce a plotting window, therefore if you are running this on a machine with only terminal access and no X-forwarding this may result in a crash.
+
+8. 
