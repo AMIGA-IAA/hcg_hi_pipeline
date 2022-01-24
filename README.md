@@ -73,8 +73,8 @@ flagging:
 calibration:
 - refant: String. Name of reference antenna to use for calibration.
 - fluxcal: List of strings. Name of sources to use as flux calibrators. One for each spectral window, in numerical order.
-- fluxmod: List of strings. Name of flux model for each source in fluxcal.
-- man_mod: True/Flase. Indicate if one or more of the flux calibrators will be using a manually input flux model.
+- fluxmod: List of strings (or floats). Name of flux model for each source in fluxcal.
+- man_mod: True/Flase. Indicate if one or more of the flux calibrators will be using a manually input flux model. If Ture then the corresponding value in fluxmod should be a float of the calibrator flux in Jy.
 - bandcal: List of strings. Name of sources to use as bandpass calibrators. One for each spectral window, in numerical order.
 - phasecal: List of strings. Name of sources to use as phase calibrators. One for each target object. Must be in the same order as the targets.
 - targets: List of strings. Name of sources that are targets. Omitted targets will be ignored.
