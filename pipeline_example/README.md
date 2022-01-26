@@ -2,7 +2,11 @@
 
 1. If you do not already have all the prerequistes listed in the documentation then: Install [git](https://git-scm.com/). Install [CASA](https://casa.nrao.edu/casa_obtaining.shtml), we recommend [CASA 5.4](https://casa.nrao.edu/download/distro/casa/release/el7/casa-release-5.4.2-5.el7.tar.gz) for maximum compatiblity, but the pipeline should also function with any CASA 5 version. Install CASA [Analysis Utilities](https://casaguides.nrao.edu/index.php/Analysis_Utilities). Install [Ananconda](https://www.anaconda.com/) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
 
-2. Clone the github repo to you local machine with the terminal command `git clone https://github.com/AMIGA-IAA/hcg_hi_pipeline.git`.
+2. Clone the github repo to you local machine with the terminal command:
+
+```
+git clone https://github.com/AMIGA-IAA/hcg_hi_pipeline.git
+```
 
 3. Construct the conda environment: `conda env create -f conda_env.yml`. Activate it: `conda activate hcg_hi_pipeline`.
 
