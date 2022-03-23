@@ -4,7 +4,7 @@
 
 2. Clone the github repo to you local machine with the terminal command `git@github.com:AMIGA-IAA/hcg_hi_pipeline.git`.
 
-3. Construct the conda environment: `conda env create -f conda_env.yml`. Activate it: `conda activate hcg_hi_pipeline`.
+3. Construct the conda environment: `conda env create -f environment.yml`. Activate it: `conda activate hcg_hi_pipeline`.
 
 4. Move into this example directory and download and unpack the raw VLA data with the following commands:
     - `wget "https://b2share.eudat.eu/api/files/831f14fa-1840-454c-819b-d0b61500583b/hcg16-data.tar.gz"`
