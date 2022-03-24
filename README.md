@@ -2,7 +2,7 @@
 A CASA and Python based pipeline for reducing VLA HI spectral line data. The pipeline was created primarily for processing historical VLA observations of Hickson Compact Groups.
 
 ## Prerequisites
-This pipeline was developed using [CASA](https://casa.nrao.edu/casa_obtaining.shtml) v5.4.2-5. It also requires the [Analysis Utilities](https://casaguides.nrao.edu/index.php/Analysis_Utilities) library. All of the Python dependencies are listed in "conda_env.yml" which defines a [Conda](https://docs.conda.io/en/latest/) environment that can be constructed as described [here](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file).
+This pipeline was developed using [CASA](https://casa.nrao.edu/casa_obtaining.shtml) [v5.4.2-5](https://casa.nrao.edu/download/distro/casa/release/el7/casa-release-5.4.2-5.el7.tar.gz). It also requires the [Analysis Utilities](https://casaguides.nrao.edu/index.php/Analysis_Utilities) library. All of the Python dependencies are listed in [conda_env.yml](https://github.com/AMIGA-IAA/hcg_hi_pipeline/blob/master/conda_env.yml) which defines a [Conda](https://docs.conda.io/en/latest/) environment that can be constructed as described [here](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file).
 
 ## Getting started
 
@@ -14,6 +14,8 @@ In order to run the pipeline you will first need to copy 2 files ("PROJECTID_par
   5. In the pipeline yaml file define the scripts value as the path to the directory containing the pipeline scipts (e.g. ~/hcg_hi_pipeline/).
 
 Each of these points in the files are highlighted with a "CHANGEME" comment next to them. You will also need to (manually) make a symbolic link to the the 'hi_segmented_pipeline.py' script in your execution directory. If the files 'hi_segmented_pipeline.py', 'hi_segmented_pipeline.yml', and 'PROJECTID_params.cfg' are all present in the execution directory, then the pipeline will construct the remaining necessary links and copy the raw data (if a historical VLA data set, data from JVLA observations is not duplicated, merely linked to).
+
+See a step-by-step guide in the [example folder](https://github.com/AMIGA-IAA/hcg_hi_pipeline/tree/master/pipeline_example).
 
 ## Running the pipeline
 
