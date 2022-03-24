@@ -881,6 +881,7 @@ def calibration(msfile, config, config_raw, logger):
     
     if len(calfields.split(',')) > len(list(set(calib['fluxcal']))):
         fxtab = cal_tabs+'fluxsol.cal'
+        cf.rmdir(fxtab,logger)
         logger.info('Applying flux scale to calibrators ({}).'.format(fxtab))
         command = "fluxscale(vis='{0}', caltable='{1}', fluxtable='{2}', reference='{3}', incremental=True)".format(msfile,amtab,fxtab,','.join(calib['fluxcal']))
         logger.info('Executing command: flux_info = '+command)
