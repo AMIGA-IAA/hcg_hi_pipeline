@@ -32,9 +32,12 @@ git clone https://github.com/AMIGA-IAA/hcg_hi_pipeline.git
 
 9. After the pipeline has finished you can view the resulting images in CASA viewer (e.g `casaviewer moments/HCG16.mom0.fits`) or another FITS viewer of your choice. You can also experiment with modifying parameters in the parameters file and instructing the pipeline to re-run the make moment zero step.
 
-10. Move to the AW500 directory. Copy over the hi\_segmented\_pipeline.yml file and replace the 'AW234' values with 'AW500'. Create another symbolic link to the master script: `ln -s ../../hi_segmented_pipeline.py`.
+10. Move into the AW500 directory, create another symbolic link to the main pipeline script and copy the pipeline parameters file:
+    - `cd ../AW500`
+    - `ln -s ../../hi_segmented_pipeline.py`
+    - `cp ../AW234/hi_segmented_pipeline.yml .`
 
-11. Repeat steps 7-9 for AW500.
+11. Replace all instances of "AW234" in the new copy of the hi\_segmented\_pipeline.yml file with "AW500". Repeat steps 7-9 for AW500.
 
 12. Return to the main example directory and them move to the combined\_imaging directory. Make symbolic links to both combined imaging scripts in the master repo.
     - `ln -s ../../combined_imaging/combine_dirty_image.py`
