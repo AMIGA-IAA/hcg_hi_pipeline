@@ -745,6 +745,9 @@ def calibration(msfile, config, config_raw, logger):
         cf.check_casalog(config,config_raw,logger,casalog)
         if cf.search_casalog('No offsets found for this MS',config,config_raw,logger,casalog):
             aptab = None
+        if cf.search_casalog('No internet connection to antenna position correction URL',config,config_raw,logger,casalog):
+            aptab = None
+        if aptab is None:
             logger.info('No antenna position offsets were found.')
             logger.info('Ignoring this step for the remainder of calibration.')
     
