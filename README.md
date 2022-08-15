@@ -2,7 +2,9 @@
 A CASA and Python based pipeline for reducing VLA HI spectral line data. The pipeline was created primarily for processing historical VLA observations of Hickson Compact Groups.
 
 ## Prerequisites
-This pipeline was developed using [CASA](https://casa.nrao.edu/casa_obtaining.shtml) v5.4.2-5. It also requires the [Analysis Utilities](https://casaguides.nrao.edu/index.php/Analysis_Utilities) library. All of the Python dependencies are listed in "conda_env.yml" which defines a [Conda](https://docs.conda.io/en/latest/) environment that can be constructed as described [here](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file).
+
+This pipeline was developed using [CASA](https://casa.nrao.edu/casa_obtaining.shtml) [v5.4.2-5](https://casa.nrao.edu/download/distro/casa/release/el7/casa-release-5.4.2-5.el7.tar.gz). It also requires the [Analysis Utilities](https://casaguides.nrao.edu/index.php/Analysis_Utilities) library. All of the Python dependencies are listed in [environment.yml](https://github.com/AMIGA-IAA/hcg_hi_pipeline/blob/master/environment.yml) which defines a [Conda](https://docs.conda.io/en/latest/) environment that can be constructed as described [here](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file).
+
 
 ## Getting started
 
@@ -14,6 +16,8 @@ In order to run the pipeline you will first need to copy 2 files ("PROJECTID_par
   5. In the pipeline yaml file define the scripts value as the path to the directory containing the pipeline scipts (e.g. ~/hcg_hi_pipeline/).
 
 Each of these points in the files are highlighted with a "CHANGEME" comment next to them. You will also need to (manually) make a symbolic link to the the 'hi_segmented_pipeline.py' script in your execution directory. If the files 'hi_segmented_pipeline.py', 'hi_segmented_pipeline.yml', and 'PROJECTID_params.cfg' are all present in the execution directory, then the pipeline will construct the remaining necessary links and copy the raw data (if a historical VLA data set, data from JVLA observations is not duplicated, merely linked to).
+
+See a step-by-step guide in the [example folder](https://github.com/AMIGA-IAA/hcg_hi_pipeline/tree/master/pipeline_example).
 
 ## Running the pipeline
 
@@ -42,28 +46,70 @@ The pipeline is intended to be run in interactive mode on its first execution. I
 ## Parameter descriptions
 
 global:
-- project_name: This will be used as the base name for the measurement set. If you are using JVLA data that was already downloaded in ms format, it is important that this name matches that of the existing ms (minus the ".ms" extention).
-- rest_freq: This should be "1420405751.786Hz" unless not working with HI, which is not advised.
+- project_name: String. This will be used as the base name for the measurement set. If you are using JVLA data that was already downloaded in ms format, it is important that this name matches that of the existing ms (minus the ".ms" extention).
+- rest_freq: String (no quotes). This should be "1420405751.786Hz" unless not working with HI, which is not advised.
 - interactive: True/False. If true the pipeline will halt at various points to query the user. If false it will attempt to run without user input. Note that running in interactive mode can help to catch errors in the parameter values that might cause the pipeline to crash, however, it means it cannot be left to run unattended.
-- src_dir: Name of directory to store split source files in.
-- img_dir: Name of directory to store images in.
-- mom_dir: Name of directory to store moments in.
+- src_dir: String. Name of directory to store split source files in.
+- img_dir: String. Name of directory to store images in.
+- mom_dir: String. Name of directory to store moments in.
 - cleanup_level: Integer from 0-3. Sets the level of tidying done (see above).
 - (ignore_errs: True/False. "Hidden" parameter that deactivates the function that checks the casalog for severe errors after each task. It is inadvisable to use this except in exceptional circumstances or for the purposes of debugging.)
 
 importdata:
-- data_path: The path from the execution directory (or the absolute path) to the directory where the raw data are saved. If working with JVLA data this should be the path to the directory above the ms directory, not the ms directory itself.
-- jvla: True/False. Are you using histoorical or JVLA data? This determines whether the data are copied to the execution directory (historical data are assumed to be relatively small) or is a symbolic link is made to an existing ms (as well a several other minor differences in the flagging and calibration steps).
+- data_path: String. The path from the execution directory (or the absolute path) to the directory where the raw data are saved. If working with JVLA data this should be the path to the directory above the ms directory, not the ms directory itself.
+- jvla: True/False. Are you using historical or JVLA data? This determines whether the data are copied to the execution directory (historical data are assumed to be relatively small) or is a symbolic link is made to an existing ms (as well a several other minor differences in the flagging and calibration steps).
 - mstransform: True/False. Do you want to transform the measurement set when you import it?
-- keep_obs: (String in single quotes.) List of the observation blocks to keep when running mstransform e.g. '0,1,4'.
-- keep_spws: (String in single quotes.) List of the spectral windows to keep when running mstransform e.g. '0,1,4'.
-- keep_fields: (String in single quotes.) List of the fields to keep when running mstransform e.g. '0,1,4' or '3C48, HCG22'.
+- keep_obs: String (in single quotes). List of the observation blocks to keep when running mstransform e.g. '0,1,4'.
+- keep_spws: String (in single quotes). List of the spectral windows to keep when running mstransform e.g. '0,1,4'.
+- keep_fields: String (in single quotes). List of the fields to keep when running mstransform e.g. '0,1,4' or '3C48, HCG22'.
 - hanning: True/False. Apply Hanning smoothing to the data when importing it?
-- chanavg: Number of channels to average together when importing the data (0 for no averaging). Note if the "hanning" parameter is set to True, then this smoothing will be performed in addition to Hanning smoothing, not instead of it.
+- chanavg: Integer. Number of channels to average together when importing the data (0 for no averaging). Note if the "hanning" parameter is set to True, then this smoothing will be performed in addition to Hanning smoothing, not instead of it.
 
 flagging:
 - shadow_tol: Float. The number of metres of dish overlap that is tolerated before the data are flagged for the shadowed antenna.
 - quack_int: Float. The number of seconds removed from the beginning of each scan to allow time for dishes to settle.
-- timecutoff: Float.
+- timecutoff: Float. Threshold (in number of standard deviations) above which data are flagged in time.
+- freqcutoff: Float. Threshold (in number of standard deviations) above which data are flagged in frequency.
+- rthresh: Float. Threshold (in number of standard deviations) above which data are flagged (for both time and frequency) in CASA's rflag task.
+- no_rflag: True/Flase. Activate or deactive CASA's automatic flagging with the rflag task.
+- no_tfcrop: True/Flase. Activate or deactive CASA's automatic flagging with the tfcrop task.
 
-... Work in progress.
+calibration:
+- refant: String. Name of reference antenna to use for calibration.
+- fluxcal: List of strings. Name of sources to use as flux calibrators. One for each spectral window, in numerical order.
+- fluxmod: List of strings (or floats). Name of flux model for each source in fluxcal.
+- man_mod: True/Flase. Indicate if one or more of the flux calibrators will be using a manually input flux model. If Ture then the corresponding value in fluxmod should be a float of the calibrator flux in Jy.
+- bandcal: List of strings. Name of sources to use as bandpass calibrators. One for each spectral window, in numerical order.
+- phasecal: List of strings. Name of sources to use as phase calibrators. One for each target object. Must be in the same order as the targets.
+- targets: List of strings. Name of sources that are targets. Omitted targets will be ignored.
+- target_names: List of strings. Human readable names for each target in targets. Deafult is to use the same strings as in targets.
+- mosaic: True/False. Indicate if these observations were mosaicking a target. Note it is advised to only use a single target when reducing mosaicked data with this pipeline.
+
+continuum_subtraction:
+- linefree_ch: List of strings. Indicate the channels free from line emission for each target. The string '0:2~8;54~58' indicates that channels 2-8 (inclusive) and 54-58 (inclusive) in spectral window 0 are free from line emission. The spectral window indicated must correspond to the spectral window that the target in question was observed with.
+- fitorder: List of integers. Order of polynomial used to fit the continuum emission.
+- save_cont: True/False. Should the continuum be saved separately after it is subtracted? Note: This pipeline focuses only on HI line emission, so these files are not used subsequently by the pipeline either way.
+
+
+clean:
+- line_ch: List of strings. Indicate the channels potentially containing line emission that you wish to image. Same syntax as for linefree\_ch. Note: Here the spectral window should always be 0 as at this point each target will have been split into a combined spectral window (or separate, non-overlapping spectral windows).
+- robust: Float. Robust parameter for Brigg's weighting. Note: The same value is used for all targets.
+- pix_size: List of strings. Indicate the desired pixel size for each target e.g. '3arcsec'.
+- im_size: List of strings. Indicate the desired image size for each target in pixels e.g. '1024'. Note: This pipeline only produces square images.
+- automask: True/False. Indicate whether you want to use CASA's automated masking or not. The alternative is to use a primary beam mask only.
+- multiscale: True/False. Use multiscale clean or standard Hogbom clean?
+- beam_scales: List of integers. Scales used by multiscale clean in multiples of the beam size.
+- phasecenter: String. Default is blank. The phase center for the clean image e.g. 'J2000 03:03:30 -15.35.32.5'.
+- sefd: Float. The SEFD of the telescope. For the VLA in L-band this number should probably be 420.
+- corr_eff: Float. Assumed correlator efficiency for estimating expected noise level.
+- thresh: Float. Cleaning threshold in multiples of the automatically estimated rms noise.
+- (noise: List of strings. "Hidden" parameter to set the rms noise values (e.g. '0.2mJy') for each target manually in case the automated estimation is inadequate.)
+- automask\_sl: Float. See CASA's [automasking description](https://casaguides.nrao.edu/index.php/Automasking_Guide) of sidelobethreshold. 
+- automask\_ns: Float. As above for noisethreshold.
+- automask\_mbf: Float. As above for minbeamfrac.
+- automask\_lns: Float. As above for lownoisethreshold.
+- automask\_neg: Float. As above for negativethreshold.
+
+moment:
+- mom_thresh: Float. Threshold used for clipping when making the moment (in multiples of the rms noise).
+- mom_chans: List of strings. Default is an empty string for all targets. If you want to restrict the channels that can contribute to the moment map then define them here (same syntax as linefree\_ch).

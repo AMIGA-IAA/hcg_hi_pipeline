@@ -9,7 +9,4 @@ dependencies:
     - ruffus=2.8
     - numpy=1.16
     - readline=7.0
-    - aplpy=2.0
-    - jupyterlab
-    - astroquery=0.4
     - configparser=5.0
