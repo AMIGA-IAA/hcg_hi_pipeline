@@ -961,26 +961,26 @@ def calibration(msfile, config, config_raw, logger):
             if not calib['phasecal'][i] in calib['fluxcal']:
                 logger.info('Applying calibration to: {}'.format(calib['phasecal'][i]))
                 if aptab is not None:
-                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}'], gainfield=['', '', '{9}', '{9}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'][i],aptab, gctab, dltab, bstab, iptab, amtab, fxtab, bandcal)
+                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}'], gainfield=['', '', '{9}', '{9}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'][i],aptab, gctab, dltab, bstab, sptab, amtab, fxtab, bandcal)
                 else:
-                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal)
+                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{1}', '{1}', '{1}'], calwt=False)".format(msfile,calib['phasecal'][i],gctab, dltab, bstab, sptab, amtab, fxtab, bandcal)
                 logger.info('Executing command: '+command)
                 exec(command)
                 cf.check_casalog(config,config_raw,logger,casalog)
                 logger.info('Applying calibration to: {}'.format(calib['targets'][i]))
                 if aptab is not None:
-                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}'], gainfield=['', '', '{9}', '{9}', '{10}', '{10}', '{10}'], calwt=False)".format(msfile,calib['targets'][i],aptab, gctab, dltab, bstab, iptab, amtab, fxtab, bandcal, calib['phasecal'][i])
+                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}'], gainfield=['', '', '{9}', '{9}', '{10}', '{10}', '{10}'], calwt=False)".format(msfile,calib['targets'][i],aptab, gctab, dltab, bstab, sptab, amtab, fxtab, bandcal, calib['phasecal'][i])
                 else:
-                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, fxtab, bandcal, calib['phasecal'][i])
+                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '{8}', '{8}', '{9}', '{9}', '{9}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, sptab, amtab, fxtab, bandcal, calib['phasecal'][i])
                 logger.info('Executing command: '+command)
                 exec(command)
                 cf.check_casalog(config,config_raw,logger,casalog)
             else:
                 logger.info('Applying calibration to: {}'.format(calib['targets'][i]))
                 if aptab is not None:
-                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '', '{8}', '{8}', '{9}', '{9}'], calwt=False)".format(msfile,calib['targets'][i],aptab, gctab, dltab, bstab, iptab, amtab, bandcal, calib['phasecal'][i])
+                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}', '{7}'], gainfield=['', '', '{8}', '{8}', '{9}', '{9}'], calwt=False)".format(msfile,calib['targets'][i],aptab, gctab, dltab, bstab, sptab, amtab, bandcal, calib['phasecal'][i])
                 else:
-                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{7}', '{7}', '{8}', '{8}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, iptab, amtab, bandcal, calib['phasecal'][i])
+                    command = "applycal(vis='{0}', field='{1}', gaintable=['{2}', '{3}', '{4}', '{5}', '{6}'], gainfield=['', '{7}', '{7}', '{8}', '{8}'], calwt=False)".format(msfile,calib['targets'][i],gctab, dltab, bstab, sptab, amtab, bandcal, calib['phasecal'][i])
                 logger.info('Executing command: '+command)
                 exec(command)
                 cf.check_casalog(config,config_raw,logger,casalog)
