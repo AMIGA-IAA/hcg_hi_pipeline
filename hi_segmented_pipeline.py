@@ -127,7 +127,7 @@ def check_pipeline_params():
                     os.remove('moment_zero.done')
                 except FileNotFoundError:
                     pass
-            elif any(keyword in diff for keyword in cleanup_kwds):
+            if any(keyword in diff for keyword in cleanup_kwds):
                 for keyword in cleanup_kwds:
                     if keyword in diff:
                         print('The {} keyword value has changed in the parameters file since the previous run.'.format(keyword))
@@ -186,36 +186,42 @@ def dependency_check(outfile):
 
 @transform(dependency_check, suffix('dependency_check.done'), 'import_data.done'.format(cgatcore_params['project']))
 def import_data(infile,outfile):
+    os.remove('cleanup.done')
     statement = 'casa --nologger -c import_data.py {} && touch import_data.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
     
 @transform(import_data, suffix('import_data.done'.format(cgatcore_params['project'])), 'flag_calib_split.done'.format(cgatcore_params['project']))
 def flag_calib_split(infile,outfile):
+    os.remove('cleanup.done')
     statement = 'casa --nologger -c flag_calib_split.py {} && touch flag_calib_split.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
     
 @transform(flag_calib_split, suffix('flag_calib_split.done'.format(cgatcore_params['project'])), 'dirty_cont_image.done'.format(cgatcore_params['project']))
 def dirty_cont_image(infile,outfile):
+    os.remove('cleanup.done')
     statement = 'casa --nologger -c dirty_cont_image.py {} && touch dirty_cont_image.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
     
 @transform(dirty_cont_image, suffix('dirty_cont_image.done'.format(cgatcore_params['project'])), 'contsub_dirty_image.done'.format(cgatcore_params['project']))
 def contsub_dirty_image(infile,outfile):
+    os.remove('cleanup.done')
     statement = 'casa --nologger -c contsub_dirty_image.py {} && touch contsub_dirty_image.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
     
 @transform(contsub_dirty_image, suffix('contsub_dirty_image.done'.format(cgatcore_params['project'])), 'clean_image.done'.format(cgatcore_params['project']))
 def clean_image(infile,outfile):
+    os.remove('cleanup.done')
     statement = 'casa --nologger -c clean_image.py {} && touch clean_image.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
 
 @transform(clean_image, suffix('clean_image.done'.format(cgatcore_params['project'])), 'moment_zero.done'.format(cgatcore_params['project']))
 def moment_zero(infile,outfile):
+    os.remove('cleanup.done')
     statement = 'casa --nologger -c moment_zero.py {} && touch moment_zero.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
     
-@transform(moment_zero, suffix('moment_zero.done'.format(cgatcore_params['project'])), 'cleanup.done'.format(cgatcore_params['project']))
-def cleanup(infile,outfile):
+@originate('cleanup.done')
+def cleanup(outfile):
     statement = 'casa --nologger -c cleanup.py {} && touch cleanup.done'.format(cgatcore_params['configfile'])
     stdout, stderr = P.execute(statement)
     
