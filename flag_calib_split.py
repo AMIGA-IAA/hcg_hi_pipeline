@@ -1051,6 +1051,13 @@ def split_fields(msfile,config,config_raw,config_file,logger):
                 chan_wids.append(numpy.round(numpy.mean(wids)/1.E3,3))
             msmd.close()
             if len(spws) > 1:
+                if config_raw.has_option('calibration','combinespws'):
+                    if bool(calib['combinespws']):
+                        combine = True
+                        separate = False
+                    else:
+                        combine = False
+                        separate = True
                 if config_raw.has_option('calibration','man_comb_spws'):
                     combine_spws = dict(calib['man_comb_spws'])[field]
                     combine = True
