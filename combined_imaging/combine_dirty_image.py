@@ -61,7 +61,7 @@ if bool(config['combine']['mstransform']):
     img_param['msfiles'] = msfiles
     img_param['img_dir'] = img_dir
     img_param['name'] = name
-    command = "tclean(vis='{name}.ms', imagename='{img_dir}/{name}.dirty', cell='{pix_size}', imsize={im_size}, spw='{im_chns}', specmode='cube', outframe='bary', veltype='radio', restfreq='{rest_freq}', gridder='mosaic', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='multiscale', scales={scales}, weighting='briggs', robust={robust}, pbcor=True, niter=0, gain=0.1, cyclefactor=2.0, interactive=False, usemask='auto-multithresh', phasecenter='{phasecenter}')".format(**img_param)
+    command = "tclean(vis='{name}.ms', imagename='{img_dir}/{name}.dirty', cell='{pix_size}', imsize={im_size}, spw='{im_chns}', specmode='cube', outframe='bary', veltype='radio', restfreq='{rest_freq}', gridder='{gridder}', wprojplanes=-1, pblimit=0.1, normtype='flatnoise', deconvolver='multiscale', scales={scales}, weighting='briggs', robust={robust}, pbcor=True, niter=0, gain=0.1, cyclefactor=2.0, interactive=False, usemask='auto-multithresh', phasecenter='{phasecenter}')".format(**img_param)
     logger.info('Executing command: '+command)
     exec(command)
     
@@ -75,7 +75,7 @@ else:
     img_param['img_dir'] = img_dir
     img_param['name'] = name
     img_param['clean_thresh'] = 2.5*img_param['rms']
-    command = "tclean(vis={msfiles}, imagename='{img_dir}/{name}.dirty', cell='{pix_size}', imsize={im_size}, spw='{im_chns}', specmode='cube', outframe='bary', veltype='radio', restfreq='{rest_freq}', gridder='mosaic', wprojplanes=128, pblimit=0.1, normtype='flatnoise', deconvolver='multiscale', scales={scales}, weighting='briggs', robust={robust}, pbcor=True, niter=0, gain=0.1, cyclefactor=2.0, interactive=False, threshold='{clean_thresh}mJy', usemask='auto-multithresh', phasecenter='{phasecenter}')".format(**img_param)
+    command = "tclean(vis={msfiles}, imagename='{img_dir}/{name}.dirty', cell='{pix_size}', imsize={im_size}, spw='{im_chns}', specmode='cube', outframe='bary', veltype='radio', restfreq='{rest_freq}', gridder='{gridder}', wprojplanes=-1, pblimit=0.1, normtype='flatnoise', deconvolver='multiscale', scales={scales}, weighting='briggs', robust={robust}, pbcor=True, niter=0, gain=0.1, cyclefactor=2.0, interactive=False, threshold='{clean_thresh}mJy', usemask='auto-multithresh', phasecenter='{phasecenter}')".format(**img_param)
     logger.info('Executing command: '+command)
     exec(command)
     
