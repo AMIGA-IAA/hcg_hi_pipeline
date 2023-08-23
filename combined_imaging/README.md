@@ -25,6 +25,7 @@ image:
 - pix_size: The angular size of a pixel e.g. '4arcsec'.
 - scales: List of integers/floats indicating the scales (in pixels) that will be used by the multi-scale clean algorithm. The default values assume the pixel size will be set so that there are 5 pixels across the synthesised beam. Be careful that the largest scale is still constrained by the uv data or imaging may diverge (see [here](https://science.nrao.edu/facilities/vla/docs/manuals/oss/performance/resolution)).
 - im_chans: A string (that can be blank, i.e. select all) indicating the spectral window and channels to image e.g. '0:11~21'.
+- gridder: The gridder that CASA will use to produce the final image. Examples are 'wproject', 'mosaic', and 'standard'. 
 - rest_freq: You probably don't want to change this from '1420405751.786Hz', why would you look at any other line? Seriously though, this whole pipeline was designed specifically with HI in mind and is entirely untested on any other line.
 - robust: Brigg's robust parameters. The default value of 2 is designed to maximise sensitivity to extended features at the expense of resolution.
 - automask_sl: CASA automasking side lobe threshold (see [here](https://casaguides.nrao.edu/index.php/Automasking_Guide)).
