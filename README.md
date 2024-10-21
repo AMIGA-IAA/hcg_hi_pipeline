@@ -1,5 +1,5 @@
-# HI pipeline for historical VLA data (of HCGs)
-A CASA and Python based pipeline for reducing VLA HI spectral line data. The pipeline was created primarily for processing historical VLA observations of Hickson Compact Groups.
+# HI pipeline for VLA data (of HCGs)
+A CASA and Python based pipeline for reducing VLA HI spectral line data. The pipeline was created primarily for processing historical VLA observations of Hickson Compact Groups, but works for all historical or extended VLA HI observations.
 
 ## Prerequisites
 
@@ -25,7 +25,7 @@ The pipeline has 7 steps which are chained together using the [CGAT-core](https:
 
 The 7 steps are:
   1. 'import_data': Converts the raw data into CASA measurement set format (unless already the case). May also transform the measurement set. In interactive mode the user will be queried to decide this.
-  2. 'flag_calib_split': This step flags, calibrates and splits off the individual targets from the full data set. Flagging is done through the automated algorithms available in CASA. However, the user may create a manual list of flags in a file named 'manual_flags.list' in the execution directory and the pipeline will include these as well (such flags must be in CASA's [list format](https://casa.nrao.edu/casadocs/casa-5.4.1/global-task-list/task_flagdata/about)). If the pipeline is run in interactive mode the user is queried to specify which sources are calibrators and targets in order for the data to be correctly calibrated. Further automatic flagging is performed on the (first round) calibrated data and then the calibration is re-run a second time. Finally the target objects are split off into separate measurement sets.
+  2. 'flag_calib_split': This step flags, calibrates and splits off the individual targets from the full data set. Flagging is done through the automated algorithms available in CASA. However, the user may create a manual list of flags in a file named 'manual_flags.list' in the execution directory and the pipeline will include these as well (such flags must be in CASA's [list format](https://casadocs.readthedocs.io/en/stable/api/tt/casatasks.flagging.flagdata.html#inpfile)). If the pipeline is run in interactive mode the user is queried to specify which sources are calibrators and targets in order for the data to be correctly calibrated. Further automatic flagging is performed on the (first round) calibrated data and then the calibration is re-run a second time. Finally the target objects are split off into separate measurement sets.
   3. 'dirty_cont_image': A dirty image (without the continuum emission removed) is produced for each target.
   4. 'contsub_dirty_image': The user is queried to specify the emission line-free channels for each target. The continuum is then removed from the uv data. Another dirty image of each target is produced, but now with the continuum removed.
   5. 'clean_image': The expected noise level based on the integration time and the amount of flagging is estimated and a clean image is generated using the CASA task tclean. Generates fits cubes for each target with and without a primary beam correction.
