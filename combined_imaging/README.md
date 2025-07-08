@@ -15,8 +15,10 @@ The dirty image script is designed to allow you to test the parameters before pr
 ## Parameters
 
 combine:
-- HCG: Taregt ID number (in this case for HCG).
+- name: Name of target (this will be used for all files generated).
 - proj_IDs: List of strings which are the project IDs. The script assumes that the uv data for each project can be found ```../PROJECTID/sources/HCGID*.*split.contsub```. Sorry, for the moment the 'HCG' is hard coded in the script.
+- mstransform: Boolean indicating whether the measurement set should be combined into a new joint ms before producing an image cube. This is a requirement for the follow velwidth parameter to be succesfully applied.
+- velwidth: String indicating the desired velocity resolution. This parameter is ignored if mstranform is False.
 
 image:
 - rms: Estimate of the rms noise in mJy. The clean image script will clean down to 2.5 x rms.
@@ -33,3 +35,4 @@ image:
 - automask_mbf: CASA automasking minimum beam fraction parameter (see [here](https://casaguides.nrao.edu/index.php/Automasking_Guide)).
 - automask_lns: CASA automasking low noise threshold (see [here](https://casaguides.nrao.edu/index.php/Automasking_Guide)).
 - automask_neg: CASA automasking negative threshold (see [here](https://casaguides.nrao.edu/index.php/Automasking_Guide)).
+- restoringbeam: This is an optional parameter (not included in the template file) that can force a restoring beam of specific dimensions. This can be helpful when there is one bad channel triggering a poor common beam shape. Beam can be specified in the following format: ['20arcsec','30arcsec','30deg']
